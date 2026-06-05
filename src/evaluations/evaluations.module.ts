@@ -17,5 +17,12 @@ import { SqlEvaluationService } from './sql-evaluation.service';
     McqEvaluationService,
     DashboardEvaluationService,
   ],
+  exports: [
+    DsaEvaluationService,
+    SqlEvaluationService,
+    OopsEvaluationService,
+    McqEvaluationService,
+    DashboardEvaluationService,
+  ],
 })
 export class EvaluationsModule {}
