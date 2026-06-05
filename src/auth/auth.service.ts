@@ -76,6 +76,21 @@ export class AuthService {
       throw new BadRequestException(error.message);
     }
 
+    if (data.user?.id) {
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: data.user.id,
+        email,
+        full_name: fullName || null,
+        role: 'student',
+      });
+
+      if (profileError) {
+        throw new InternalServerErrorException(
+          `Account created, but profile could not be saved: ${profileError.message}`,
+        );
+      }
+    }
+
     const actionLink = data.properties?.action_link;
     if (!actionLink) {
       throw new InternalServerErrorException(
