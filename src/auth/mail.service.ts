@@ -17,11 +17,16 @@ export class MailService {
     const port = Number(this.config.get<string>('EMAIL_SERVER_PORT') || 587);
     const user = this.config.get<string>('EMAIL_SERVER_USER');
     const pass = this.config.get<string>('EMAIL_SERVER_PASSWORD');
-    const secure = String(this.config.get<string>('EMAIL_SERVER_SECURE') || 'false') === 'true';
-    const from = this.config.get<string>('EMAIL_FROM') || 'JoraIQ <no-reply@joraiq.ai>';
+    const secure =
+      String(this.config.get<string>('EMAIL_SERVER_SECURE') || 'false') ===
+      'true';
+    const from =
+      this.config.get<string>('EMAIL_FROM') || 'JoraIQ <no-reply@joraiq.ai>';
 
     if (!host || !user || !pass) {
-      throw new InternalServerErrorException('SMTP settings are not configured');
+      throw new InternalServerErrorException(
+        'SMTP settings are not configured',
+      );
     }
 
     const transporter = nodemailer.createTransport({

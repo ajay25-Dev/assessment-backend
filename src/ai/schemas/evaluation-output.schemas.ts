@@ -1,0 +1,185 @@
+import { JsonSchema } from '../ai.types';
+
+const readinessLabels = [
+  'Elite 1% Company Ready',
+  'Strong Company Ready',
+  'Near Ready',
+  'Trainable but Not Ready',
+  'Risky High Scorer',
+  'Not Ready',
+];
+
+const riskLevels = ['Low', 'Medium', 'High'];
+const stringArray: JsonSchema = { type: 'array', items: { type: 'string' } };
+
+function strictObject(properties: Record<string, JsonSchema>): JsonSchema {
+  return {
+    type: 'object',
+    properties,
+    required: Object.keys(properties),
+    additionalProperties: false,
+  };
+}
+
+const score = { type: 'integer' };
+const text = { type: 'string' };
+const bool = { type: 'boolean' };
+
+export const dsaEvaluationOutputSchema = strictObject({
+  section: { type: 'string', enum: ['DSA'] },
+  question_id: text,
+  question_title: text,
+  correctness_score: score,
+  open_test_case_score: score,
+  hidden_test_case_score: score,
+  approach_score: score,
+  time_complexity_score: score,
+  space_complexity_score: score,
+  edge_case_score: score,
+  code_quality_score: score,
+  overall_question_score: score,
+  brute_force_risk: { type: 'string', enum: riskLevels },
+  hardcoding_risk: { type: 'string', enum: riskLevels },
+  optimization_level: {
+    type: 'string',
+    enum: ['Optimal', 'Acceptable', 'Inefficient', 'Brute Force', 'Incorrect'],
+  },
+  detected_approach: text,
+  expected_approach_match: bool,
+  likely_time_complexity: text,
+  likely_space_complexity: text,
+  failed_case_analysis: stringArray,
+  missed_edge_cases: stringArray,
+  compilation_behavior: text,
+  submission_behavior: text,
+  runtime_observation: text,
+  memory_observation: text,
+  key_strengths: stringArray,
+  key_weaknesses: stringArray,
+  improvement_recommendation: text,
+  placement_readiness_label: { type: 'string', enum: readinessLabels },
+});
+
+export const sqlEvaluationOutputSchema = strictObject({
+  section: { type: 'string', enum: ['SQL'] },
+  question_id: text,
+  question_title: text,
+  result_correctness_score: score,
+  business_logic_score: score,
+  sql_concept_score: score,
+  edge_case_score: score,
+  query_efficiency_score: score,
+  readability_score: score,
+  null_duplicate_handling_score: score,
+  overall_question_score: score,
+  hardcoding_risk: { type: 'string', enum: riskLevels },
+  query_quality_label: {
+    type: 'string',
+    enum: ['Excellent', 'Good', 'Average', 'Weak', 'Incorrect'],
+  },
+  expected_concepts_used: stringArray,
+  missing_concepts: stringArray,
+  detected_mistakes: stringArray,
+  missing_business_rules: stringArray,
+  failed_case_analysis: stringArray,
+  runtime_observation: text,
+  key_strengths: stringArray,
+  key_weaknesses: stringArray,
+  improvement_recommendation: text,
+  placement_readiness_label: { type: 'string', enum: readinessLabels },
+});
+
+export const oopsEvaluationOutputSchema = strictObject({
+  section: { type: 'string', enum: ['OOPs'] },
+  question_id: text,
+  question_title: text,
+  class_design_score: score,
+  abstraction_score: score,
+  encapsulation_score: score,
+  polymorphism_score: score,
+  extensibility_score: score,
+  separation_of_concerns_score: score,
+  solid_principles_score: score,
+  error_handling_score: score,
+  code_readability_score: score,
+  design_pattern_awareness_score: score,
+  overall_question_score: score,
+  design_maturity_label: {
+    type: 'string',
+    enum: ['Excellent', 'Good', 'Average', 'Weak', 'Procedural'],
+  },
+  identified_classes: stringArray,
+  identified_interfaces_or_abstractions: stringArray,
+  design_patterns_detected: stringArray,
+  missing_components: stringArray,
+  red_flags: stringArray,
+  key_strengths: stringArray,
+  key_weaknesses: stringArray,
+  improvement_recommendation: text,
+  placement_readiness_label: { type: 'string', enum: readinessLabels },
+});
+
+export const mcqEvaluationOutputSchema = strictObject({
+  section: { type: 'string', enum: ['MCQ'] },
+  student_id: text,
+  overall_mcq_score: score,
+  subject_scores: strictObject({
+    operating_systems: score,
+    computer_networks: score,
+    cybersecurity: score,
+    computer_architecture: score,
+    cloud_computing: score,
+    ms_office_excel: score,
+    oops: score,
+  }),
+  topic_scores: {
+    type: 'object',
+    additionalProperties: { type: 'integer' },
+  },
+  strong_topics: stringArray,
+  weak_topics: stringArray,
+  misconceptions_detected: stringArray,
+  guessing_risk: { type: 'string', enum: riskLevels },
+  confidence_signal: { type: 'string', enum: ['Strong', 'Moderate', 'Weak'] },
+  time_behavior_summary: text,
+  revision_recommendation: text,
+  placement_readiness_label: { type: 'string', enum: readinessLabels },
+});
+
+export const dashboardEvaluationOutputSchema = strictObject({
+  student_id: text,
+  student_name: text,
+  overall_marks_score: score,
+  capability_score: score,
+  dsa_score: score,
+  sql_score: score,
+  oops_score: score,
+  mcq_score: score,
+  approach_score: score,
+  complexity_score: score,
+  code_quality_score: score,
+  hidden_test_pass_rate: score,
+  brute_force_risk: { type: 'string', enum: riskLevels },
+  hardcoding_risk: { type: 'string', enum: riskLevels },
+  compilation_behaviour: text,
+  runtime_percentile: text,
+  strongest_area: text,
+  weakest_area: text,
+  readiness_label: { type: 'string', enum: readinessLabels },
+  company_recommendation: {
+    type: 'string',
+    enum: [
+      'Send to product/service company immediately',
+      'Send only after mock interview',
+      'Train for 2-3 weeks before sending',
+      'Train for 6-8 weeks before sending',
+      'Do not send to company yet',
+    ],
+  },
+  training_recommendation: text,
+  faculty_insight: text,
+  student_summary: text,
+  detailed_strengths: stringArray,
+  detailed_weaknesses: stringArray,
+  next_3_learning_actions: stringArray,
+});

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
 import WebSocket from 'ws';
@@ -18,7 +22,9 @@ export class AuthService {
   ) {}
 
   async signup(input: SignupInput) {
-    const email = String(input.email || '').trim().toLowerCase();
+    const email = String(input.email || '')
+      .trim()
+      .toLowerCase();
     const password = String(input.password || '');
     const fullName = String(input.fullName || '').trim();
 
@@ -36,10 +42,13 @@ export class AuthService {
       this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !serviceRoleKey) {
-      throw new InternalServerErrorException('Supabase admin credentials are not configured');
+      throw new InternalServerErrorException(
+        'Supabase admin credentials are not configured',
+      );
     }
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const redirectTo = `${frontendUrl.replace(/\/$/, '')}/auth/callback?next=/dashboard`;
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
@@ -69,7 +78,9 @@ export class AuthService {
 
     const actionLink = data.properties?.action_link;
     if (!actionLink) {
-      throw new InternalServerErrorException('Supabase did not return a verification link');
+      throw new InternalServerErrorException(
+        'Supabase did not return a verification link',
+      );
     }
 
     await this.mailService.sendVerificationEmail({
