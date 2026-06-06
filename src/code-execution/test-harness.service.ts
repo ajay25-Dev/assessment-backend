@@ -88,9 +88,9 @@ export class TestHarnessService {
 
     switch (language) {
       case 'python':
-        return this.pythonHarness(sourceCode, testCases);
+        return this.pythonHarness(sourceCode, testCases, questionId);
       case 'javascript':
-        return this.javascriptHarness(sourceCode, testCases);
+        return this.javascriptHarness(sourceCode, testCases, questionId);
       case 'java':
         return this.javaHarness(sourceCode, testCases, questionId);
       case 'cpp':
@@ -116,6 +116,25 @@ export class TestHarnessService {
 
   private escapedJsonForCpp(value: unknown) {
     return JSON.stringify(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  }
+
+  private functionCandidates(questionId: string) {
+    if (questionId === 'dsa_servicenow_incident_dependency') {
+      return ['resolve_incidents', 'resolveIncidents', 'findOrder', 'topologicalSort', 'canFinish'];
+    }
+    if (questionId === 'dsa_amazon_delivery_routes') {
+      return ['minimum_delivery_times', 'minimumDeliveryTimes'];
+    }
+    if (questionId === 'dsa_commvault_deduplication') {
+      return ['new_chunks_per_file', 'newChunksPerFile'];
+    }
+    if (questionId === 'dsa_autodesk_versioned_kv') {
+      return ['versioned_store_create', 'versionedStoreCreate'];
+    }
+    if (questionId === 'dsa_amazon_fraud_window') {
+      return ['suspicious_customers', 'suspiciousCustomers'];
+    }
+    return [];
   }
 
   private escapeCppLiteral(value: string) {
@@ -833,7 +852,7 @@ ${this.normalizedTestCases(testCases)
     return `strcat(actual, "[ERROR] Unsupported question");`;
   }
 
-  private pythonHarness(sourceCode: string, testCases: TestCase[]): string {
+  private pythonHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
     const testCasesJson = JSON.stringify(
       testCases.map((tc) => ({
         input: tc.input,
@@ -841,6 +860,7 @@ ${this.normalizedTestCases(testCases)
         purpose: tc.purpose,
       })),
     );
+    const candidatesJson = JSON.stringify(this.functionCandidates(questionId));
 
     return `
 import json, sys, traceback
@@ -850,6 +870,7 @@ ${sourceCode}
 # === USER CODE END ===
 
 TEST_CASES = json.loads("""${testCasesJson.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}""")
+CANDIDATES = json.loads("""${candidatesJson.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}""")
 
 def try_parse_input(input_str):
     """Parse standard input format: n=X, dependencies=[[...]]"""
@@ -868,9 +889,8 @@ def try_parse_input(input_str):
 
 def find_user_func():
     """Try to locate the user's solution function."""
-    candidates = ['resolve_incidents', 'resolveIncidents', 'findOrder', 'topologicalSort', 'canFinish']
     namespace = globals()
-    for name in candidates:
+    for name in CANDIDATES:
         candidate = namespace.get(name)
         if callable(candidate):
             return candidate
@@ -878,7 +898,7 @@ def find_user_func():
     Sol = namespace.get('Solution')
     if isinstance(Sol, type):
         solver = Sol()
-        for name in candidates:
+        for name in CANDIDATES:
             if hasattr(solver, name):
                 candidate = getattr(solver, name)
                 if callable(candidate):
@@ -951,7 +971,7 @@ print("===TEST_RESULTS_END===")
 `;
   }
 
-  private javascriptHarness(sourceCode: string, testCases: TestCase[]): string {
+  private javascriptHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
     const testCasesJson = JSON.stringify(
       testCases.map((tc) => ({
         input: tc.input,
@@ -959,6 +979,7 @@ print("===TEST_RESULTS_END===")
         purpose: tc.purpose,
       })),
     );
+    const candidatesJson = JSON.stringify(this.functionCandidates(questionId));
 
     return `
 // === USER CODE START ===
@@ -966,6 +987,7 @@ ${sourceCode}
 // === USER CODE END ===
 
 const TEST_CASES = ${testCasesJson};
+const CANDIDATES = ${candidatesJson};
 
 function parseInput(inputStr) {
     let n = null;
@@ -983,9 +1005,8 @@ function parseInput(inputStr) {
 }
 
 function findUserFunc() {
-    const candidates = ['resolveIncidents', 'resolve_incidents', 'findOrder', 'topologicalSort', 'canFinish'];
     const namespace = globalThis;
-    for (const name of candidates) {
+    for (const name of CANDIDATES) {
         const candidate = namespace[name];
         if (typeof candidate === 'function') return candidate.bind(namespace);
     }
