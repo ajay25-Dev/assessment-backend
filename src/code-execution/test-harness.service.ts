@@ -868,19 +868,21 @@ def try_parse_input(input_str):
 
 def find_user_func():
     """Try to locate the user's solution function."""
-    import builtins
     candidates = ['resolve_incidents', 'resolveIncidents', 'findOrder', 'topologicalSort', 'canFinish']
+    namespace = globals()
     for name in candidates:
-        if name in dir() and callable(globals().get(name)):
-            return globals()[name]
+        candidate = namespace.get(name)
+        if callable(candidate):
+            return candidate
     # Check if Solution class exists
-    if 'Solution' in dir():
-        Sol = globals()['Solution']
-        if isinstance(Sol, type):
-            solver = Sol()
-            for name in candidates:
-                if hasattr(solver, name):
-                    return getattr(solver, name)
+    Sol = namespace.get('Solution')
+    if isinstance(Sol, type):
+        solver = Sol()
+        for name in candidates:
+            if hasattr(solver, name):
+                candidate = getattr(solver, name)
+                if callable(candidate):
+                    return candidate
     return None
 
 def compare_outputs(result, expected_str):
@@ -982,16 +984,10 @@ function parseInput(inputStr) {
 
 function findUserFunc() {
     const candidates = ['resolveIncidents', 'resolve_incidents', 'findOrder', 'topologicalSort', 'canFinish'];
-    // Check global scope
+    const namespace = globalThis;
     for (const name of candidates) {
-        if (typeof globalThis[name] === 'function') return globalThis[name].bind(globalThis);
-        if (typeof eval(name) === 'function') return eval(name).bind(globalThis);
-    }
-    // Check if resolveIncidents is defined in this scope
-    for (const name of candidates) {
-        try {
-            if (typeof eval(name) === 'function') return eval(name);
-        } catch(e) {}
+        const candidate = namespace[name];
+        if (typeof candidate === 'function') return candidate.bind(namespace);
     }
     return null;
 }
