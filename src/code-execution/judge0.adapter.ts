@@ -31,15 +31,17 @@ export class Judge0Adapter {
   }) {
     const baseUrl = this.getBaseUrl();
     const createResponse = await fetch(
-      `${baseUrl}/submissions?base64_encoded=false&wait=false`,
+      `${baseUrl}/submissions?base64_encoded=true&wait=false`,
       {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify({
           language_id: params.languageId,
-          source_code: params.sourceCode,
-          stdin: params.stdin || '',
-          expected_output: params.expectedOutput,
+          source_code: this.encodeBase64(params.sourceCode),
+          stdin: this.encodeBase64(params.stdin || ''),
+          expected_output: params.expectedOutput
+            ? this.encodeBase64(params.expectedOutput)
+            : undefined,
           cpu_time_limit:
             params.cpuTimeLimit ||
             Number(
@@ -78,7 +80,7 @@ export class Judge0Adapter {
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const response = await fetch(
-        `${baseUrl}/submissions/${token}?base64_encoded=false`,
+        `${baseUrl}/submissions/${token}?base64_encoded=true`,
         { headers: this.headers() },
       );
       const result = (await response
@@ -90,7 +92,7 @@ export class Judge0Adapter {
       }
 
       const statusId = result.status?.id || 0;
-      if (statusId > 2) return result;
+      if (statusId > 2) return this.decodeResult(result);
 
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
@@ -114,6 +116,29 @@ export class Judge0Adapter {
     return {
       'Content-Type': 'application/json',
       ...(apiKey ? { 'X-Auth-Token': apiKey } : {}),
+    };
+  }
+
+  private encodeBase64(value: string) {
+    return Buffer.from(value, 'utf8').toString('base64');
+  }
+
+  private decodeBase64(value?: string | null) {
+    if (!value) return value;
+    try {
+      return Buffer.from(value, 'base64').toString('utf8');
+    } catch {
+      return value;
+    }
+  }
+
+  private decodeResult(result: Judge0Result): Judge0Result {
+    return {
+      ...result,
+      stdout: this.decodeBase64(result.stdout),
+      stderr: this.decodeBase64(result.stderr),
+      compile_output: this.decodeBase64(result.compile_output),
+      message: this.decodeBase64(result.message),
     };
   }
 }

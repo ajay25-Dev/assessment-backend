@@ -74,6 +74,10 @@ type SectionSummary = {
   deterministic: Record<string, unknown>;
 };
 
+type ReadinessBucket = 'Ready' | 'Training Needed' | 'Failed';
+type RiskLevel = 'Low' | 'Medium' | 'High';
+type CompilationBehaviour = 'Clean' | 'Warnings' | 'Failed';
+
 @Injectable()
 export class AssessmentPipelineService {
   private supabase?: SupabaseClient;
@@ -99,6 +103,7 @@ export class AssessmentPipelineService {
 
     const attemptId = await this.persistAttempt(input, bank, submittedAt, durationMinutes);
     await this.persistQuestionAttempts(attemptId, input, questions);
+    await this.persistFinalRuntimeSnapshots(attemptId, input, questions);
 
     const dsa = await this.evaluateCodingSection('DSA', questions, input);
     const sql = await this.evaluateSqlSection(questions, input);
@@ -486,9 +491,160 @@ export class AssessmentPipelineService {
       ai_evaluation: { ...row.ai_evaluation, question_title },
     }));
 
-    await this.getSupabase()
+    const { error } = await this.getSupabase()
       .from('student_question_evaluations')
       .insert(sanitizedRows);
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not persist question evaluations: ${error.message}`,
+      );
+    }
+  }
+
+  private async persistFinalRuntimeSnapshots(
+    attemptId: string,
+    input: FinalizeInput,
+    questions: BankQuestion[],
+  ) {
+    await Promise.all([
+      this.persistFinalCodeRuns(attemptId, input, questions),
+      this.persistFinalSqlRuns(attemptId, input, questions),
+      this.persistFinalMcqAnswers(attemptId, input, questions),
+    ]);
+  }
+
+  private async persistFinalCodeRuns(
+    attemptId: string,
+    input: FinalizeInput,
+    questions: BankQuestion[],
+  ) {
+    const rows = questions
+      .filter((question) => question.engine === 'code')
+      .map((question) => {
+        const answer = input.answers?.[question.id] || {};
+        const passSummary = this.parseTestSummary(answer.resultMessage);
+        return {
+          attempt_id: attemptId,
+          question_id: question.id,
+          assessment_question_id: null,
+          question_attempt_id: null,
+          language: answer.language || 'unknown',
+          run_type: answer.submissions ? 'submit' : 'run',
+          source_code: answer.value || '',
+          provider: 'judge0',
+          status: answer.resultMessage || answer.status || 'finalized',
+          stdout: null,
+          stderr: null,
+          compile_output: null,
+          runtime_ms: null,
+          memory_kb: null,
+          open_tests_passed: passSummary?.passed ?? null,
+          open_tests_total: passSummary?.total ?? null,
+          hidden_tests_passed: null,
+          hidden_tests_total: null,
+          test_results: [],
+          raw_provider_response: {
+            final_snapshot: true,
+            run_count: answer.runs || 0,
+            submit_count: answer.submissions || 0,
+            result_message: answer.resultMessage || '',
+          },
+        };
+      })
+      .filter((row) => row.source_code.trim().length > 0);
+
+    if (!rows.length) return;
+
+    const { error } = await this.getSupabase().from('student_code_runs').insert(rows);
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not persist final code run snapshots: ${error.message}`,
+      );
+    }
+  }
+
+  private async persistFinalSqlRuns(
+    attemptId: string,
+    input: FinalizeInput,
+    questions: BankQuestion[],
+  ) {
+    const rows = questions
+      .filter((question) => question.engine === 'sql')
+      .map((question) => {
+        const answer = input.answers?.[question.id] || {};
+        return {
+          attempt_id: attemptId,
+          question_id: question.id,
+          assessment_question_id: null,
+          question_attempt_id: null,
+          run_type: answer.submissions ? 'submit' : 'run',
+          query_text: answer.value || '',
+          columns: [],
+          rows: [],
+          row_count: 0,
+          execution_ms: null,
+          error_text: answer.resultMessage || null,
+          comparison_result: {
+            final_snapshot: true,
+            run_count: answer.runs || 0,
+            submit_count: answer.submissions || 0,
+            result_message: answer.resultMessage || '',
+          },
+        };
+      })
+      .filter((row) => row.query_text.trim().length > 0);
+
+    if (!rows.length) return;
+
+    const { error } = await this.getSupabase().from('student_sql_runs').insert(rows);
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not persist final SQL run snapshots: ${error.message}`,
+      );
+    }
+  }
+
+  private async persistFinalMcqAnswers(
+    attemptId: string,
+    input: FinalizeInput,
+    questions: BankQuestion[],
+  ) {
+    const rows = questions
+      .filter((question) => question.section === 'MCQ')
+      .map((question) => {
+        const answer = input.answers?.[question.id] || {};
+        const selectedOptions = answer.selectedOptions || [];
+        const correctOptions = question.correct_options || [];
+        return {
+          attempt_id: attemptId,
+          question_id: question.id,
+          assessment_question_id: null,
+          question_attempt_id: null,
+          selected_options: selectedOptions,
+          is_correct: this.sameStringSet(selectedOptions, correctOptions),
+          answer_change_count: 0,
+          time_spent_seconds: 0,
+        };
+      });
+
+    if (!rows.length) return;
+
+    const { error } = await this.getSupabase().from('student_mcq_answers').insert(rows);
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not persist final MCQ answers: ${error.message}`,
+      );
+    }
+  }
+
+  private parseTestSummary(message: string | undefined) {
+    const match = String(message || '').match(/Test results:\s*(\d+)\/(\d+)\s*passed/i);
+    if (!match) return null;
+    return {
+      passed: Number(match[1]),
+      total: Number(match[2]),
+    };
   }
 
   private async persistReport(params: {
@@ -501,32 +657,72 @@ export class AssessmentPipelineService {
     dashboardInput: Record<string, unknown>;
   }) {
     const output = params.dashboardEvaluation.output as Record<string, unknown>;
+    const sectionScores = {
+      DSA: this.numberOutput(output.dsa_score, params.deterministicScores.DSA),
+      SQL: this.numberOutput(output.sql_score, params.deterministicScores.SQL),
+      OOPs: this.numberOutput(output.oops_score, params.deterministicScores.OOPs),
+      MCQ: this.numberOutput(output.mcq_score, params.deterministicScores.MCQ),
+    };
+    const marksScore = this.numberOutput(output.overall_marks_score);
+    const capabilityScore = this.numberOutput(output.capability_score);
+    const approachScore = this.numberOutput(output.approach_score);
+    const complexityScore = this.numberOutput(output.complexity_score);
+    const codeQualityScore = this.numberOutput(output.code_quality_score);
+    const hiddenTestPassRate = this.numberOutput(output.hidden_test_pass_rate);
+    const bruteForceRisk = this.riskOutput(output.brute_force_risk);
+    const hardcodingRisk = this.riskOutput(output.hardcoding_risk);
+    const compilationBehaviour = this.compilationOutput(output.compilation_behaviour);
+    const strongestSection = this.strongestArea(sectionScores);
+    const weakestSection = this.weakestArea(sectionScores);
+    const readiness = this.computeReadiness({
+      marksScore,
+      capabilityScore,
+      hiddenTestPassRate,
+      approachScore,
+      complexityScore,
+      codeQualityScore,
+      bruteForceRisk,
+      hardcodingRisk,
+      compilationBehaviour,
+      sectionScores,
+      strongestSection,
+      weakestSection,
+    });
+
     const row = {
       student_id: params.input.student_id,
       assessment_id: this.uuidOrNull(params.input.assessment_id),
       attempt_id: params.attemptId,
       assessment_title:
         params.bank.assessment?.title || 'JoraIQ College Assessment',
-      marks_score: this.numberOutput(output.overall_marks_score),
-      capability_score: this.numberOutput(output.capability_score),
-      dsa_score: this.numberOutput(output.dsa_score, params.deterministicScores.DSA),
-      sql_score: this.numberOutput(output.sql_score, params.deterministicScores.SQL),
-      oops_score: this.numberOutput(output.oops_score, params.deterministicScores.OOPs),
-      mcq_score: this.numberOutput(output.mcq_score, params.deterministicScores.MCQ),
-      approach_score: this.numberOutput(output.approach_score),
-      complexity_score: this.numberOutput(output.complexity_score),
-      code_quality_score: this.numberOutput(output.code_quality_score),
-      hidden_test_pass_rate: this.numberOutput(output.hidden_test_pass_rate),
-      brute_force_risk: this.riskOutput(output.brute_force_risk),
-      hardcoding_risk: this.riskOutput(output.hardcoding_risk),
-      compilation_behaviour: this.compilationOutput(output.compilation_behaviour),
-      readiness_label: this.readinessOutput(output.readiness_label),
+      marks_score: marksScore,
+      capability_score: capabilityScore,
+      dsa_score: sectionScores.DSA,
+      sql_score: sectionScores.SQL,
+      oops_score: sectionScores.OOPs,
+      mcq_score: sectionScores.MCQ,
+      approach_score: approachScore,
+      complexity_score: complexityScore,
+      code_quality_score: codeQualityScore,
+      hidden_test_pass_rate: hiddenTestPassRate,
+      brute_force_risk: bruteForceRisk,
+      hardcoding_risk: hardcodingRisk,
+      compilation_behaviour: compilationBehaviour,
+      readiness_label: this.readinessLabelFromBucket(readiness.bucket),
+      readiness_bucket: readiness.bucket,
+      readiness_reason: readiness.reason,
+      strongest_section: strongestSection,
+      weakest_section: weakestSection,
+      training_priority: readiness.trainingPriority,
+      teacher_action: readiness.teacherAction,
+      risk_summary: readiness.riskSummary,
       faculty_insight: String(output.faculty_insight || ''),
       company_recommendation: String(output.company_recommendation || ''),
       report_json: {
         dashboard_evaluation: params.dashboardEvaluation,
         section_evaluations: params.allEvaluations,
         dashboard_input: params.dashboardInput,
+        deterministic_readiness: readiness,
       },
     };
 
@@ -727,6 +923,119 @@ export class AssessmentPipelineService {
     return Math.round(valid.reduce((sum, value) => sum + value, 0) / valid.length);
   }
 
+  private computeReadiness(params: {
+    marksScore: number;
+    capabilityScore: number;
+    hiddenTestPassRate: number;
+    approachScore: number;
+    complexityScore: number;
+    codeQualityScore: number;
+    bruteForceRisk: RiskLevel;
+    hardcodingRisk: RiskLevel;
+    compilationBehaviour: CompilationBehaviour;
+    sectionScores: Record<'DSA' | 'SQL' | 'OOPs' | 'MCQ', number>;
+    strongestSection: string;
+    weakestSection: string;
+  }) {
+    const reasons: string[] = [];
+    const concerns: string[] = [];
+    const severeRisk =
+      params.compilationBehaviour === 'Failed' ||
+      params.bruteForceRisk === 'High' ||
+      params.hardcodingRisk === 'High';
+
+    if (params.marksScore < 45) reasons.push(`Overall marks score is low at ${params.marksScore}.`);
+    if (params.capabilityScore < 45) reasons.push(`Capability score is low at ${params.capabilityScore}.`);
+    if (params.hiddenTestPassRate < 30) reasons.push(`Hidden test pass rate is weak at ${params.hiddenTestPassRate}.`);
+    if (params.compilationBehaviour === 'Failed') reasons.push('Compilation failed on the submitted evidence.');
+    if (params.bruteForceRisk === 'High') reasons.push('Brute-force risk is high.');
+    if (params.hardcodingRisk === 'High') reasons.push('Hardcoding risk is high.');
+
+    if (params.approachScore < 50) concerns.push(`Approach score needs work at ${params.approachScore}.`);
+    if (params.complexityScore < 50) concerns.push(`Complexity handling is weak at ${params.complexityScore}.`);
+    if (params.codeQualityScore < 50) concerns.push(`Code quality is weak at ${params.codeQualityScore}.`);
+    if (params.sectionScores[params.weakestSection as keyof typeof params.sectionScores] < 50) {
+      concerns.push(`${params.weakestSection} is the weakest section and should be prioritized.`);
+    }
+
+    let bucket: ReadinessBucket = 'Training Needed';
+    if (
+      severeRisk ||
+      params.marksScore < 45 ||
+      params.capabilityScore < 45 ||
+      params.hiddenTestPassRate < 30
+    ) {
+      bucket = 'Failed';
+    } else if (
+      params.marksScore >= 70 &&
+      params.capabilityScore >= 70 &&
+      params.hiddenTestPassRate >= 60 &&
+      params.compilationBehaviour !== 'Failed' &&
+      params.bruteForceRisk !== 'High' &&
+      params.hardcodingRisk !== 'High'
+    ) {
+      bucket = 'Ready';
+    }
+
+    const trainingPriority = this.trainingPriority(params.weakestSection, params.sectionScores);
+    const teacherAction = this.teacherAction(bucket, trainingPriority, severeRisk);
+    const riskSummary = {
+      brute_force_risk: params.bruteForceRisk,
+      hardcoding_risk: params.hardcodingRisk,
+      compilation_behaviour: params.compilationBehaviour,
+      severe_risk: severeRisk,
+      concerns,
+    };
+
+    return {
+      bucket,
+      reason: {
+        bucket,
+        rules_triggered: reasons.length ? reasons : ['Profile is in the transition band and needs targeted practice.'],
+        score_snapshot: {
+          marks_score: params.marksScore,
+          capability_score: params.capabilityScore,
+          hidden_test_pass_rate: params.hiddenTestPassRate,
+          approach_score: params.approachScore,
+          complexity_score: params.complexityScore,
+          code_quality_score: params.codeQualityScore,
+        },
+        strongest_section: params.strongestSection,
+        weakest_section: params.weakestSection,
+      },
+      trainingPriority,
+      teacherAction,
+      riskSummary,
+    };
+  }
+
+  private trainingPriority(
+    weakestSection: string,
+    sectionScores: Record<'DSA' | 'SQL' | 'OOPs' | 'MCQ', number>,
+  ) {
+    const score = sectionScores[weakestSection as keyof typeof sectionScores] ?? 0;
+    if (weakestSection === 'DSA') return score < 45 ? 'Core problem solving and hidden-case handling' : 'Algorithmic optimization and edge-case practice';
+    if (weakestSection === 'SQL') return score < 45 ? 'SQL correctness, joins, and result validation' : 'SQL efficiency, NULL handling, and business rules';
+    if (weakestSection === 'OOPs') return score < 45 ? 'Object modelling, abstraction, and class design' : 'SOLID design, extensibility, and structure';
+    return score < 45 ? 'Fundamental CS revision and accuracy drills' : 'MCQ revision for weaker theory areas';
+  }
+
+  private teacherAction(
+    bucket: ReadinessBucket,
+    trainingPriority: string,
+    severeRisk: boolean,
+  ) {
+    if (bucket === 'Ready') {
+      return 'Move the student to mock interviews and keep monitoring the weakest section.';
+    }
+    if (bucket === 'Failed') {
+      return severeRisk
+        ? 'Hold interview progression. Require supervised remediation and a reassessment attempt.'
+        : `Hold interview progression. Assign focused remediation on ${trainingPriority.toLowerCase()}.`;
+    }
+    return `Assign targeted training on ${trainingPriority.toLowerCase()} and schedule a reassessment.`;
+  }
+
   private numberOutput(value: unknown, fallback = 0) {
     const score = Number(value ?? fallback);
     if (!Number.isFinite(score)) return fallback;
@@ -751,6 +1060,12 @@ export class AssessmentPipelineService {
     const text = String(value || '').toLowerCase();
     if (text.includes('not ready') || text.includes('risk')) return 'At Risk';
     if (text.includes('train') || text.includes('near')) return 'Needs Practice';
+    return 'Ready';
+  }
+
+  private readinessLabelFromBucket(bucket: ReadinessBucket) {
+    if (bucket === 'Failed') return 'At Risk';
+    if (bucket === 'Training Needed') return 'Needs Practice';
     return 'Ready';
   }
 
