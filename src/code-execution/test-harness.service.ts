@@ -5,6 +5,7 @@ import { join } from 'path';
 type TestCase = {
   number: number;
   input: string;
+  expected?: string;
   expected_output: string;
   purpose: string;
 };
@@ -41,6 +42,7 @@ export class TestHarnessService {
           test_cases?: Array<{
             number: number;
             input: string;
+            expected?: string;
             expected_output: string;
             purpose: string;
           }>;
@@ -94,7 +96,7 @@ export class TestHarnessService {
     const testCasesJson = JSON.stringify(
       testCases.map((tc) => ({
         input: tc.input,
-        expected: tc.expected_output,
+        expected: tc.expected_output || tc.expected || '',
         purpose: tc.purpose,
       })),
     );
@@ -176,7 +178,7 @@ for tc in TEST_CASES:
     result_entry = {
         "number": len(results) + 1,
         "input": tc["input"],
-        "expected": tc["expected"],
+        "expected": tc.get("expected", ""),
         "actual": "",
         "passed": False,
         "purpose": tc.get("purpose", "")
@@ -187,13 +189,9 @@ for tc in TEST_CASES:
             result_entry["actual"] = "[ERROR] No matching function found"
         else:
             n, deps = try_parse_input(tc["input"])
-            if "number" in tc["input"].lower():
-                # Try numeric parsing differently
-                n, deps = try_for_numeric(tc["input"])
-            
             output = func(n, deps) if n is not None else func(deps)
             result_entry["actual"] = json.dumps(output) if isinstance(output, (list, dict)) else str(output)
-            result_entry["passed"] = compare_outputs(output, tc["expected"])
+            result_entry["passed"] = compare_outputs(output, tc.get("expected", ""))
     except Exception as e:
         result_entry["actual"] = f"ERROR: {str(e)}"
         result_entry["passed"] = False
@@ -214,7 +212,7 @@ print("===TEST_RESULTS_END===")
     const testCasesJson = JSON.stringify(
       testCases.map((tc) => ({
         input: tc.input,
-        expected: tc.expected_output,
+        expected: tc.expected_output || tc.expected || '',
         purpose: tc.purpose,
       })),
     );
