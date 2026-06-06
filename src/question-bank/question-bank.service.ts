@@ -7,12 +7,7 @@ export class QuestionBankService {
   async getBank() {
     try {
       const raw = await fs.readFile(
-        join(
-          process.cwd(),
-          '..',
-          'assessment-data',
-          'joraiq-question-bank.json',
-        ),
+        join(__dirname, 'data', 'joraiq-question-bank.json'),
         'utf8',
       );
       const bank = JSON.parse(raw) as Record<string, unknown>;

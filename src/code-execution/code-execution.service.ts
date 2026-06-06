@@ -53,7 +53,7 @@ export class CodeExecutionService {
     };
   }
 
-  run(input: CodeRunInput, runType: 'run' | 'submit') {
+  async run(input: CodeRunInput, runType: 'run' | 'submit') {
     const language = findLanguage(String(input.language || ''));
     if (!language) throw new BadRequestException('Unsupported language');
     const source = String(input.source_code || '');
@@ -65,7 +65,7 @@ export class CodeExecutionService {
     if (!input.question_id)
       throw new BadRequestException('question_id is required');
 
-    const sourceCode = this.harness.buildSource({
+    const sourceCode = await this.harness.buildSource({
       language: language.id,
       sourceCode: source,
       questionId: input.question_id,
