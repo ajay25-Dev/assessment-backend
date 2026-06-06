@@ -131,7 +131,7 @@ export class SqlSandboxService {
 
   private readSql(file: string) {
     return fs.readFile(
-      join(process.cwd(), '..', 'assessment-data', 'sql', file),
+      join(__dirname, '..', 'question-bank', 'data', 'sql', file),
       'utf8',
     );
   }

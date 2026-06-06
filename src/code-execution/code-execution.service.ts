@@ -72,10 +72,31 @@ export class CodeExecutionService {
       runType,
     });
 
-    return this.judge0.submitAndWait({
+    const result = await this.judge0.submitAndWait({
       languageId: language.judge0LanguageId,
       sourceCode,
       stdin: input.stdin || '',
     });
+
+    return {
+      ...result,
+      test_results: this.extractTestResults(result.stdout || ''),
+    };
+  }
+
+  private extractTestResults(stdout: string) {
+    const startMarker = '===TEST_RESULTS_START===';
+    const endMarker = '===TEST_RESULTS_END===';
+    const start = stdout.indexOf(startMarker);
+    const end = stdout.indexOf(endMarker);
+
+    if (start < 0 || end <= start) return null;
+
+    const rawJson = stdout.slice(start + startMarker.length, end).trim();
+    try {
+      return JSON.parse(rawJson) as unknown;
+    } catch {
+      return null;
+    }
   }
 }

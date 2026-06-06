@@ -8,6 +8,10 @@
       {
         "include": "question-bank/data/*.json",
         "watchAssets": true
+      },
+      {
+        "include": "question-bank/data/sql/*.sql",
+        "watchAssets": true
       }
     ]
   }

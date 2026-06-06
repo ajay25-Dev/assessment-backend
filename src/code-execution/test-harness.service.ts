@@ -30,7 +30,7 @@ export class TestHarnessService {
   private async loadTestCases(questionId: string, runType: 'run' | 'submit'): Promise<TestCase[]> {
     try {
       const raw = await fs.readFile(
-        join(process.cwd(), '..', 'assessment-data', 'joraiq-question-bank.json'),
+        join(__dirname, '..', 'question-bank', 'data', 'joraiq-question-bank.json'),
         'utf8',
       );
       const bank = JSON.parse(raw) as {
@@ -50,16 +50,22 @@ export class TestHarnessService {
       const question = bank.questions?.find((q) => q.id === questionId);
       if (!question) return [];
 
-      // 'test_cases' contains ALL 15 cases (open + hidden combined)
-      if (question.test_cases && question.test_cases.length > 0) {
-        return question.test_cases;
+      if (runType === 'run') {
+        return (
+          question.open_test_cases ||
+          question.test_cases?.slice(0, 5) ||
+          []
+        );
       }
 
-      // Fall back to open/hidden split
-      if (runType === 'run') {
-        return question.open_test_cases || [];
+      if (question.open_test_cases?.length || question.hidden_test_cases?.length) {
+        return [
+          ...(question.open_test_cases || []),
+          ...(question.hidden_test_cases || []),
+        ];
       }
-      return [...(question.open_test_cases || []), ...(question.hidden_test_cases || [])];
+
+      return question.test_cases || [];
     } catch {
       return [];
     }
