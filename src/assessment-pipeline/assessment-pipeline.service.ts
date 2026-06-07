@@ -74,6 +74,13 @@ type SectionSummary = {
   deterministic: Record<string, unknown>;
 };
 
+type ReadinessLabel =
+  | 'Elite 1% Company Ready'
+  | 'Strong Company Ready'
+  | 'Near Ready'
+  | 'Trainable but Not Ready'
+  | 'Risky High Scorer'
+  | 'Not Ready';
 type ReadinessBucket = 'Ready' | 'Training Needed' | 'Failed';
 type RiskLevel = 'Low' | 'Medium' | 'High';
 type CompilationBehaviour = 'Clean' | 'Warnings' | 'Failed';
@@ -672,6 +679,7 @@ export class AssessmentPipelineService {
     const bruteForceRisk = this.riskOutput(output.brute_force_risk);
     const hardcodingRisk = this.riskOutput(output.hardcoding_risk);
     const compilationBehaviour = this.compilationOutput(output.compilation_behaviour);
+    const runtimePercentile = String(output.runtime_percentile || 'Unknown');
     const strongestSection = this.strongestArea(sectionScores);
     const weakestSection = this.weakestArea(sectionScores);
     const readiness = this.computeReadiness({
@@ -708,7 +716,8 @@ export class AssessmentPipelineService {
       brute_force_risk: bruteForceRisk,
       hardcoding_risk: hardcodingRisk,
       compilation_behaviour: compilationBehaviour,
-      readiness_label: this.readinessLabelFromBucket(readiness.bucket),
+      runtime_percentile: runtimePercentile,
+      readiness_label: readiness.label,
       readiness_bucket: readiness.bucket,
       readiness_reason: readiness.reason,
       strongest_section: strongestSection,
@@ -716,8 +725,13 @@ export class AssessmentPipelineService {
       training_priority: readiness.trainingPriority,
       teacher_action: readiness.teacherAction,
       risk_summary: readiness.riskSummary,
+      training_recommendation: String(output.training_recommendation || readiness.trainingRecommendation),
       faculty_insight: String(output.faculty_insight || ''),
-      company_recommendation: String(output.company_recommendation || ''),
+      company_recommendation: readiness.companyRecommendation,
+      student_summary: String(output.student_summary || ''),
+      detailed_strengths: this.stringArrayOutput(output.detailed_strengths),
+      detailed_weaknesses: this.stringArrayOutput(output.detailed_weaknesses),
+      next_3_learning_actions: this.stringArrayOutput(output.next_3_learning_actions),
       report_json: {
         dashboard_evaluation: params.dashboardEvaluation,
         section_evaluations: params.allEvaluations,
@@ -958,27 +972,58 @@ export class AssessmentPipelineService {
       concerns.push(`${params.weakestSection} is the weakest section and should be prioritized.`);
     }
 
-    let bucket: ReadinessBucket = 'Training Needed';
+    let label: ReadinessLabel = 'Trainable but Not Ready';
     if (
-      severeRisk ||
       params.marksScore < 45 ||
       params.capabilityScore < 45 ||
-      params.hiddenTestPassRate < 30
+      params.hardcodingRisk === 'High'
     ) {
-      bucket = 'Failed';
+      label = 'Not Ready';
     } else if (
       params.marksScore >= 70 &&
-      params.capabilityScore >= 70 &&
-      params.hiddenTestPassRate >= 60 &&
-      params.compilationBehaviour !== 'Failed' &&
-      params.bruteForceRisk !== 'High' &&
-      params.hardcodingRisk !== 'High'
+      (params.hiddenTestPassRate < 50 ||
+        params.bruteForceRisk === 'High' ||
+        params.hardcodingRisk === 'Medium')
     ) {
-      bucket = 'Ready';
+      label = 'Risky High Scorer';
+    } else if (
+      params.marksScore >= 85 &&
+      params.capabilityScore >= 85 &&
+      params.hiddenTestPassRate >= 80 &&
+      params.bruteForceRisk === 'Low' &&
+      params.hardcodingRisk === 'Low'
+    ) {
+      label = 'Elite 1% Company Ready';
+    } else if (
+      params.marksScore >= 75 &&
+      params.capabilityScore >= 75 &&
+      params.hiddenTestPassRate >= 70 &&
+      (params.bruteForceRisk === 'Low' || params.bruteForceRisk === 'Medium') &&
+      params.hardcodingRisk === 'Low'
+    ) {
+      label = 'Strong Company Ready';
+    } else if (
+      params.marksScore >= 60 &&
+      params.capabilityScore >= 65 &&
+      params.hiddenTestPassRate >= 55 &&
+      params.bruteForceRisk !== 'High' &&
+      params.hardcodingRisk === 'Low'
+    ) {
+      label = 'Near Ready';
+    } else if (
+      (params.marksScore >= 45 && params.marksScore <= 60) ||
+      (params.capabilityScore >= 45 && params.capabilityScore <= 65)
+    ) {
+      label = 'Trainable but Not Ready';
+    } else if (severeRisk || params.hiddenTestPassRate < 30) {
+      label = 'Not Ready';
     }
 
+    const bucket = this.bucketFromReadinessLabel(label);
     const trainingPriority = this.trainingPriority(params.weakestSection, params.sectionScores);
     const teacherAction = this.teacherAction(bucket, trainingPriority, severeRisk);
+    const companyRecommendation = this.companyRecommendation(label);
+    const trainingRecommendation = this.trainingRecommendation(label, trainingPriority);
     const riskSummary = {
       brute_force_risk: params.bruteForceRisk,
       hardcoding_risk: params.hardcodingRisk,
@@ -988,8 +1033,10 @@ export class AssessmentPipelineService {
     };
 
     return {
+      label,
       bucket,
       reason: {
+        label,
         bucket,
         rules_triggered: reasons.length ? reasons : ['Profile is in the transition band and needs targeted practice.'],
         score_snapshot: {
@@ -1005,6 +1052,8 @@ export class AssessmentPipelineService {
       },
       trainingPriority,
       teacherAction,
+      companyRecommendation,
+      trainingRecommendation,
       riskSummary,
     };
   }
@@ -1056,17 +1105,37 @@ export class AssessmentPipelineService {
     return 'Clean';
   }
 
-  private readinessOutput(value: unknown) {
-    const text = String(value || '').toLowerCase();
-    if (text.includes('not ready') || text.includes('risk')) return 'At Risk';
-    if (text.includes('train') || text.includes('near')) return 'Needs Practice';
-    return 'Ready';
+  private bucketFromReadinessLabel(label: ReadinessLabel): ReadinessBucket {
+    if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') return 'Ready';
+    if (label === 'Not Ready' || label === 'Risky High Scorer') return 'Failed';
+    return 'Training Needed';
   }
 
-  private readinessLabelFromBucket(bucket: ReadinessBucket) {
-    if (bucket === 'Failed') return 'At Risk';
-    if (bucket === 'Training Needed') return 'Needs Practice';
-    return 'Ready';
+  private companyRecommendation(label: ReadinessLabel) {
+    if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') {
+      return 'Send to product/service company immediately';
+    }
+    if (label === 'Near Ready') return 'Send only after mock interview';
+    if (label === 'Trainable but Not Ready') return 'Train for 6-8 weeks before sending';
+    return 'Do not send to company yet';
+  }
+
+  private trainingRecommendation(label: ReadinessLabel, trainingPriority: string) {
+    if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') {
+      return 'Move to company-specific interview practice and maintain current strengths.';
+    }
+    if (label === 'Near Ready') {
+      return `Train for 2-3 weeks on ${trainingPriority.toLowerCase()} before final interview screening.`;
+    }
+    if (label === 'Trainable but Not Ready') {
+      return `Train for 6-8 weeks on ${trainingPriority.toLowerCase()} and reassess.`;
+    }
+    return `Do not send to companies yet. Require supervised remediation on ${trainingPriority.toLowerCase()} and a fresh assessment.`;
+  }
+
+  private stringArrayOutput(value: unknown) {
+    if (!Array.isArray(value)) return [];
+    return value.map((item) => String(item));
   }
 
   private uuidOrNull(value?: string) {
