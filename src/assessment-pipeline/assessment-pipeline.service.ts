@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import { DashboardEvaluationService } from '../evaluations/dashboard-evaluation.service';
 import { DsaEvaluationService } from '../evaluations/dsa-evaluation.service';
 import { EvaluationResult } from '../evaluations/evaluation.types';
@@ -34,6 +35,7 @@ type FinalizeInput = {
   submitted_at?: string;
   duration_minutes?: number;
   tab_events?: number;
+  submission_mode?: 'manual' | 'auto';
   answers?: Record<string, FinalizeAnswer>;
 };
 
@@ -394,7 +396,7 @@ export class AssessmentPipelineService {
       .insert({
         student_id: input.student_id,
         assessment_id: this.uuidOrNull(input.assessment_id),
-        status: 'submitted',
+        status: input.submission_mode === 'auto' ? 'auto_submitted' : 'submitted',
         started_at: input.started_at || submittedAt,
         submitted_at: submittedAt,
         duration_minutes: durationMinutes,
@@ -403,6 +405,7 @@ export class AssessmentPipelineService {
         client_metadata: {
           source_assessment_id: input.assessment_id || bank.assessment?.id,
           student_email: input.student_email,
+          submission_mode: input.submission_mode || 'manual',
         },
       })
       .select('id')
@@ -907,6 +910,9 @@ export class AssessmentPipelineService {
 
     this.supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
+      realtime: {
+        transport: WebSocket as never,
+      },
     });
     return this.supabase;
   }

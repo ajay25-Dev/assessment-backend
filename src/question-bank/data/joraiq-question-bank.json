@@ -4,13 +4,18 @@
                        "title":  "JoraIQ Company-Based Assessment",
                        "description":  "Placement-readiness assessment covering DSA, SQL, OOPs and Core CS MCQs.",
                        "duration_minutes":  180,
-                       "scoring_weights":  {
-                                               "DSA":  40,
-                                               "SQL":  25,
-                                               "OOPs":  20,
-                                               "MCQ":  15
-                                           },
-                       "sections":  [
+                        "scoring_weights":  {
+                                                "DSA":  40,
+                                                "SQL":  25,
+                                                "OOPs":  20,
+                                                "MCQ":  15
+                                            },
+                        "security":  {
+                                         "tab_switch_protection_enabled":  true,
+                                         "max_tab_switch_events":  3,
+                                         "auto_submit_on_max_events":  true
+                                     },
+                        "sections":  [
                                         {
                                             "id":  "dsa",
                                             "name":  "DSA",
