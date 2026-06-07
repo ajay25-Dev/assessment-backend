@@ -1,167 +1,115 @@
-import { Injectable } from '@nestjs/common';
-import { promises as fs } from 'fs';
-import { join } from 'path';
-
-type TestCase = {
-  number: number;
-  input: string;
-  expected?: string;
-  expected_output: string;
-  purpose: string;
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-
-type HarnessParams = {
-  language: string;
-  sourceCode: string;
-  questionId: string;
-  runType: 'run' | 'submit' | 'warmup';
-};
-
-@Injectable()
-export class TestHarnessService {
-  async buildSource(params: HarnessParams): Promise<string> {
-    if (params.runType === 'warmup') {
-      return params.sourceCode;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TestHarnessService = void 0;
+const common_1 = require("@nestjs/common");
+const fs_1 = require("fs");
+const path_1 = require("path");
+let TestHarnessService = class TestHarnessService {
+    async buildSource(params) {
+        if (params.runType === 'warmup') {
+            return params.sourceCode;
+        }
+        const testCases = await this.loadTestCases(params.questionId, params.runType);
+        return this.wrapWithHarness(params.language, params.sourceCode, testCases, params.questionId);
     }
-
-    const testCases = await this.loadTestCases(params.questionId, params.runType);
-    return this.wrapWithHarness(
-      params.language,
-      params.sourceCode,
-      testCases,
-      params.questionId,
-    );
-  }
-
-  private async loadTestCases(questionId: string, runType: 'run' | 'submit'): Promise<TestCase[]> {
-    try {
-      const raw = await fs.readFile(
-        join(__dirname, '..', 'question-bank', 'data', 'joraiq-question-bank.json'),
-        'utf8',
-      );
-      const bank = JSON.parse(raw) as {
-        questions?: Array<{
-          id: string;
-          open_test_cases?: TestCase[];
-          hidden_test_cases?: TestCase[];
-          test_cases?: Array<{
-            number: number;
-            input: string;
-            expected?: string;
-            expected_output: string;
-            purpose: string;
-          }>;
-        }>;
-      };
-
-      const question = bank.questions?.find((q) => q.id === questionId);
-      if (!question) return [];
-
-      if (runType === 'run') {
-        return (
-          question.open_test_cases ||
-          question.test_cases?.slice(0, 5) ||
-          []
-        );
-      }
-
-      if (question.open_test_cases?.length || question.hidden_test_cases?.length) {
-        return [
-          ...(question.open_test_cases || []),
-          ...(question.hidden_test_cases || []),
-        ];
-      }
-
-      return question.test_cases || [];
-    } catch {
-      return [];
+    async loadTestCases(questionId, runType) {
+        try {
+            const raw = await fs_1.promises.readFile((0, path_1.join)(__dirname, '..', 'question-bank', 'data', 'joraiq-question-bank.json'), 'utf8');
+            const bank = JSON.parse(raw);
+            const question = bank.questions?.find((q) => q.id === questionId);
+            if (!question)
+                return [];
+            if (runType === 'run') {
+                return (question.open_test_cases ||
+                    question.test_cases?.slice(0, 5) ||
+                    []);
+            }
+            if (question.open_test_cases?.length || question.hidden_test_cases?.length) {
+                return [
+                    ...(question.open_test_cases || []),
+                    ...(question.hidden_test_cases || []),
+                ];
+            }
+            return question.test_cases || [];
+        }
+        catch {
+            return [];
+        }
     }
-  }
-
-  private wrapWithHarness(
-    language: string,
-    sourceCode: string,
-    testCases: TestCase[],
-    questionId: string,
-  ): string {
-    if (testCases.length === 0) return sourceCode;
-
-    switch (language) {
-      case 'python':
-        return this.pythonHarness(sourceCode, testCases, questionId);
-      case 'javascript':
-        return this.javascriptHarness(sourceCode, testCases, questionId);
-      case 'java':
-        return this.javaHarness(sourceCode, testCases, questionId);
-      case 'cpp':
-        return this.cppHarness(sourceCode, testCases, questionId);
-      case 'c':
-        return this.cHarness(sourceCode, testCases, questionId);
-      default:
-        return sourceCode;
+    wrapWithHarness(language, sourceCode, testCases, questionId) {
+        if (testCases.length === 0)
+            return sourceCode;
+        switch (language) {
+            case 'python':
+                return this.pythonHarness(sourceCode, testCases, questionId);
+            case 'javascript':
+                return this.javascriptHarness(sourceCode, testCases, questionId);
+            case 'java':
+                return this.javaHarness(sourceCode, testCases, questionId);
+            case 'cpp':
+                return this.cppHarness(sourceCode, testCases, questionId);
+            case 'c':
+                return this.cHarness(sourceCode, testCases, questionId);
+            default:
+                return sourceCode;
+        }
     }
-  }
-
-  private normalizedTestCases(testCases: TestCase[]) {
-    return testCases.map((tc) => ({
-      input: tc.input,
-      expected: tc.expected_output || tc.expected || '',
-      purpose: tc.purpose || '',
-    }));
-  }
-
-  private escapedJsonForJava(value: unknown) {
-    return JSON.stringify(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  }
-
-  private escapedJsonForCpp(value: unknown) {
-    return JSON.stringify(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  }
-
-  private escapeJavaLiteral(value: string) {
-    return value
-      .replace(/\\/g, '\\\\')
-      .replace(/"/g, '\\"')
-      .replace(/\r/g, '\\r')
-      .replace(/\n/g, '\\n');
-  }
-
-  private functionCandidates(questionId: string) {
-    if (questionId === 'dsa_servicenow_incident_dependency') {
-      return ['resolve_incidents', 'resolveIncidents', 'findOrder', 'topologicalSort', 'canFinish'];
+    normalizedTestCases(testCases) {
+        return testCases.map((tc) => ({
+            input: tc.input,
+            expected: tc.expected_output || tc.expected || '',
+            purpose: tc.purpose || '',
+        }));
     }
-    if (questionId === 'dsa_amazon_delivery_routes') {
-      return ['max_on_time_deliveries', 'maxOnTimeDeliveries'];
+    escapedJsonForJava(value) {
+        return JSON.stringify(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     }
-    if (questionId === 'dsa_commvault_deduplication') {
-      return ['new_chunks_per_file', 'newChunksPerFile'];
+    escapedJsonForCpp(value) {
+        return JSON.stringify(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     }
-    if (questionId === 'dsa_autodesk_versioned_kv') {
-      return ['VersionedStore', 'versioned_store_create', 'versionedStoreCreate'];
+    escapeJavaLiteral(value) {
+        return value
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\r/g, '\\r')
+            .replace(/\n/g, '\\n');
     }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return ['suspicious_customers', 'suspiciousCustomers'];
+    functionCandidates(questionId) {
+        if (questionId === 'dsa_servicenow_incident_dependency') {
+            return ['resolve_incidents', 'resolveIncidents', 'findOrder', 'topologicalSort', 'canFinish'];
+        }
+        if (questionId === 'dsa_amazon_delivery_routes') {
+            return ['minimum_delivery_times', 'minimumDeliveryTimes'];
+        }
+        if (questionId === 'dsa_commvault_deduplication') {
+            return ['new_chunks_per_file', 'newChunksPerFile'];
+        }
+        if (questionId === 'dsa_autodesk_versioned_kv') {
+            return ['VersionedStore', 'versioned_store_create', 'versionedStoreCreate'];
+        }
+        if (questionId === 'dsa_amazon_fraud_window') {
+            return ['suspicious_customers', 'suspiciousCustomers'];
+        }
+        return [];
     }
-    return [];
-  }
-
-  private escapeCppLiteral(value: string) {
-    return value
-      .replace(/\\/g, '\\\\')
-      .replace(/"/g, '\\"')
-      .replace(/\r/g, '\\r')
-      .replace(/\n/g, '\\n');
-  }
-
-  private javaHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
-    const cases = this.normalizedTestCases(testCases)
-      .map(
-        (tc) =>
-          `      new TestCase("${this.escapeJavaLiteral(tc.input)}", "${this.escapeJavaLiteral(tc.expected)}", "${this.escapeJavaLiteral(tc.purpose)}")`,
-      )
-      .join(',\n');
-
-    return `
+    escapeCppLiteral(value) {
+        return value
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"')
+            .replace(/\r/g, '\\r')
+            .replace(/\n/g, '\\n');
+    }
+    javaHarness(sourceCode, testCases, questionId) {
+        const cases = this.normalizedTestCases(testCases)
+            .map((tc) => `      new TestCase("${this.escapeJavaLiteral(tc.input)}", "${this.escapeJavaLiteral(tc.expected)}", "${this.escapeJavaLiteral(tc.purpose)}")`)
+            .join(',\n');
+        return `
 ${sourceCode}
 
 class Main {
@@ -364,38 +312,35 @@ ${cases}
   }
 }
 `;
-  }
-
-  private javaInvocation(questionId: string) {
-    if (questionId === 'dsa_servicenow_incident_dependency') {
-      return `int n = parseIntValue(tc.input, "n");
+    }
+    javaInvocation(questionId) {
+        if (questionId === 'dsa_servicenow_incident_dependency') {
+            return `int n = parseIntValue(tc.input, "n");
         int[][] dependencies = parseIntMatrix(tc.input, "dependencies");
         actual = toJson(solution.resolveIncidents(n, dependencies));`;
-    }
-    if (questionId === 'dsa_amazon_delivery_routes') {
-      return `int n = parseIntValue(tc.input, "n");
+        }
+        if (questionId === 'dsa_amazon_delivery_routes') {
+            return `int n = parseIntValue(tc.input, "n");
         int[][] roads = parseIntMatrix(tc.input, "roads");
-        int[][] packages = parseIntMatrix(tc.input, "packages");
-        actual = String.valueOf(solution.maxOnTimeDeliveries(n, roads, packages));`;
-    }
-    if (questionId === 'dsa_commvault_deduplication') {
-      return `String[][] files = parseStringMatrix(tc.input);
+        actual = toJson(solution.minimumDeliveryTimes(n, roads));`;
+        }
+        if (questionId === 'dsa_commvault_deduplication') {
+            return `String[][] files = parseStringMatrix(tc.input);
         actual = toJson(solution.newChunksPerFile(files));`;
-    }
-    if (questionId === 'dsa_autodesk_versioned_kv') {
-      return `actual = runVersionedStore(tc.input);`;
-    }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return `String[][] transactions = parseStringIntPairs(tc.input, "transactions");
+        }
+        if (questionId === 'dsa_autodesk_versioned_kv') {
+            return `actual = runVersionedStore(tc.input);`;
+        }
+        if (questionId === 'dsa_amazon_fraud_window') {
+            return `String[][] transactions = parseStringIntPairs(tc.input, "transactions");
         int k = parseIntValue(tc.input, "k");
         int t = parseIntValue(tc.input, "t");
         actual = toJson(solution.suspiciousCustomers(transactions, k, t));`;
+        }
+        return `actual = "[ERROR] Unsupported question";`;
     }
-    return `actual = "[ERROR] Unsupported question";`;
-  }
-
-  private cppHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
-    return `
+    cppHarness(sourceCode, testCases, questionId) {
+        return `
 ${sourceCode}
 
 struct __JoraTestCase { string input; string expected; string purpose; };
@@ -594,11 +539,8 @@ int main() {
   string questionId = "${questionId}";
   vector<__JoraTestCase> cases = {
 ${this.normalizedTestCases(testCases)
-  .map(
-    (tc) =>
-      `    { "${this.escapeCppLiteral(tc.input)}", "${this.escapeCppLiteral(tc.expected)}", "${this.escapeCppLiteral(tc.purpose)}" }`,
-  )
-  .join(',\n')}
+            .map((tc) => `    { "${this.escapeCppLiteral(tc.input)}", "${this.escapeCppLiteral(tc.expected)}", "${this.escapeCppLiteral(tc.purpose)}" }`)
+            .join(',\n')}
   };
   vector<string> rows;
   int passed = 0;
@@ -626,38 +568,35 @@ ${this.normalizedTestCases(testCases)
   cout << "===TEST_RESULTS_END===\\n";
 }
 `;
-  }
-
-  private cppInvocation(questionId: string) {
-    if (questionId === 'dsa_servicenow_incident_dependency') {
-      return `int n = __joraIntValue(cases[i].input, "n");
+    }
+    cppInvocation(questionId) {
+        if (questionId === 'dsa_servicenow_incident_dependency') {
+            return `int n = __joraIntValue(cases[i].input, "n");
         auto dependencies = __joraIntMatrix(cases[i].input, "dependencies");
         actual = __joraJsonVector(solution.resolveIncidents(n, dependencies));`;
-    }
-    if (questionId === 'dsa_amazon_delivery_routes') {
-      return `int n = __joraIntValue(cases[i].input, "n");
+        }
+        if (questionId === 'dsa_amazon_delivery_routes') {
+            return `int n = __joraIntValue(cases[i].input, "n");
         auto roads = __joraIntMatrix(cases[i].input, "roads");
-        auto packages = __joraIntMatrix(cases[i].input, "packages");
-        actual = to_string(solution.maxOnTimeDeliveries(n, roads, packages));`;
-    }
-    if (questionId === 'dsa_commvault_deduplication') {
-      return `auto files = __joraStringMatrix(cases[i].input);
+        actual = __joraJsonVector(solution.minimumDeliveryTimes(n, roads));`;
+        }
+        if (questionId === 'dsa_commvault_deduplication') {
+            return `auto files = __joraStringMatrix(cases[i].input);
         actual = __joraJsonVector(solution.newChunksPerFile(files));`;
-    }
-    if (questionId === 'dsa_autodesk_versioned_kv') {
-      return `actual = __joraRunVersionedStore(cases[i].input);`;
-    }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return `auto transactions = __joraTransactions(cases[i].input);
+        }
+        if (questionId === 'dsa_autodesk_versioned_kv') {
+            return `actual = __joraRunVersionedStore(cases[i].input);`;
+        }
+        if (questionId === 'dsa_amazon_fraud_window') {
+            return `auto transactions = __joraTransactions(cases[i].input);
         int k = __joraIntValue(cases[i].input, "k");
         int t = __joraIntValue(cases[i].input, "t");
         actual = __joraJsonVector(solution.suspiciousCustomers(transactions, k, t));`;
+        }
+        return `actual = "[ERROR] Unsupported question";`;
     }
-    return `actual = "[ERROR] Unsupported question";`;
-  }
-
-  private cHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
-    return `
+    cHarness(sourceCode, testCases, questionId) {
+        return `
 ${sourceCode}
 #include <stdio.h>
 #include <stdlib.h>
@@ -889,11 +828,8 @@ int main(void) {
   const char* questionId = "${questionId}";
   JoraTestCase cases[] = {
 ${this.normalizedTestCases(testCases)
-  .map(
-    (tc) =>
-      `    {"${tc.input.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", "${tc.expected.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", "${tc.purpose.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"}`,
-  )
-  .join(',\n')}
+            .map((tc) => `    {"${tc.input.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", "${tc.expected.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", "${tc.purpose.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"}`)
+            .join(',\n')}
   };
   int total = sizeof(cases) / sizeof(cases[0]);
   int passed = 0;
@@ -911,39 +847,35 @@ ${this.normalizedTestCases(testCases)
   return 0;
 }
 `;
-  }
-
-  private cInvocation(questionId: string) {
-    if (questionId === 'dsa_servicenow_incident_dependency') {
-      return `int n = parse_int_value(cases[i].input, "n");
+    }
+    cInvocation(questionId) {
+        if (questionId === 'dsa_servicenow_incident_dependency') {
+            return `int n = parse_int_value(cases[i].input, "n");
     int rows = 0;
     int* colSizes = NULL;
     int** matrix = parse_matrix(cases[i].input, "dependencies", &rows, &colSizes);
     int resultSize = 0;
     int* result = resolveIncidents(n, matrix, rows, colSizes, &resultSize);
     append_int_array(actual, result, resultSize);`;
-    }
-    if (questionId === 'dsa_amazon_delivery_routes') {
-      return `int n = parse_int_value(cases[i].input, "n");
+        }
+        if (questionId === 'dsa_amazon_delivery_routes') {
+            return `int n = parse_int_value(cases[i].input, "n");
     int rows = 0;
     int* colSizes = NULL;
-    int** roads = parse_matrix(cases[i].input, "roads", &rows, &colSizes);
-    int packageRows = 0;
-    int* packageColSizes = NULL;
-    int** packages = parse_matrix(cases[i].input, "packages", &packageRows, &packageColSizes);
-    int result = maxOnTimeDeliveries(n, roads, rows, colSizes, packages, packageRows, packageColSizes);
-    sprintf(actual, "%d", result);`;
-    }
-    if (questionId === 'dsa_commvault_deduplication') {
-      return `int filesSize = 0;
+    int** matrix = parse_matrix(cases[i].input, "roads", &rows, &colSizes);
+    long long* result = minimumDeliveryTimes(n, matrix, rows, colSizes);
+    append_long_array(actual, result, n);`;
+        }
+        if (questionId === 'dsa_commvault_deduplication') {
+            return `int filesSize = 0;
     int* filesColSize = NULL;
     char*** files = parse_string_matrix(cases[i].input, &filesSize, &filesColSize);
     int resultSize = 0;
     int* result = newChunksPerFile(files, filesSize, filesColSize, &resultSize);
     append_int_array(actual, result, resultSize);`;
-    }
-    if (questionId === 'dsa_autodesk_versioned_kv') {
-      return `VersionedStore* store = versionedStoreCreate();
+        }
+        if (questionId === 'dsa_autodesk_versioned_kv') {
+            return `VersionedStore* store = versionedStoreCreate();
     char outputs[2048] = {0};
     const char* cursor = cases[i].input;
     while (*cursor) {
@@ -978,9 +910,9 @@ ${this.normalizedTestCases(testCases)
       while (*cursor == ' ') cursor++;
     }
     strcat(actual, outputs);`;
-    }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return `char** customerIds = NULL;
+        }
+        if (questionId === 'dsa_amazon_fraud_window') {
+            return `char** customerIds = NULL;
     int* timestamps = NULL;
     int transactionsSize = 0;
     parse_transactions(cases[i].input, &customerIds, &timestamps, &transactionsSize);
@@ -989,21 +921,17 @@ ${this.normalizedTestCases(testCases)
     int resultSize = 0;
     char** result = suspiciousCustomers(customerIds, timestamps, transactionsSize, k, t, &resultSize);
     append_string_array(actual, result, resultSize);`;
+        }
+        return `strcat(actual, "[ERROR] Unsupported question");`;
     }
-    return `strcat(actual, "[ERROR] Unsupported question");`;
-  }
-
-  private pythonHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
-    const testCasesJson = JSON.stringify(
-      testCases.map((tc) => ({
-        input: tc.input,
-        expected: tc.expected_output || tc.expected || '',
-        purpose: tc.purpose,
-      })),
-    );
-    const candidatesJson = JSON.stringify(this.functionCandidates(questionId));
-
-    return `
+    pythonHarness(sourceCode, testCases, questionId) {
+        const testCasesJson = JSON.stringify(testCases.map((tc) => ({
+            input: tc.input,
+            expected: tc.expected_output || tc.expected || '',
+            purpose: tc.purpose,
+        })));
+        const candidatesJson = JSON.stringify(this.functionCandidates(questionId));
+        return `
 import json, re, sys, traceback
 
 # === USER CODE START ===
@@ -1040,7 +968,7 @@ def invoke_user_func(question_id, func, input_str):
     if question_id == "dsa_servicenow_incident_dependency":
         return func(int_value(input_str, "n"), matrix_value(input_str, "dependencies"))
     if question_id == "dsa_amazon_delivery_routes":
-        return func(int_value(input_str, "n"), matrix_value(input_str, "roads"), matrix_value(input_str, "packages"))
+        return func(int_value(input_str, "n"), matrix_value(input_str, "roads"))
     if question_id == "dsa_commvault_deduplication":
         return func(json.loads(input_str))
     if question_id == "dsa_autodesk_versioned_kv":
@@ -1135,19 +1063,15 @@ print(json.dumps({
 }, indent=2))
 print("===TEST_RESULTS_END===")
 `;
-  }
-
-  private javascriptHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
-    const testCasesJson = JSON.stringify(
-      testCases.map((tc) => ({
-        input: tc.input,
-        expected: tc.expected_output || tc.expected || '',
-        purpose: tc.purpose,
-      })),
-    );
-    const candidatesJson = JSON.stringify(this.functionCandidates(questionId));
-
-    return `
+    }
+    javascriptHarness(sourceCode, testCases, questionId) {
+        const testCasesJson = JSON.stringify(testCases.map((tc) => ({
+            input: tc.input,
+            expected: tc.expected_output || tc.expected || '',
+            purpose: tc.purpose,
+        })));
+        const candidatesJson = JSON.stringify(this.functionCandidates(questionId));
+        return `
 // === USER CODE START ===
 ${sourceCode}
 // === USER CODE END ===
@@ -1177,7 +1101,7 @@ function matrixValue(inputStr, key) {
 
 function invokeUserFunc(questionId, func, inputStr) {
     if (questionId === "dsa_servicenow_incident_dependency") return func(intValue(inputStr, "n"), matrixValue(inputStr, "dependencies"));
-    if (questionId === "dsa_amazon_delivery_routes") return func(intValue(inputStr, "n"), matrixValue(inputStr, "roads"), matrixValue(inputStr, "packages"));
+    if (questionId === "dsa_amazon_delivery_routes") return func(intValue(inputStr, "n"), matrixValue(inputStr, "roads"));
     if (questionId === "dsa_commvault_deduplication") return func(JSON.parse(inputStr));
     if (questionId === "dsa_autodesk_versioned_kv") {
         let store;
@@ -1267,5 +1191,10 @@ console.log(JSON.stringify({
 }));
 console.log("===TEST_RESULTS_END===");
 `;
-  }
-}
+    }
+};
+exports.TestHarnessService = TestHarnessService;
+exports.TestHarnessService = TestHarnessService = __decorate([
+    (0, common_1.Injectable)()
+], TestHarnessService);
+//# sourceMappingURL=test-harness.service.js.map

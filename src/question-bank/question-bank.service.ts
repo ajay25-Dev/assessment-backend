@@ -2,6 +2,43 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
+type BankQuestion = {
+  id?: string;
+  section?: string;
+  prompt?: string;
+  test_cases?: TestCase[];
+  open_test_cases?: TestCase[];
+  hidden_test_cases?: TestCase[];
+  options?: Array<{ label?: string }>;
+  correct_options?: string[];
+  schema_files?: Record<string, string>;
+  expected_columns?: unknown[];
+  evaluator_context?: {
+    domain_rules?: unknown[];
+    required_components?: unknown[];
+    design_constraints?: unknown[];
+    acceptance_signals?: unknown[];
+    red_flags?: unknown[];
+  };
+};
+
+type TestCase = {
+  id?: string;
+  number?: number;
+  input?: string;
+  expected?: string;
+  expected_output?: string;
+};
+
+type SampleDataTable = {
+  name: string;
+  columns: string[];
+  rows: string[][];
+};
+
+const vagueExpectedPattern =
+  /\b(any|valid|before|within\s+time|correct\s+.*\s+(count|list|operations))\b|\.{3}/i;
+
 @Injectable()
 export class QuestionBankService {
   async getBank() {
@@ -45,6 +82,52 @@ export class QuestionBankService {
     };
   }
 
+  async getPublicBank() {
+    const bank = (await this.getBank()) as {
+      questions?: Array<Record<string, unknown>>;
+    };
+
+    return {
+      ...bank,
+      questions: await Promise.all(
+        (bank.questions || []).map(async (question) => {
+          if (question.section === 'SQL') {
+            const files = question.schema_files as
+              | { schema?: string; visible_seed?: string }
+              | undefined;
+            const sampleDataSql = files?.visible_seed
+              ? await this.readDataFile(files.visible_seed)
+              : '';
+            const schemaSql = files?.schema
+              ? await this.readDataFile(files.schema)
+              : '';
+            return {
+              ...question,
+              sample_data_sql: sampleDataSql,
+              sample_data_tables: this.parseSampleDataTables(
+                schemaSql,
+                sampleDataSql,
+              ),
+            };
+          }
+
+          if (question.section !== 'MCQ') return question;
+
+          const { correct_options, explanation, ...publicQuestion } = question as {
+            correct_options?: unknown[];
+            explanation?: unknown;
+            [key: string]: unknown;
+          };
+
+          return {
+            ...publicQuestion,
+            allow_multiple_answers: (correct_options || []).length > 1,
+          };
+        }),
+      ),
+    };
+  }
+
   private assertValidBank(bank: Record<string, unknown>) {
     const questions = Array.isArray(bank.questions) ? bank.questions : null;
     if (!questions) {
@@ -75,17 +158,7 @@ export class QuestionBankService {
     });
 
     questions.forEach((item) => {
-      const question = item as {
-        id?: string;
-        section?: string;
-        prompt?: string;
-        test_cases?: unknown[];
-        open_test_cases?: unknown[];
-        hidden_test_cases?: unknown[];
-        options?: unknown[];
-        correct_options?: unknown[];
-      };
-
+      const question = item as BankQuestion;
       if (!question.id || !question.prompt) {
         throw new InternalServerErrorException(
           'Every question requires id and prompt',
@@ -102,6 +175,7 @@ export class QuestionBankService {
             `${question.id} must include 15 doc test cases, 5 open cases and 10 hidden cases`,
           );
         }
+        this.assertAuthenticDsaCases(question);
       }
 
       if (question.section === 'MCQ') {
@@ -110,6 +184,309 @@ export class QuestionBankService {
             `${question.id} must include options and correct_options`,
           );
         }
+        this.assertMcqAnswerKeys(question);
+      }
+
+      if (question.section === 'SQL') {
+        this.assertSqlMetadata(question);
+      }
+
+      if (question.section === 'OOPs') {
+        this.assertOopsContext(question);
+      }
+    });
+  }
+
+  private assertAuthenticDsaCases(question: BankQuestion) {
+    const cases = [
+      ...(question.open_test_cases || []),
+      ...(question.hidden_test_cases || []),
+      ...(question.test_cases || []),
+    ];
+
+    cases.forEach((testCase) => {
+      const label = `${question.id}:${testCase.id || testCase.number || '?'}`;
+      const input = String(testCase.input || '');
+      const expected = String(testCase.expected_output || testCase.expected || '');
+
+      if (!input.trim() || !expected.trim()) {
+        throw new InternalServerErrorException(
+          `${label} must include non-empty input and expected output`,
+        );
+      }
+      if (vagueExpectedPattern.test(input) || vagueExpectedPattern.test(expected)) {
+        throw new InternalServerErrorException(
+          `${label} contains a placeholder or non-deterministic expected output`,
+        );
+      }
+      this.assertDsaCaseParseable(String(question.id), input, expected, label);
+    });
+  }
+
+  private assertDsaCaseParseable(
+    questionId: string,
+    input: string,
+    expected: string,
+    label: string,
+  ) {
+    if (questionId === 'dsa_servicenow_incident_dependency') {
+      this.parseIntValue(input, 'n', label);
+      this.parseJsonMatrix(input, 'dependencies', label);
+      this.parseJsonArray(expected, label);
+      return;
+    }
+    if (questionId === 'dsa_amazon_delivery_routes') {
+      this.parseIntValue(input, 'n', label);
+      this.parseJsonMatrix(input, 'roads', label);
+      this.parseJsonMatrix(input, 'packages', label);
+      this.parseExpectedInteger(expected, label);
+      return;
+    }
+    if (questionId === 'dsa_commvault_deduplication') {
+      this.parseJsonArray(input, label);
+      this.parseJsonArray(expected, label);
+      return;
+    }
+    if (questionId === 'dsa_autodesk_versioned_kv') {
+      if (!/^(set|get)\("/.test(input.trim())) {
+        throw new InternalServerErrorException(
+          `${label} must contain executable set/get operations`,
+        );
+      }
+      return;
+    }
+    if (questionId === 'dsa_amazon_fraud_window') {
+      this.parseJsonMatrix(input, 'transactions', label);
+      this.parseIntValue(input, 'k', label);
+      this.parseIntValue(input, 't', label);
+      this.parseJsonArray(expected, label);
+    }
+  }
+
+  private parseIntValue(input: string, key: string, label: string) {
+    if (!new RegExp(`${key}\\s*=\\s*-?\\d+`).test(input)) {
+      throw new InternalServerErrorException(`${label} is missing ${key}`);
+    }
+  }
+
+  private parseJsonMatrix(input: string, key: string, label: string) {
+    const start = input.indexOf(`${key}=`);
+    if (start < 0) {
+      throw new InternalServerErrorException(`${label} is missing ${key}`);
+    }
+    const first = input.indexOf('[[', start);
+    if (first < 0) return [];
+    let depth = 0;
+    let end = first;
+    for (; end < input.length; end += 1) {
+      if (input[end] === '[') depth += 1;
+      if (input[end] === ']') depth -= 1;
+      if (depth === 0) break;
+    }
+    return this.parseJsonArray(input.slice(first, end + 1), label);
+  }
+
+  private parseJsonArray(value: string, label: string) {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (!Array.isArray(parsed)) throw new Error('not an array');
+      return parsed;
+    } catch {
+      throw new InternalServerErrorException(
+        `${label} must contain valid JSON array data`,
+      );
+    }
+  }
+
+  private readDataFile(file: string) {
+    return fs.readFile(join(__dirname, 'data', file), 'utf8');
+  }
+
+  private parseSampleDataTables(
+    schemaSql: string,
+    sampleDataSql: string,
+  ): SampleDataTable[] {
+    const columnsByTable = this.parseTableColumns(schemaSql);
+    const tables: SampleDataTable[] = [];
+    const insertPattern =
+      /INSERT\s+INTO\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+VALUES\s*([\s\S]*?);/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = insertPattern.exec(sampleDataSql)) !== null) {
+      const tableName = match[1];
+      const rows = this.extractTupleValues(match[2]).map((tuple) =>
+        this.splitSqlValues(tuple).map((value) => this.formatSqlValue(value)),
+      );
+
+      tables.push({
+        name: tableName,
+        columns: columnsByTable[tableName] || [],
+        rows,
+      });
+    }
+
+    return tables;
+  }
+
+  private parseTableColumns(schemaSql: string) {
+    const columnsByTable: Record<string, string[]> = {};
+    const createPattern =
+      /CREATE\s+TABLE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(([\s\S]*?)\);/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = createPattern.exec(schemaSql)) !== null) {
+      columnsByTable[match[1]] = match[2]
+        .split(/\r?\n/)
+        .map((line) => line.trim().replace(/,$/, ''))
+        .filter(Boolean)
+        .filter((line) => !/^(PRIMARY|FOREIGN|UNIQUE|CHECK|CONSTRAINT)\b/i.test(line))
+        .map((line) => line.split(/\s+/)[0])
+        .filter(Boolean);
+    }
+
+    return columnsByTable;
+  }
+
+  private extractTupleValues(valuesBlock: string) {
+    const tuples: string[] = [];
+    let start = -1;
+    let depth = 0;
+    let inQuote = false;
+
+    for (let index = 0; index < valuesBlock.length; index += 1) {
+      const char = valuesBlock[index];
+      const next = valuesBlock[index + 1];
+
+      if (char === "'" && inQuote && next === "'") {
+        index += 1;
+        continue;
+      }
+
+      if (char === "'") {
+        inQuote = !inQuote;
+        continue;
+      }
+
+      if (inQuote) continue;
+
+      if (char === '(') {
+        if (depth === 0) start = index + 1;
+        depth += 1;
+        continue;
+      }
+
+      if (char === ')') {
+        depth -= 1;
+        if (depth === 0 && start >= 0) {
+          tuples.push(valuesBlock.slice(start, index));
+          start = -1;
+        }
+      }
+    }
+
+    return tuples;
+  }
+
+  private splitSqlValues(tuple: string) {
+    const values: string[] = [];
+    let current = '';
+    let depth = 0;
+    let inQuote = false;
+
+    for (let index = 0; index < tuple.length; index += 1) {
+      const char = tuple[index];
+      const next = tuple[index + 1];
+
+      if (char === "'" && inQuote && next === "'") {
+        current += "''";
+        index += 1;
+        continue;
+      }
+
+      if (char === "'") {
+        inQuote = !inQuote;
+        current += char;
+        continue;
+      }
+
+      if (!inQuote) {
+        if (char === '(') depth += 1;
+        if (char === ')') depth -= 1;
+        if (char === ',' && depth === 0) {
+          values.push(current.trim());
+          current = '';
+          continue;
+        }
+      }
+
+      current += char;
+    }
+
+    if (current.trim()) values.push(current.trim());
+    return values;
+  }
+
+  private formatSqlValue(value: string) {
+    const trimmed = value.trim();
+    if (/^NULL$/i.test(trimmed)) return 'NULL';
+    if (/^TRUE$/i.test(trimmed)) return 'TRUE';
+    if (/^FALSE$/i.test(trimmed)) return 'FALSE';
+    if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+      return trimmed.slice(1, -1).replace(/''/g, "'");
+    }
+    return trimmed;
+  }
+
+  private parseExpectedInteger(value: string, label: string) {
+    if (!/^\d+$/.test(value.trim())) {
+      throw new InternalServerErrorException(
+        `${label} must contain an integer expected output`,
+      );
+    }
+  }
+
+  private assertMcqAnswerKeys(question: BankQuestion) {
+    const labels = new Set((question.options || []).map((option) => option.label));
+    const invalid = (question.correct_options || []).filter(
+      (option) => !labels.has(option),
+    );
+    if (invalid.length) {
+      throw new InternalServerErrorException(
+        `${question.id} has correct_options not present in options`,
+      );
+    }
+  }
+
+  private assertSqlMetadata(question: BankQuestion) {
+    const files = question.schema_files;
+    if (!files?.schema || !files.visible_seed || !files.hidden_seed) {
+      throw new InternalServerErrorException(
+        `${question.id} must define schema, visible_seed and hidden_seed files`,
+      );
+    }
+    if (!question.expected_columns?.length) {
+      throw new InternalServerErrorException(
+        `${question.id} must define expected_columns`,
+      );
+    }
+  }
+
+  private assertOopsContext(question: BankQuestion) {
+    const context = question.evaluator_context;
+    const requiredKeys: Array<keyof NonNullable<BankQuestion['evaluator_context']>> = [
+      'domain_rules',
+      'required_components',
+      'design_constraints',
+      'acceptance_signals',
+      'red_flags',
+    ];
+
+    requiredKeys.forEach((key) => {
+      const values = context?.[key];
+      if (!Array.isArray(values) || !values.length) {
+        throw new InternalServerErrorException(
+          `${question.id} must define evaluator_context.${key}`,
+        );
       }
     });
   }
