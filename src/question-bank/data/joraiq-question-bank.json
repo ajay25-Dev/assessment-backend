@@ -4,21 +4,21 @@
                        "title":  "JoraIQ Company-Based Assessment",
                        "description":  "Placement-readiness assessment covering DSA, SQL, OOPs and Core CS MCQs.",
                        "duration_minutes":  180,
-                        "scoring_weights":  {
-                                                "DSA":  40,
-                                                "SQL":  25,
-                                                "OOPs":  20,
-                                                "MCQ":  15
-                                            },
-                        "security":  {
-                                         "tab_switch_protection_enabled":  false,
-                                         "max_tab_switch_events":  3,
-                                         "auto_submit_on_max_events":  true,
-                                         "camera_proctoring_enabled":  true,
-                                         "max_camera_events":  3,
-                                         "auto_submit_on_camera_events":  true
-                                     },
-                        "sections":  [
+                       "scoring_weights":  {
+                                               "DSA":  40,
+                                               "SQL":  25,
+                                               "OOPs":  20,
+                                               "MCQ":  15
+                                           },
+                       "security":  {
+                                        "tab_switch_protection_enabled":  false,
+                                        "max_tab_switch_events":  3,
+                                        "auto_submit_on_max_events":  true,
+                                        "camera_proctoring_enabled":  true,
+                                        "max_camera_events":  3,
+                                        "auto_submit_on_camera_events":  true
+                                    },
+                       "sections":  [
                                         {
                                             "id":  "dsa",
                                             "name":  "DSA",
@@ -126,13 +126,13 @@
                                                   {
                                                       "id":  "open_2",
                                                       "input":  "n=4, dependencies=[]",
-                                                      "expected":  "Any order containing [0,1,2,3]",
+                                                      "expected":  "[0,1,2,3]",
                                                       "purpose":  "No dependencies"
                                                   },
                                                   {
                                                       "id":  "open_3",
                                                       "input":  "n=6, dependencies=[[1,0],[2,1],[4,3],[5,4]]",
-                                                      "expected":  "Any valid order: 0 before 1 before 2 and 3 before 4 before 5",
+                                                      "expected":  "[0,1,2,3,4,5]",
                                                       "purpose":  "Multiple independent chains"
                                                   },
                                                   {
@@ -158,19 +158,19 @@
                                                     {
                                                         "id":  "hidden_7",
                                                         "input":  "n=5, dependencies=[[2,1],[3,2]]",
-                                                        "expected":  "Any valid order containing 0 and 4, with 1 before 2 before 3",
+                                                        "expected":  "[0,1,2,3,4]",
                                                         "purpose":  "Isolated incidents present"
                                                     },
                                                     {
                                                         "id":  "hidden_8",
                                                         "input":  "n=5, dependencies=[[1,0],[2,0],[3,0],[4,0]]",
-                                                        "expected":  "0 before 1,2,3,4",
+                                                        "expected":  "[0,1,2,3,4]",
                                                         "purpose":  "Star dependency"
                                                     },
                                                     {
                                                         "id":  "hidden_9",
                                                         "input":  "n=5, dependencies=[[4,0],[4,1],[4,2],[4,3]]",
-                                                        "expected":  "0,1,2,3 before 4",
+                                                        "expected":  "[0,1,2,3,4]",
                                                         "purpose":  "Reverse star"
                                                     },
                                                     {
@@ -182,7 +182,7 @@
                                                     {
                                                         "id":  "hidden_11",
                                                         "input":  "n=4, dependencies=[[2,0],[2,1],[3,2]]",
-                                                        "expected":  "0 and 1 before 2, and 2 before 3",
+                                                        "expected":  "[0,1,2,3]",
                                                         "purpose":  "Two valid starting points"
                                                     },
                                                     {
@@ -193,8 +193,8 @@
                                                     },
                                                     {
                                                         "id":  "hidden_13",
-                                                        "input":  "n=100000, dependencies=[[1,0],[2,1]...[99999,99998]]",
-                                                        "expected":  "[0,1,2,...,99999]",
+                                                        "input":  "n=20, dependencies=[[1,0],[2,1],[3,2],[4,3],[5,4],[6,5],[7,6],[8,7],[9,8],[10,9],[11,10],[12,11],[13,12],[14,13],[15,14],[16,15],[17,16],[18,17],[19,18]]",
+                                                        "expected":  "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]",
                                                         "purpose":  "Large linear chain"
                                                     },
                                                     {
@@ -206,7 +206,7 @@
                                                     {
                                                         "id":  "hidden_15",
                                                         "input":  "n=8, dependencies=[[2,0],[2,1],[3,2],[4,2],[5,3],[6,4],[7,5],[7,6]]",
-                                                        "expected":  "Any valid dependency-respecting order",
+                                                        "expected":  "[0,1,2,3,4,5,6,7]",
                                                         "purpose":  "Complex valid graph"
                                                     }
                                                 ],
@@ -220,13 +220,13 @@
                                              {
                                                  "number":  2,
                                                  "input":  "n=4, dependencies=[]",
-                                                 "expected_output":  "Any order containing [0,1,2,3]",
+                                                 "expected_output":  "[0,1,2,3]",
                                                  "purpose":  "No dependencies"
                                              },
                                              {
                                                  "number":  3,
                                                  "input":  "n=6, dependencies=[[1,0],[2,1],[4,3],[5,4]]",
-                                                 "expected_output":  "Any valid order: 0 before 1 before 2 and 3 before 4 before 5",
+                                                 "expected_output":  "[0,1,2,3,4,5]",
                                                  "purpose":  "Multiple independent chains"
                                              },
                                              {
@@ -250,19 +250,19 @@
                                              {
                                                  "number":  7,
                                                  "input":  "n=5, dependencies=[[2,1],[3,2]]",
-                                                 "expected_output":  "Any valid order containing 0 and 4, with 1 before 2 before 3",
+                                                 "expected_output":  "[0,1,2,3,4]",
                                                  "purpose":  "Isolated incidents present"
                                              },
                                              {
                                                  "number":  8,
                                                  "input":  "n=5, dependencies=[[1,0],[2,0],[3,0],[4,0]]",
-                                                 "expected_output":  "0 before 1,2,3,4",
+                                                 "expected_output":  "[0,1,2,3,4]",
                                                  "purpose":  "Star dependency"
                                              },
                                              {
                                                  "number":  9,
                                                  "input":  "n=5, dependencies=[[4,0],[4,1],[4,2],[4,3]]",
-                                                 "expected_output":  "0,1,2,3 before 4",
+                                                 "expected_output":  "[0,1,2,3,4]",
                                                  "purpose":  "Reverse star"
                                              },
                                              {
@@ -274,7 +274,7 @@
                                              {
                                                  "number":  11,
                                                  "input":  "n=4, dependencies=[[2,0],[2,1],[3,2]]",
-                                                 "expected_output":  "0 and 1 before 2, and 2 before 3",
+                                                 "expected_output":  "[0,1,2,3]",
                                                  "purpose":  "Two valid starting points"
                                              },
                                              {
@@ -285,8 +285,8 @@
                                              },
                                              {
                                                  "number":  13,
-                                                 "input":  "n=100000, dependencies=[[1,0],[2,1]...[99999,99998]]",
-                                                 "expected_output":  "[0,1,2,...,99999]",
+                                                 "input":  "n=20, dependencies=[[1,0],[2,1],[3,2],[4,3],[5,4],[6,5],[7,6],[8,7],[9,8],[10,9],[11,10],[12,11],[13,12],[14,13],[15,14],[16,15],[17,16],[18,17],[19,18]]",
+                                                 "expected_output":  "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]",
                                                  "purpose":  "Large linear chain"
                                              },
                                              {
@@ -298,7 +298,7 @@
                                              {
                                                  "number":  15,
                                                  "input":  "n=8, dependencies=[[2,0],[2,1],[3,2],[4,2],[5,3],[6,4],[7,5],[7,6]]",
-                                                 "expected_output":  "Any valid dependency-respecting order",
+                                                 "expected_output":  "[0,1,2,3,4,5,6,7]",
                                                  "purpose":  "Complex valid graph"
                                              }
                                          ]
@@ -308,22 +308,30 @@
                           "section":  "DSA",
                           "engine":  "code",
                           "type":  "coding",
-                          "title":  "Amazon Delivery Route Optimization with Dynamic Traffic",
+                          "title":  "Amazon Same-Day Delivery Route Optimization",
                           "difficulty":  "hard",
                           "marks":  100,
-                          "prompt":  "Real-World Scenario\nAmazon delivery partners need to deliver packages across multiple locations. Each route between two locations has a travel time. However, due to traffic or road conditions, some roads have different travel costs. The delivery team wants to find the minimum delivery time from the warehouse to all customer locations.\n\nProblem Statement\nYou are given n locations numbered from 0 to n-1. Location 0 is the warehouse. You are given a list of roads [u, v, time], which means there is a road from location u to location v that takes time minutes. Return the minimum time required to reach every location from the warehouse. If any location cannot be reached, return -1 for that location.\n\nInput Example: n = 5 roads = [[0,1,10],[0,2,3],[2,1,4],[1,3,2],[2,3,8],[3,4,7]] Output: [0,7,3,9,16]",
+                          "prompt":  "Real-World Scenario\nAmazon runs a same-day delivery system in a large city.\n\nThere are multiple delivery hubs and thousands of customer locations. Roads between locations have travel times. However, some roads are affected by traffic and can only be used after a certain time.\n\nEach package has a pickup hub, a customer delivery location, and a latest delivery deadline.\n\nA delivery partner starts from location 0 at time 0. The partner can carry only one package at a time.\n\nFor every package, the partner must travel from the current location to the package pickup hub, pick up the package instantly, travel from pickup hub to customer location, and deliver before or exactly at the deadline.\n\nThe partner may choose the order of packages. You need to find the maximum number of packages that can be delivered on time.\n\nProblem Statement\nYou are given n locations numbered from 0 to n-1, m directed roads, and k packages.\n\nEach road is [u, v, travelTime, openTime]. This means there is a directed road from u to v. The road can only be used at or after openTime. If the delivery partner reaches location u before openTime, they must wait until openTime. Arrival time at v is max(currentTime, openTime) + travelTime.\n\nEach package is [pickupLocation, deliveryLocation, deadline].\n\nThe delivery partner starts at location 0 at time 0. Return the maximum number of packages that can be delivered on time.\n\nInput Example\nn = 6\nroads = [[0,1,4,0],[1,2,3,0],[2,3,5,10],[0,4,2,0],[4,3,10,0],[3,5,2,0],[1,5,20,0],[4,2,6,5],[3,2,1,0]]\npackages = [[1,3,18],[4,5,20],[2,5,25],[1,5,30]]\n\nExpected Output\n2\n\nNote: roads are directed. The example includes road [3,2,1,0] so a route can continue from the first delivery area to another pickup hub. Without that directed connector, only one package is deliverable.",
                           "constraints":  [
-                                              "1 \u003c= n \u003c= 100000",
-                                              "0 \u003c= roads.length \u003c= 300000",
+                                              "1 \u003c= n \u003c= 5000",
+                                              "0 \u003c= m \u003c= 20000",
+                                              "1 \u003c= k \u003c= 20",
                                               "0 \u003c= u, v \u003c n",
-                                              "1 \u003c= time \u003c= 100000"
+                                              "1 \u003c= travelTime \u003c= 100000",
+                                              "0 \u003c= openTime \u003c= 100000",
+                                              "0 \u003c= pickupLocation, deliveryLocation \u003c n",
+                                              "1 \u003c= deadline \u003c= 1000000000"
                                           ],
-                          "function_signature":  "minimumDeliveryTimes(n, roads)",
+                          "function_signature":  "maxOnTimeDeliveries(n, roads, packages)",
                           "expected_approach":  [
-                                                    "Weighted graph",
-                                                    "Dijkstra",
-                                                    "Min heap",
-                                                    "O((n + m) log n)"
+                                                    "Graph representation",
+                                                    "Modified Dijkstra with waiting time",
+                                                    "Shortest path with time-dependent edges",
+                                                    "Bitmask dynamic programming",
+                                                    "State optimization",
+                                                    "Greedy failure recognition",
+                                                    "Complexity analysis",
+                                                    "Edge case handling"
                                                 ],
                           "allowed_languages":  [
                                                     "python",
@@ -333,196 +341,196 @@
                                                     "c"
                                                 ],
                           "starter_code":  {
-                                               "python":  "def minimum_delivery_times(n, roads):\n    return [-1] * n\n",
-                                               "javascript":  "function minimumDeliveryTimes(n, roads) {\n  return Array(n).fill(-1);\n}\n",
-                                               "java":  "import java.util.*;\n\nclass Solution {\n  public long[] minimumDeliveryTimes(int n, int[][] roads) {\n    long[] result = new long[n];\n    Arrays.fill(result, -1);\n    return result;\n  }\n}\n",
-                                               "cpp":  "#include \u003cbits/stdc++.h\u003e\nusing namespace std;\n\nclass Solution {\npublic:\n  vector\u003clong long\u003e minimumDeliveryTimes(int n, vector\u003cvector\u003cint\u003e\u003e\u0026 roads) {\n    return vector\u003clong long\u003e(n, -1);\n  }\n};\n",
-                                               "c":  "#include \u003cstdlib.h\u003e\n\nlong long* minimumDeliveryTimes(int n, int** roads, int roadsSize, int* roadsColSize) {\n  return calloc(n, sizeof(long long));\n}\n"
+                                               "python":  "def max_on_time_deliveries(n, roads, packages):\n    # return maximum number of packages delivered on time\n    return 0\n",
+                                               "javascript":  "function maxOnTimeDeliveries(n, roads, packages) {\n  return 0;\n}\n",
+                                               "java":  "import java.util.*;\n\nclass Solution {\n  public int maxOnTimeDeliveries(int n, int[][] roads, int[][] packages) {\n    return 0;\n  }\n}\n",
+                                               "cpp":  "#include \u003cbits/stdc++.h\u003e\nusing namespace std;\n\nclass Solution {\npublic:\n  int maxOnTimeDeliveries(int n, vector\u003cvector\u003cint\u003e\u003e\u0026 roads, vector\u003cvector\u003cint\u003e\u003e\u0026 packages) {\n    return 0;\n  }\n};\n",
+                                               "c":  "#include \u003cstdlib.h\u003e\n\nint maxOnTimeDeliveries(int n, int** roads, int roadsSize, int* roadsColSize, int** packages, int packagesSize, int* packagesColSize) {\n  return 0;\n}\n"
                                            },
                           "open_test_cases":  [
                                                   {
                                                       "id":  "open_1",
-                                                      "input":  "n=5, roads=[[0,1,10],[0,2,3],[2,1,4],[1,3,2],[2,3,8],[3,4,7]]",
-                                                      "expected":  "[0,7,3,9,16]",
-                                                      "purpose":  "Basic weighted graph"
+                                                      "input":  "n=6, roads=[[0,1,4,0],[1,2,3,0],[2,3,5,10],[0,4,2,0],[4,3,10,0],[3,5,2,0],[1,5,20,0],[4,2,6,5],[3,2,1,0]], packages=[[1,3,18],[4,5,20],[2,5,25],[1,5,30]]",
+                                                      "expected":  "2",
+                                                      "purpose":  "Sample with time-dependent roads and two deliverable packages"
                                                   },
                                                   {
                                                       "id":  "open_2",
-                                                      "input":  "n=1, roads=[]",
-                                                      "expected":  "[0]",
-                                                      "purpose":  "One node"
+                                                      "input":  "n=3, roads=[[0,1,2,0],[1,2,3,0]], packages=[[1,2,10]]",
+                                                      "expected":  "1",
+                                                      "purpose":  "Single package delivered before deadline"
                                                   },
                                                   {
                                                       "id":  "open_3",
-                                                      "input":  "n=4, roads=[[0,1,5],[1,2,10]]",
-                                                      "expected":  "[0,5,15,-1]",
-                                                      "purpose":  "Unreachable node"
+                                                      "input":  "n=3, roads=[[0,1,5,0],[1,2,5,0]], packages=[[1,2,9]]",
+                                                      "expected":  "0",
+                                                      "purpose":  "Single package misses deadline"
                                                   },
                                                   {
                                                       "id":  "open_4",
-                                                      "input":  "n=3, roads=[[0,1,100],[0,2,10],[2,1,20]]",
-                                                      "expected":  "[0,30,10]",
-                                                      "purpose":  "Direct route more expensive"
+                                                      "input":  "n=4, roads=[[0,1,1,0],[1,2,2,5],[2,3,1,0]], packages=[[1,3,9]]",
+                                                      "expected":  "1",
+                                                      "purpose":  "Must wait for a road to open"
                                                   },
                                                   {
                                                       "id":  "open_5",
-                                                      "input":  "n=4, roads=[[0,1,5],[0,2,5],[1,3,5],[2,3,5]]",
-                                                      "expected":  "[0,5,5,10]",
-                                                      "purpose":  "Multiple paths same cost"
+                                                      "input":  "n=5, roads=[[0,1,1,0],[1,2,2,0],[2,3,2,0],[3,4,2,0],[0,3,10,0],[4,1,1,0]], packages=[[1,2,5],[3,4,20],[1,3,12]]",
+                                                      "expected":  "3",
+                                                      "purpose":  "Order selection enables all packages"
                                                   }
                                               ],
                           "hidden_test_cases":  [
                                                     {
                                                         "id":  "hidden_6",
-                                                        "input":  "n=5, roads=[[0,1,2],[3,4,1]]",
-                                                        "expected":  "[0,2,-1,-1,-1]",
-                                                        "purpose":  "Disconnected graph"
+                                                        "input":  "n=4, roads=[[0,1,2,0],[1,2,2,0]], packages=[[3,2,20],[1,2,10]]",
+                                                        "expected":  "1",
+                                                        "purpose":  "Unreachable pickup is skipped"
                                                     },
                                                     {
                                                         "id":  "hidden_7",
-                                                        "input":  "n=4, roads=[[0,1,1],[1,2,2],[2,0,3],[2,3,4]]",
-                                                        "expected":  "[0,1,3,7]",
-                                                        "purpose":  "Cycle in graph"
+                                                        "input":  "n=5, roads=[[0,1,1,0],[1,4,1,100],[0,2,5,0],[2,4,5,0],[4,3,1,0]], packages=[[1,3,20],[2,3,15]]",
+                                                        "expected":  "1",
+                                                        "purpose":  "Late-opening fast edge loses to slower usable route"
                                                     },
                                                     {
                                                         "id":  "hidden_8",
-                                                        "input":  "n=3, roads=[[0,1,100000],[1,2,100000]]",
-                                                        "expected":  "[0,100000,200000]",
-                                                        "purpose":  "High weights"
+                                                        "input":  "n=3, roads=[], packages=[[0,0,1],[0,1,10]]",
+                                                        "expected":  "1",
+                                                        "purpose":  "Zero roads with same-location package"
                                                     },
                                                     {
                                                         "id":  "hidden_9",
-                                                        "input":  "n=3, roads=[[0,1,10],[0,1,3],[1,2,4]]",
-                                                        "expected":  "[0,3,7]",
-                                                        "purpose":  "Multiple edges between same nodes"
+                                                        "input":  "n=4, roads=[[0,1,2,0],[1,2,2,0],[2,1,2,0],[1,3,4,0],[3,1,4,0]], packages=[[1,2,6],[1,3,14],[1,2,20]]",
+                                                        "expected":  "3",
+                                                        "purpose":  "Multiple packages share pickup hub"
                                                     },
                                                     {
                                                         "id":  "hidden_10",
-                                                        "input":  "n=4, roads=[[1,2,5],[2,3,6]]",
-                                                        "expected":  "[0,-1,-1,-1]",
-                                                        "purpose":  "Zero outgoing from warehouse"
+                                                        "input":  "n=6, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,4,1,0],[4,5,1,0],[5,1,1,0]], packages=[[1,2,3],[3,4,7],[5,1,11]]",
+                                                        "expected":  "3",
+                                                        "purpose":  "Cycle route can complete all packages"
                                                     },
                                                     {
                                                         "id":  "hidden_11",
-                                                        "input":  "n=5, roads=[[0,1,1],[1,2,1],[2,3,1],[3,4,1]]",
-                                                        "expected":  "[0,1,2,3,4]",
-                                                        "purpose":  "Long chain"
+                                                        "input":  "n=6, roads=[[0,1,3,0],[1,2,3,0],[2,3,3,0],[3,4,3,0],[4,5,3,0],[0,5,20,0],[5,1,1,0]], packages=[[1,2,8],[3,4,15],[5,1,22],[2,5,16]]",
+                                                        "expected":  "3",
+                                                        "purpose":  "Best answer skips one package"
                                                     },
                                                     {
                                                         "id":  "hidden_12",
-                                                        "input":  "n=5, roads=[[0,1,2],[0,2,4],[0,3,6],[0,4,8]]",
-                                                        "expected":  "[0,2,4,6,8]",
-                                                        "purpose":  "Star graph"
+                                                        "input":  "n=3, roads=[[0,1,4,0],[1,2,6,0]], packages=[[1,2,10]]",
+                                                        "expected":  "1",
+                                                        "purpose":  "Delivery exactly at deadline is valid"
                                                     },
                                                     {
                                                         "id":  "hidden_13",
-                                                        "input":  "n=4, roads=[[0,1,50],[0,2,10],[2,1,5],[1,3,5]]",
-                                                        "expected":  "[0,15,10,20]",
-                                                        "purpose":  "Better path found later"
+                                                        "input":  "n=4, roads=[[0,1,1,0],[1,2,1,0],[2,1,1,0],[2,3,1,0],[3,1,1,0]], packages=[[1,2,3],[1,3,6],[1,2,9]]",
+                                                        "expected":  "3",
+                                                        "purpose":  "Revisiting locations between packages"
                                                     },
                                                     {
                                                         "id":  "hidden_14",
-                                                        "input":  "n=100000, roads=[[0,1,1],[1,2,1]...[99998,99999,1]]",
-                                                        "expected":  "[0,1,2,3,...,99999]",
-                                                        "purpose":  "Large sparse graph"
+                                                        "input":  "n=5, roads=[[0,1,2,0],[1,2,2,10],[0,3,6,0],[3,2,1,0],[2,4,2,0],[4,1,2,0]], packages=[[1,4,16],[3,4,12],[1,2,14]]",
+                                                        "expected":  "2",
+                                                        "purpose":  "Time-dependent shortest paths change with current time"
                                                     },
                                                     {
                                                         "id":  "hidden_15",
-                                                        "input":  "n=6, roads=[[0,1,7],[0,2,9],[0,5,14],[1,2,10],[1,3,15],[2,3,11],[2,5,2],[3,4,6],[5,4,9]]",
-                                                        "expected":  "[0,7,9,20,20,11]",
-                                                        "purpose":  "Dense medium graph"
+                                                        "input":  "n=7, roads=[[0,1,1,0],[1,2,2,0],[2,3,2,0],[3,4,2,0],[4,5,2,0],[5,6,2,0],[6,1,2,0],[0,4,10,0]], packages=[[1,2,4],[3,4,9],[5,6,15],[1,3,20],[4,6,24]]",
+                                                        "expected":  "5",
+                                                        "purpose":  "Five-package bitmask DP case"
                                                     }
                                                 ],
                           "test_cases":  [
                                              {
                                                  "number":  1,
-                                                 "input":  "n=5, roads=[[0,1,10],[0,2,3],[2,1,4],[1,3,2],[2,3,8],[3,4,7]]",
-                                                 "expected_output":  "[0,7,3,9,16]",
-                                                 "purpose":  "Basic weighted graph"
+                                                 "input":  "n=6, roads=[[0,1,4,0],[1,2,3,0],[2,3,5,10],[0,4,2,0],[4,3,10,0],[3,5,2,0],[1,5,20,0],[4,2,6,5],[3,2,1,0]], packages=[[1,3,18],[4,5,20],[2,5,25],[1,5,30]]",
+                                                 "expected_output":  "2",
+                                                 "purpose":  "Sample with time-dependent roads and two deliverable packages"
                                              },
                                              {
                                                  "number":  2,
-                                                 "input":  "n=1, roads=[]",
-                                                 "expected_output":  "[0]",
-                                                 "purpose":  "One node"
+                                                 "input":  "n=3, roads=[[0,1,2,0],[1,2,3,0]], packages=[[1,2,10]]",
+                                                 "expected_output":  "1",
+                                                 "purpose":  "Single package delivered before deadline"
                                              },
                                              {
                                                  "number":  3,
-                                                 "input":  "n=4, roads=[[0,1,5],[1,2,10]]",
-                                                 "expected_output":  "[0,5,15,-1]",
-                                                 "purpose":  "Unreachable node"
+                                                 "input":  "n=3, roads=[[0,1,5,0],[1,2,5,0]], packages=[[1,2,9]]",
+                                                 "expected_output":  "0",
+                                                 "purpose":  "Single package misses deadline"
                                              },
                                              {
                                                  "number":  4,
-                                                 "input":  "n=3, roads=[[0,1,100],[0,2,10],[2,1,20]]",
-                                                 "expected_output":  "[0,30,10]",
-                                                 "purpose":  "Direct route more expensive"
+                                                 "input":  "n=4, roads=[[0,1,1,0],[1,2,2,5],[2,3,1,0]], packages=[[1,3,9]]",
+                                                 "expected_output":  "1",
+                                                 "purpose":  "Must wait for a road to open"
                                              },
                                              {
                                                  "number":  5,
-                                                 "input":  "n=4, roads=[[0,1,5],[0,2,5],[1,3,5],[2,3,5]]",
-                                                 "expected_output":  "[0,5,5,10]",
-                                                 "purpose":  "Multiple paths same cost"
+                                                 "input":  "n=5, roads=[[0,1,1,0],[1,2,2,0],[2,3,2,0],[3,4,2,0],[0,3,10,0],[4,1,1,0]], packages=[[1,2,5],[3,4,20],[1,3,12]]",
+                                                 "expected_output":  "3",
+                                                 "purpose":  "Order selection enables all packages"
                                              },
                                              {
                                                  "number":  6,
-                                                 "input":  "n=5, roads=[[0,1,2],[3,4,1]]",
-                                                 "expected_output":  "[0,2,-1,-1,-1]",
-                                                 "purpose":  "Disconnected graph"
+                                                 "input":  "n=4, roads=[[0,1,2,0],[1,2,2,0]], packages=[[3,2,20],[1,2,10]]",
+                                                 "expected_output":  "1",
+                                                 "purpose":  "Unreachable pickup is skipped"
                                              },
                                              {
                                                  "number":  7,
-                                                 "input":  "n=4, roads=[[0,1,1],[1,2,2],[2,0,3],[2,3,4]]",
-                                                 "expected_output":  "[0,1,3,7]",
-                                                 "purpose":  "Cycle in graph"
+                                                 "input":  "n=5, roads=[[0,1,1,0],[1,4,1,100],[0,2,5,0],[2,4,5,0],[4,3,1,0]], packages=[[1,3,20],[2,3,15]]",
+                                                 "expected_output":  "1",
+                                                 "purpose":  "Late-opening fast edge loses to slower usable route"
                                              },
                                              {
                                                  "number":  8,
-                                                 "input":  "n=3, roads=[[0,1,100000],[1,2,100000]]",
-                                                 "expected_output":  "[0,100000,200000]",
-                                                 "purpose":  "High weights"
+                                                 "input":  "n=3, roads=[], packages=[[0,0,1],[0,1,10]]",
+                                                 "expected_output":  "1",
+                                                 "purpose":  "Zero roads with same-location package"
                                              },
                                              {
                                                  "number":  9,
-                                                 "input":  "n=3, roads=[[0,1,10],[0,1,3],[1,2,4]]",
-                                                 "expected_output":  "[0,3,7]",
-                                                 "purpose":  "Multiple edges between same nodes"
+                                                 "input":  "n=4, roads=[[0,1,2,0],[1,2,2,0],[2,1,2,0],[1,3,4,0],[3,1,4,0]], packages=[[1,2,6],[1,3,14],[1,2,20]]",
+                                                 "expected_output":  "3",
+                                                 "purpose":  "Multiple packages share pickup hub"
                                              },
                                              {
                                                  "number":  10,
-                                                 "input":  "n=4, roads=[[1,2,5],[2,3,6]]",
-                                                 "expected_output":  "[0,-1,-1,-1]",
-                                                 "purpose":  "Zero outgoing from warehouse"
+                                                 "input":  "n=6, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,4,1,0],[4,5,1,0],[5,1,1,0]], packages=[[1,2,3],[3,4,7],[5,1,11]]",
+                                                 "expected_output":  "3",
+                                                 "purpose":  "Cycle route can complete all packages"
                                              },
                                              {
                                                  "number":  11,
-                                                 "input":  "n=5, roads=[[0,1,1],[1,2,1],[2,3,1],[3,4,1]]",
-                                                 "expected_output":  "[0,1,2,3,4]",
-                                                 "purpose":  "Long chain"
+                                                 "input":  "n=6, roads=[[0,1,3,0],[1,2,3,0],[2,3,3,0],[3,4,3,0],[4,5,3,0],[0,5,20,0],[5,1,1,0]], packages=[[1,2,8],[3,4,15],[5,1,22],[2,5,16]]",
+                                                 "expected_output":  "3",
+                                                 "purpose":  "Best answer skips one package"
                                              },
                                              {
                                                  "number":  12,
-                                                 "input":  "n=5, roads=[[0,1,2],[0,2,4],[0,3,6],[0,4,8]]",
-                                                 "expected_output":  "[0,2,4,6,8]",
-                                                 "purpose":  "Star graph"
+                                                 "input":  "n=3, roads=[[0,1,4,0],[1,2,6,0]], packages=[[1,2,10]]",
+                                                 "expected_output":  "1",
+                                                 "purpose":  "Delivery exactly at deadline is valid"
                                              },
                                              {
                                                  "number":  13,
-                                                 "input":  "n=4, roads=[[0,1,50],[0,2,10],[2,1,5],[1,3,5]]",
-                                                 "expected_output":  "[0,15,10,20]",
-                                                 "purpose":  "Better path found later"
+                                                 "input":  "n=4, roads=[[0,1,1,0],[1,2,1,0],[2,1,1,0],[2,3,1,0],[3,1,1,0]], packages=[[1,2,3],[1,3,6],[1,2,9]]",
+                                                 "expected_output":  "3",
+                                                 "purpose":  "Revisiting locations between packages"
                                              },
                                              {
                                                  "number":  14,
-                                                 "input":  "n=100000, roads=[[0,1,1],[1,2,1]...[99998,99999,1]]",
-                                                 "expected_output":  "[0,1,2,3,...,99999]",
-                                                 "purpose":  "Large sparse graph"
+                                                 "input":  "n=5, roads=[[0,1,2,0],[1,2,2,10],[0,3,6,0],[3,2,1,0],[2,4,2,0],[4,1,2,0]], packages=[[1,4,16],[3,4,12],[1,2,14]]",
+                                                 "expected_output":  "2",
+                                                 "purpose":  "Time-dependent shortest paths change with current time"
                                              },
                                              {
                                                  "number":  15,
-                                                 "input":  "n=6, roads=[[0,1,7],[0,2,9],[0,5,14],[1,2,10],[1,3,15],[2,3,11],[2,5,2],[3,4,6],[5,4,9]]",
-                                                 "expected_output":  "[0,7,9,20,20,11]",
-                                                 "purpose":  "Dense medium graph"
+                                                 "input":  "n=7, roads=[[0,1,1,0],[1,2,2,0],[2,3,2,0],[3,4,2,0],[4,5,2,0],[5,6,2,0],[6,1,2,0],[0,4,10,0]], packages=[[1,2,4],[3,4,9],[5,6,15],[1,3,20],[4,6,24]]",
+                                                 "expected_output":  "5",
+                                                 "purpose":  "Five-package bitmask DP case"
                                              }
                                          ]
                       },
@@ -649,8 +657,8 @@
                                                     },
                                                     {
                                                         "id":  "hidden_15",
-                                                        "input":  "100000 files, total chunks=500000, many repeated chunks",
-                                                        "expected":  "Correct new unique chunk count per file within time limit",
+                                                        "input":  "[[\"a\",\"b\",\"c\"],[\"a\",\"d\",\"e\"],[\"e\",\"f\"],[\"g\",\"h\",\"a\",\"h\"]]",
+                                                        "expected":  "[3,2,1,2]",
                                                         "purpose":  "Large input stress case"
                                                     }
                                                 ],
@@ -741,8 +749,8 @@
                                              },
                                              {
                                                  "number":  15,
-                                                 "input":  "100000 files, total chunks=500000, many repeated chunks",
-                                                 "expected_output":  "Correct new unique chunk count per file within time limit",
+                                                 "input":  "[[\"a\",\"b\",\"c\"],[\"a\",\"d\",\"e\"],[\"e\",\"f\"],[\"g\",\"h\",\"a\",\"h\"]]",
+                                                 "expected_output":  "[3,2,1,2]",
                                                  "purpose":  "Large input stress case"
                                              }
                                          ]
@@ -872,8 +880,8 @@
                                                     },
                                                     {
                                                         "id":  "hidden_15",
-                                                        "input":  "200000 mixed set/get operations",
-                                                        "expected":  "All get operations correct within time limit",
+                                                        "input":  "set(\"a\",1); set(\"b\",2); set(\"a\",3); get(\"a\",1); get(\"a\",2); get(\"a\",3); get(\"b\",3); get(\"c\",3)",
+                                                        "expected":  "1, 1, 3, 2, NULL",
                                                         "purpose":  "Large operations stress case"
                                                     }
                                                 ],
@@ -964,8 +972,8 @@
                                              },
                                              {
                                                  "number":  15,
-                                                 "input":  "200000 mixed set/get operations",
-                                                 "expected_output":  "All get operations correct within time limit",
+                                                 "input":  "set(\"a\",1); set(\"b\",2); set(\"a\",3); get(\"a\",1); get(\"a\",2); get(\"a\",3); get(\"b\",3); get(\"c\",3)",
+                                                 "expected_output":  "1, 1, 3, 2, NULL",
                                                  "purpose":  "Large operations stress case"
                                              }
                                          ]
@@ -1095,8 +1103,8 @@
                                                     },
                                                     {
                                                         "id":  "hidden_15",
-                                                        "input":  "300000 transactions across many customers",
-                                                        "expected":  "Correct suspicious customer list within time limit",
+                                                        "input":  "transactions=[[\"C1\",1],[\"C1\",2],[\"C1\",5],[\"C1\",6],[\"C2\",1],[\"C2\",10],[\"C2\",11],[\"C2\",12],[\"C3\",1],[\"C3\",20]], k=2, t=5",
+                                                        "expected":  "[\"C1\",\"C2\"]",
                                                         "purpose":  "Large input stress case"
                                                     }
                                                 ],
@@ -1187,8 +1195,8 @@
                                              },
                                              {
                                                  "number":  15,
-                                                 "input":  "300000 transactions across many customers",
-                                                 "expected_output":  "Correct suspicious customer list within time limit",
+                                                 "input":  "transactions=[[\"C1\",1],[\"C1\",2],[\"C1\",5],[\"C1\",6],[\"C2\",1],[\"C2\",10],[\"C2\",11],[\"C2\",12],[\"C3\",1],[\"C3\",20]], k=2, t=5",
+                                                 "expected_output":  "[\"C1\",\"C2\"]",
                                                  "purpose":  "Large input stress case"
                                              }
                                          ]
@@ -1313,6 +1321,39 @@
                                                     "Open/Closed Principle",
                                                     "State or Strategy pattern"
                                                 ],
+                          "evaluator_context":  {
+                                                    "domain_rules":  [
+                                                                         "Incident tickets follow New -\u003e In Progress -\u003e Resolved -\u003e Closed.",
+                                                                         "Service Requests follow Draft -\u003e Submitted -\u003e Approved -\u003e Fulfilled -\u003e Closed.",
+                                                                         "Change Requests require Approval before Implementation and Review before Closed.",
+                                                                         "Problem Tickets support Investigation -\u003e Root Cause Identified -\u003e Workaround Provided -\u003e Closed.",
+                                                                         "Invalid transitions must be rejected with a clear error or failed result."
+                                                                     ],
+                                                    "required_components":  [
+                                                                                "A common Ticket abstraction or interface",
+                                                                                "Separate workflow/state behavior per ticket type",
+                                                                                "A WorkflowEngine or service that delegates transition rules",
+                                                                                "A way to query current ticket state",
+                                                                                "A response object or exception strategy for invalid transitions"
+                                                                            ],
+                                                    "design_constraints":  [
+                                                                               "Adding a new ticket type should not require editing existing engine transition code.",
+                                                                               "Avoid large if/else or switch blocks on ticket type inside the core engine.",
+                                                                               "Keep ticket data encapsulated; external code should not mutate state directly."
+                                                                           ],
+                                                    "acceptance_signals":  [
+                                                                               "Uses State, Strategy, or equivalent polymorphic design.",
+                                                                               "Demonstrates at least two ticket workflows with different transitions.",
+                                                                               "Shows how a new workflow can be registered or introduced with minimal change.",
+                                                                               "Separates workflow rules from ticket identity and storage."
+                                                                           ],
+                                                    "red_flags":  [
+                                                                      "Single procedural function with hard-coded ticket type checks",
+                                                                      "Public mutable state with no transition validation",
+                                                                      "No invalid-transition handling",
+                                                                      "Design cannot add a new workflow without modifying existing workflow engine logic"
+                                                                  ]
+                                                },
                           "allowed_languages":  [
                                                     "python",
                                                     "javascript",
@@ -1342,6 +1383,40 @@
                                                     "Dependency inversion",
                                                     "Strategy or Factory pattern"
                                                 ],
+                          "evaluator_context":  {
+                                                    "domain_rules":  [
+                                                                         "Credit Card and Debit Card require card validation and bank authorization.",
+                                                                         "UPI requires VPA validation and payment confirmation.",
+                                                                         "Wallet requires sufficient wallet balance before debit.",
+                                                                         "Gift Card applies available gift balance before remaining payment.",
+                                                                         "Cash on Delivery can be accepted only for eligible orders and serviceable locations."
+                                                                     ],
+                                                    "required_components":  [
+                                                                                "A PaymentMethod interface or abstract base",
+                                                                                "Concrete payment implementations for at least three modes",
+                                                                                "CheckoutService depending on the abstraction rather than concrete classes",
+                                                                                "Validation and processing methods with success/failure result",
+                                                                                "A factory, registry, or dependency injection approach to choose payment mode"
+                                                                            ],
+                                                    "design_constraints":  [
+                                                                               "Adding BNPL, EMI, or International Card should not require modifying CheckoutService.",
+                                                                               "Do not place all payment rules inside one if/else chain.",
+                                                                               "Payment-specific validation should live with the payment strategy.",
+                                                                               "Checkout flow should orchestrate payment without knowing internal mode rules."
+                                                                           ],
+                                                    "acceptance_signals":  [
+                                                                               "Demonstrates polymorphic process or pay method.",
+                                                                               "Uses dependency inversion for CheckoutService.",
+                                                                               "Returns consistent payment result objects or status values.",
+                                                                               "Handles validation failure separately from payment processing failure."
+                                                                           ],
+                                                    "red_flags":  [
+                                                                      "CheckoutService switches on payment type for every rule",
+                                                                      "No shared payment abstraction",
+                                                                      "New payment mode requires editing existing checkout logic",
+                                                                      "Validation and processing responsibilities are mixed across unrelated classes"
+                                                                  ]
+                                                },
                           "allowed_languages":  [
                                                     "python",
                                                     "javascript",
@@ -1372,6 +1447,40 @@
                                                     "Open/Closed Principle",
                                                     "Strategy or Factory pattern"
                                                 ],
+                          "evaluator_context":  {
+                                                    "domain_rules":  [
+                                                                         "PDF export should support document metadata and page setup.",
+                                                                         "DWG and DXF exports should preserve CAD layers and units.",
+                                                                         "STL and OBJ exports should handle 3D mesh data.",
+                                                                         "PNG export should support raster resolution settings.",
+                                                                         "Unsupported formats must return a controlled failure instead of crashing."
+                                                                     ],
+                                                    "required_components":  [
+                                                                                "A DesignFile domain object that does not implement every format directly",
+                                                                                "An Exporter interface or abstract base",
+                                                                                "Concrete exporters for at least three formats",
+                                                                                "An ExportService, registry, or factory for selecting exporters",
+                                                                                "A standard export result with status, format, and message or output path"
+                                                                            ],
+                                                    "design_constraints":  [
+                                                                               "Adding SVG, IFC, STEP, or GLTF should require adding a new exporter, not modifying DesignFile.",
+                                                                               "Avoid format-specific if/else chains in the DesignFile class.",
+                                                                               "Keep export settings explicit rather than hidden global state.",
+                                                                               "Separate validation of unsupported formats from export execution."
+                                                                           ],
+                                                    "acceptance_signals":  [
+                                                                               "Uses composition so DesignFile delegates export behavior.",
+                                                                               "Shows concrete exporter classes with different behavior.",
+                                                                               "Provides a clear extension point for future formats.",
+                                                                               "Handles success and unsupported-format failure consistently."
+                                                                           ],
+                                                    "red_flags":  [
+                                                                      "DesignFile has one method with switch/if branches for all formats",
+                                                                      "No exporter abstraction",
+                                                                      "Unsupported formats are ignored silently",
+                                                                      "Adding a new format requires changing existing DesignFile logic"
+                                                                  ]
+                                                },
                           "allowed_languages":  [
                                                     "python",
                                                     "javascript",

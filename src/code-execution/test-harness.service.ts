@@ -118,18 +118,26 @@ export class TestHarnessService {
     return JSON.stringify(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 
+  private escapeJavaLiteral(value: string) {
+    return value
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n');
+  }
+
   private functionCandidates(questionId: string) {
     if (questionId === 'dsa_servicenow_incident_dependency') {
       return ['resolve_incidents', 'resolveIncidents', 'findOrder', 'topologicalSort', 'canFinish'];
     }
     if (questionId === 'dsa_amazon_delivery_routes') {
-      return ['minimum_delivery_times', 'minimumDeliveryTimes'];
+      return ['max_on_time_deliveries', 'maxOnTimeDeliveries'];
     }
     if (questionId === 'dsa_commvault_deduplication') {
       return ['new_chunks_per_file', 'newChunksPerFile'];
     }
     if (questionId === 'dsa_autodesk_versioned_kv') {
-      return ['versioned_store_create', 'versionedStoreCreate'];
+      return ['VersionedStore', 'versioned_store_create', 'versionedStoreCreate'];
     }
     if (questionId === 'dsa_amazon_fraud_window') {
       return ['suspicious_customers', 'suspiciousCustomers'];
@@ -146,7 +154,12 @@ export class TestHarnessService {
   }
 
   private javaHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
-    const testCasesJson = this.escapedJsonForJava(this.normalizedTestCases(testCases));
+    const cases = this.normalizedTestCases(testCases)
+      .map(
+        (tc) =>
+          `      new TestCase("${this.escapeJavaLiteral(tc.input)}", "${this.escapeJavaLiteral(tc.expected)}", "${this.escapeJavaLiteral(tc.purpose)}")`,
+      )
+      .join(',\n');
 
     return `
 ${sourceCode}
@@ -165,7 +178,9 @@ class Main {
 
   public static void main(String[] args) throws Exception {
     String questionId = "${questionId}";
-    TestCase[] cases = parseCases("${testCasesJson}");
+    TestCase[] cases = new TestCase[] {
+${cases}
+    };
     Solution solution = new Solution();
     java.util.List<String> rows = new java.util.ArrayList<>();
     int passed = 0;
@@ -176,7 +191,7 @@ class Main {
       boolean ok = false;
       try {
         ${this.javaInvocation(questionId)}
-        ok = compare(actual, tc.expected);
+        ok = compare(questionId, actual, tc.expected, tc.input);
       } catch (Throwable error) {
         actual = "ERROR: " + error.getMessage();
         ok = false;
@@ -268,10 +283,43 @@ class Main {
     return String.join(", ", outputs);
   }` : ''}
 
-  static boolean compare(String actual, String expected) {
-    String e = expected.trim().toLowerCase();
-    if (e.length() == 0 || e.startsWith("any") || e.contains("valid") || e.contains("before") || e.contains("within time")) return true;
+  static boolean compare(String questionId, String actual, String expected, String input) {
+    if ("dsa_servicenow_incident_dependency".equals(questionId)) {
+      return compareTopologicalOrder(actual, expected, input);
+    }
     return normalize(actual).equals(normalize(expected));
+  }
+
+  static boolean compareTopologicalOrder(String actual, String expected, String input) {
+    int n = parseIntValue(input, "n");
+    int[][] dependencies = parseIntMatrix(input, "dependencies");
+    int[] order = parseIntArray(actual);
+    if ("[]".equals(expected.trim())) return order.length == 0;
+    if (order.length != n) return false;
+    int[] position = new int[n];
+    java.util.Arrays.fill(position, -1);
+    for (int i = 0; i < order.length; i++) {
+      int value = order[i];
+      if (value < 0 || value >= n || position[value] != -1) return false;
+      position[value] = i;
+    }
+    for (int[] edge : dependencies) {
+      if (edge.length < 2) return false;
+      int dependent = edge[0];
+      int prerequisite = edge[1];
+      if (dependent == prerequisite) return false;
+      if (position[prerequisite] >= position[dependent]) return false;
+    }
+    return true;
+  }
+
+  static int[] parseIntArray(String value) {
+    java.util.List<Integer> values = new java.util.ArrayList<>();
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile("-?\\\\d+").matcher(value);
+    while (m.find()) values.add(Integer.parseInt(m.group()));
+    int[] result = new int[values.size()];
+    for (int i = 0; i < values.size(); i++) result[i] = values.get(i);
+    return result;
   }
 
   static String normalize(String value) {
@@ -327,7 +375,8 @@ class Main {
     if (questionId === 'dsa_amazon_delivery_routes') {
       return `int n = parseIntValue(tc.input, "n");
         int[][] roads = parseIntMatrix(tc.input, "roads");
-        actual = toJson(solution.minimumDeliveryTimes(n, roads));`;
+        int[][] packages = parseIntMatrix(tc.input, "packages");
+        actual = String.valueOf(solution.maxOnTimeDeliveries(n, roads, packages));`;
     }
     if (questionId === 'dsa_commvault_deduplication') {
       return `String[][] files = parseStringMatrix(tc.input);
@@ -499,10 +548,41 @@ static string __joraNormalize(string value) {
   return out;
 }
 
-static bool __joraCompare(const string& actual, const string& expected) {
-  string lower = expected;
-  transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-  if (lower.empty() || lower.rfind("any", 0) == 0 || lower.find("valid") != string::npos || lower.find("before") != string::npos || lower.find("within time") != string::npos) return true;
+static vector<int> __joraIntArray(const string& value) {
+  vector<int> values;
+  regex numberPattern("-?\\\\d+");
+  for (sregex_iterator it(value.begin(), value.end(), numberPattern), end; it != end; ++it) {
+    values.push_back(stoi((*it).str()));
+  }
+  return values;
+}
+
+static bool __joraCompareTopologicalOrder(const string& actual, const string& expected, const string& input) {
+  int n = __joraIntValue(input, "n");
+  auto dependencies = __joraIntMatrix(input, "dependencies");
+  auto order = __joraIntArray(actual);
+  if (__joraNormalize(expected) == "[]") return order.empty();
+  if ((int)order.size() != n) return false;
+  vector<int> position(n, -1);
+  for (int i = 0; i < (int)order.size(); ++i) {
+    int value = order[i];
+    if (value < 0 || value >= n || position[value] != -1) return false;
+    position[value] = i;
+  }
+  for (const auto& edge : dependencies) {
+    if (edge.size() < 2) return false;
+    int dependent = edge[0];
+    int prerequisite = edge[1];
+    if (dependent == prerequisite) return false;
+    if (position[prerequisite] >= position[dependent]) return false;
+  }
+  return true;
+}
+
+static bool __joraCompare(const string& questionId, const string& actual, const string& expected, const string& input) {
+  if (questionId == "dsa_servicenow_incident_dependency") {
+    return __joraCompareTopologicalOrder(actual, expected, input);
+  }
   return __joraNormalize(actual) == __joraNormalize(expected);
 }
 
@@ -528,7 +608,7 @@ ${this.normalizedTestCases(testCases)
     bool ok = false;
     try {
       ${this.cppInvocation(questionId)}
-      ok = __joraCompare(actual, cases[i].expected);
+      ok = __joraCompare(questionId, actual, cases[i].expected, cases[i].input);
     } catch (const exception& error) {
       actual = string("ERROR: ") + error.what();
       ok = false;
@@ -557,7 +637,8 @@ ${this.normalizedTestCases(testCases)
     if (questionId === 'dsa_amazon_delivery_routes') {
       return `int n = __joraIntValue(cases[i].input, "n");
         auto roads = __joraIntMatrix(cases[i].input, "roads");
-        actual = __joraJsonVector(solution.minimumDeliveryTimes(n, roads));`;
+        auto packages = __joraIntMatrix(cases[i].input, "packages");
+        actual = to_string(solution.maxOnTimeDeliveries(n, roads, packages));`;
     }
     if (questionId === 'dsa_commvault_deduplication') {
       return `auto files = __joraStringMatrix(cases[i].input);
@@ -748,7 +829,64 @@ static void append_string_array(char* actual, char** result, int size) {
   strcat(actual, "]");
 }
 
+static int parse_int_array(const char* value, int* out, int capacity) {
+  int size = 0;
+  const char* cursor = value;
+  while (*cursor && size < capacity) {
+    while (*cursor && !isdigit((unsigned char)*cursor) && *cursor != '-') cursor++;
+    if (!*cursor) break;
+    out[size++] = (int)strtol(cursor, (char**)&cursor, 10);
+  }
+  return size;
+}
+
+static int compare_topological_order(const char* actual, const char* expected, const char* input) {
+  int expectedIsEmpty = strcmp(expected, "[]") == 0;
+  int order[4096];
+  int orderSize = parse_int_array(actual, order, 4096);
+  if (expectedIsEmpty) return orderSize == 0;
+
+  int n = parse_int_value(input, "n");
+  if (n < 0 || n > 4096 || orderSize != n) return 0;
+  int* position = malloc(sizeof(int) * (size_t)n);
+  for (int i = 0; i < n; i++) position[i] = -1;
+  for (int i = 0; i < orderSize; i++) {
+    int value = order[i];
+    if (value < 0 || value >= n || position[value] != -1) {
+      free(position);
+      return 0;
+    }
+    position[value] = i;
+  }
+
+  int rows = 0;
+  int* colSizes = NULL;
+  int** dependencies = parse_matrix(input, "dependencies", &rows, &colSizes);
+  for (int i = 0; i < rows; i++) {
+    if (colSizes[i] < 2) {
+      free(position);
+      return 0;
+    }
+    int dependent = dependencies[i][0];
+    int prerequisite = dependencies[i][1];
+    if (dependent == prerequisite || position[prerequisite] >= position[dependent]) {
+      free(position);
+      return 0;
+    }
+  }
+  free(position);
+  return 1;
+}
+
+static int compare_result(const char* questionId, const char* actual, const char* expected, const char* input) {
+  if (strcmp(questionId, "dsa_servicenow_incident_dependency") == 0) {
+    return compare_topological_order(actual, expected, input);
+  }
+  return strcmp(actual, expected) == 0;
+}
+
 int main(void) {
+  const char* questionId = "${questionId}";
   JoraTestCase cases[] = {
 ${this.normalizedTestCases(testCases)
   .map(
@@ -764,7 +902,7 @@ ${this.normalizedTestCases(testCases)
     char actual[4096] = {0};
     int ok = 0;
     ${this.cInvocation(questionId)}
-    ok = strcmp(actual, cases[i].expected) == 0 || strstr(cases[i].expected, "Any") == cases[i].expected || strstr(cases[i].expected, "valid") != NULL || strstr(cases[i].expected, "before") != NULL;
+    ok = compare_result(questionId, actual, cases[i].expected, cases[i].input);
     if (ok) passed++;
     if (i) printf(",");
     print_result_row(i + 1, cases[i].input, cases[i].expected, actual, ok, cases[i].purpose);
@@ -789,9 +927,12 @@ ${this.normalizedTestCases(testCases)
       return `int n = parse_int_value(cases[i].input, "n");
     int rows = 0;
     int* colSizes = NULL;
-    int** matrix = parse_matrix(cases[i].input, "roads", &rows, &colSizes);
-    long long* result = minimumDeliveryTimes(n, matrix, rows, colSizes);
-    append_long_array(actual, result, n);`;
+    int** roads = parse_matrix(cases[i].input, "roads", &rows, &colSizes);
+    int packageRows = 0;
+    int* packageColSizes = NULL;
+    int** packages = parse_matrix(cases[i].input, "packages", &packageRows, &packageColSizes);
+    int result = maxOnTimeDeliveries(n, roads, rows, colSizes, packages, packageRows, packageColSizes);
+    sprintf(actual, "%d", result);`;
     }
     if (questionId === 'dsa_commvault_deduplication') {
       return `int filesSize = 0;
@@ -863,7 +1004,7 @@ ${this.normalizedTestCases(testCases)
     const candidatesJson = JSON.stringify(this.functionCandidates(questionId));
 
     return `
-import json, sys, traceback
+import json, re, sys, traceback
 
 # === USER CODE START ===
 ${sourceCode}
@@ -872,20 +1013,51 @@ ${sourceCode}
 TEST_CASES = json.loads("""${testCasesJson.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}""")
 CANDIDATES = json.loads("""${candidatesJson.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}""")
 
-def try_parse_input(input_str):
-    """Parse standard input format: n=X, dependencies=[[...]]"""
-    n = None
-    dependencies = []
-    for part in input_str.split(", "):
-        if "=" in part:
-            key, val = part.split("=", 1)
-            key = key.strip()
-            val = val.strip()
-            if key == "n":
-                n = int(val)
-            elif key == "dependencies":
-                dependencies = json.loads(val)
-    return n, dependencies
+def int_value(input_str, key):
+    match = re.search(rf"{re.escape(key)}\\s*=\\s*(-?\\d+)", input_str)
+    return int(match.group(1)) if match else None
+
+def matrix_value(input_str, key):
+    start = input_str.find(key + "=")
+    if start < 0:
+        return []
+    first = input_str.find("[[", start)
+    if first < 0:
+        return []
+    depth = 0
+    end = first
+    while end < len(input_str):
+        if input_str[end] == "[":
+            depth += 1
+        elif input_str[end] == "]":
+            depth -= 1
+            if depth == 0:
+                break
+        end += 1
+    return json.loads(input_str[first:end + 1])
+
+def invoke_user_func(question_id, func, input_str):
+    if question_id == "dsa_servicenow_incident_dependency":
+        return func(int_value(input_str, "n"), matrix_value(input_str, "dependencies"))
+    if question_id == "dsa_amazon_delivery_routes":
+        return func(int_value(input_str, "n"), matrix_value(input_str, "roads"), matrix_value(input_str, "packages"))
+    if question_id == "dsa_commvault_deduplication":
+        return func(json.loads(input_str))
+    if question_id == "dsa_autodesk_versioned_kv":
+        store = func()
+        outputs = []
+        for op in input_str.split(";"):
+            set_match = re.search(r'set\\("([^"]+)",\\s*(-?\\d+)\\)', op.strip())
+            get_match = re.search(r'get\\("([^"]+)",\\s*(-?\\d+)\\)', op.strip())
+            if set_match:
+                store.set(set_match.group(1), int(set_match.group(2)))
+            if get_match:
+                value = store.get(get_match.group(1), int(get_match.group(2)))
+                outputs.append("NULL" if value is None else str(value))
+        return ", ".join(outputs)
+    if question_id == "dsa_amazon_fraud_window":
+        return func(matrix_value(input_str, "transactions"), int_value(input_str, "k"), int_value(input_str, "t"))
+    return func(input_str)
 
 def find_user_func():
     """Try to locate the user's solution function."""
@@ -905,35 +1077,30 @@ def find_user_func():
                     return candidate
     return None
 
-def compare_outputs(result, expected_str):
-    """Compare actual result with expected string."""
-    expected_lower = expected_str.strip().lower()
-    if not expected_lower or expected_lower.startswith("any"):
-        # "Any valid order" or "Any order containing..." → accept
-        return True
-    
-    result_str = str(result)
-    
-    # Try JSON comparison first
-    if expected_str.startswith("["):
-        try:
-            expected_list = json.loads(expected_str)
-            if isinstance(result, list):
-                return result == expected_list
-        except:
-            pass
-    
-    # If expected says "[]" (empty list)
+def compare_topological_order(result, expected_str, input_str):
     if expected_str.strip() == "[]":
         return isinstance(result, list) and len(result) == 0
-    
-    # For cycle detection, expected might be "[]" or "empty"
-    if "empty" in expected_lower or "[]" in expected_lower:
-        return isinstance(result, list) and len(result) == 0
-    
-    # String comparison fallback
-    return result_str.strip() == expected_str.strip()
+    n = int_value(input_str, "n")
+    dependencies = matrix_value(input_str, "dependencies")
+    if not isinstance(result, list) or len(result) != n:
+        return False
+    if sorted(result) != list(range(n)):
+        return False
+    position = {node: index for index, node in enumerate(result)}
+    for after, before in dependencies:
+        if after == before or position[before] >= position[after]:
+            return False
+    return True
 
+def compare_outputs(question_id, result, expected_str, input_str):
+    if question_id == "dsa_servicenow_incident_dependency":
+        return compare_topological_order(result, expected_str, input_str)
+    if isinstance(result, (list, dict)):
+        try:
+            return result == json.loads(expected_str)
+        except Exception:
+            return json.dumps(result, separators=(",", ":")) == expected_str.replace(" ", "")
+    return str(result).strip().replace(" ", "") == expected_str.strip().replace(" ", "")
 results = []
 func = find_user_func()
 
@@ -951,10 +1118,9 @@ for tc in TEST_CASES:
         if func is None:
             result_entry["actual"] = "[ERROR] No matching function found"
         else:
-            n, deps = try_parse_input(tc["input"])
-            output = func(n, deps) if n is not None else func(deps)
+            output = invoke_user_func("${questionId}", func, tc["input"])
             result_entry["actual"] = json.dumps(output) if isinstance(output, (list, dict)) else str(output)
-            result_entry["passed"] = compare_outputs(output, tc.get("expected", ""))
+            result_entry["passed"] = compare_outputs("${questionId}", output, tc.get("expected", ""), tc["input"])
     except Exception as e:
         result_entry["actual"] = f"ERROR: {str(e)}"
         result_entry["passed"] = False
@@ -989,21 +1155,52 @@ ${sourceCode}
 const TEST_CASES = ${testCasesJson};
 const CANDIDATES = ${candidatesJson};
 
-function parseInput(inputStr) {
-    let n = null;
-    let dependencies = [];
-    for (const part of inputStr.split(", ")) {
-        const eqIdx = part.indexOf("=");
-        if (eqIdx > 0) {
-            const key = part.substring(0, eqIdx).trim();
-            const val = part.substring(eqIdx + 1).trim();
-            if (key === "n") n = parseInt(val);
-            else if (key === "dependencies") dependencies = JSON.parse(val);
-        }
-    }
-    return { n, dependencies };
+function intValue(inputStr, key) {
+    const match = inputStr.match(new RegExp(key + "\\s*=\\s*(-?\\d+)"));
+    return match ? Number(match[1]) : null;
 }
 
+function matrixValue(inputStr, key) {
+    const start = inputStr.indexOf(key + "=");
+    if (start < 0) return [];
+    const first = inputStr.indexOf("[[", start);
+    if (first < 0) return [];
+    let depth = 0;
+    let end = first;
+    for (; end < inputStr.length; end++) {
+        if (inputStr[end] === "[") depth++;
+        if (inputStr[end] === "]") depth--;
+        if (depth === 0) break;
+    }
+    return JSON.parse(inputStr.slice(first, end + 1));
+}
+
+function invokeUserFunc(questionId, func, inputStr) {
+    if (questionId === "dsa_servicenow_incident_dependency") return func(intValue(inputStr, "n"), matrixValue(inputStr, "dependencies"));
+    if (questionId === "dsa_amazon_delivery_routes") return func(intValue(inputStr, "n"), matrixValue(inputStr, "roads"), matrixValue(inputStr, "packages"));
+    if (questionId === "dsa_commvault_deduplication") return func(JSON.parse(inputStr));
+    if (questionId === "dsa_autodesk_versioned_kv") {
+        let store;
+        try {
+            store = new func();
+        } catch(e) {
+            store = func();
+        }
+        const outputs = [];
+        for (const op of inputStr.split(";")) {
+            const setMatch = op.trim().match(/set\("([^"]+)",\s*(-?\d+)\)/);
+            const getMatch = op.trim().match(/get\("([^"]+)",\s*(-?\d+)\)/);
+            if (setMatch) store.set(setMatch[1], Number(setMatch[2]));
+            if (getMatch) {
+                const value = store.get(getMatch[1], Number(getMatch[2]));
+                outputs.push(value === null || value === undefined ? "NULL" : String(value));
+            }
+        }
+        return outputs.join(", ");
+    }
+    if (questionId === "dsa_amazon_fraud_window") return func(matrixValue(inputStr, "transactions"), intValue(inputStr, "k"), intValue(inputStr, "t"));
+    return func(inputStr);
+}
 function findUserFunc() {
     const namespace = globalThis;
     for (const name of CANDIDATES) {
@@ -1013,21 +1210,27 @@ function findUserFunc() {
     return null;
 }
 
-function compareOutputs(result, expectedStr) {
-    const lower = expectedStr.trim().toLowerCase();
-    if (!lower || lower.startsWith("any")) return true;
+function compareTopologicalOrder(result, expectedStr, inputStr) {
     if (expectedStr.trim() === "[]") return Array.isArray(result) && result.length === 0;
-    if (lower.includes("empty")) return Array.isArray(result) && result.length === 0;
-    
-    const resultStr = JSON.stringify(result);
-    try {
-        const expectedParsed = JSON.parse(expectedStr);
-        return JSON.stringify(result) === JSON.stringify(expectedParsed);
-    } catch(e) {
-        return resultStr === expectedStr.trim();
-    }
+    const n = intValue(inputStr, "n");
+    const dependencies = matrixValue(inputStr, "dependencies");
+    if (!Array.isArray(result) || result.length !== n) return false;
+    if (JSON.stringify([...result].sort((a, b) => a - b)) !== JSON.stringify(Array.from({ length: n }, (_, i) => i))) return false;
+    const position = new Map(result.map((node, index) => [node, index]));
+    return dependencies.every(([after, before]) => after !== before && position.get(before) < position.get(after));
 }
 
+function compareOutputs(questionId, result, expectedStr, inputStr) {
+    if (questionId === "dsa_servicenow_incident_dependency") return compareTopologicalOrder(result, expectedStr, inputStr);
+    if (Array.isArray(result) || (result && typeof result === "object")) {
+        try {
+            return JSON.stringify(result) === JSON.stringify(JSON.parse(expectedStr));
+        } catch(e) {
+            return JSON.stringify(result) === expectedStr.replace(/\s+/g, "");
+        }
+    }
+    return String(result).trim().replace(/\s+/g, "") === expectedStr.trim().replace(/\s+/g, "");
+}
 const func = findUserFunc();
 const results = [];
 
@@ -1045,10 +1248,9 @@ for (const tc of TEST_CASES) {
         if (!func) {
             entry.actual = "[ERROR] No matching function found";
         } else {
-            const { n, dependencies } = parseInput(tc.input);
-            const output = n !== null ? func(n, dependencies) : func(dependencies);
+            const output = invokeUserFunc("${questionId}", func, tc.input);
             entry.actual = JSON.stringify(output);
-            entry.passed = compareOutputs(output, tc.expected);
+            entry.passed = compareOutputs("${questionId}", output, tc.expected, tc.input);
         }
     } catch(e) {
         entry.actual = "ERROR: " + (e.message || String(e));

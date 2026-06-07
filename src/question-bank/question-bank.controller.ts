@@ -7,7 +7,7 @@ export class QuestionBankController {
 
   @Get()
   getBank() {
-    return this.questionBank.getBank();
+    return this.questionBank.getPublicBank();
   }
 
   @Get('import-preview')
