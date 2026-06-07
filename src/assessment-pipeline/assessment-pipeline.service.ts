@@ -35,6 +35,7 @@ type FinalizeInput = {
   submitted_at?: string;
   duration_minutes?: number;
   tab_events?: number;
+  camera_events?: number;
   submission_mode?: 'manual' | 'auto';
   answers?: Record<string, FinalizeAnswer>;
 };
@@ -406,6 +407,7 @@ export class AssessmentPipelineService {
           source_assessment_id: input.assessment_id || bank.assessment?.id,
           student_email: input.student_email,
           submission_mode: input.submission_mode || 'manual',
+          camera_events: input.camera_events || 0,
         },
       })
       .select('id')

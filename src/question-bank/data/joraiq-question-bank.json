@@ -11,9 +11,12 @@
                                                 "MCQ":  15
                                             },
                         "security":  {
-                                         "tab_switch_protection_enabled":  true,
+                                         "tab_switch_protection_enabled":  false,
                                          "max_tab_switch_events":  3,
-                                         "auto_submit_on_max_events":  true
+                                         "auto_submit_on_max_events":  true,
+                                         "camera_proctoring_enabled":  true,
+                                         "max_camera_events":  3,
+                                         "auto_submit_on_camera_events":  true
                                      },
                         "sections":  [
                                         {
