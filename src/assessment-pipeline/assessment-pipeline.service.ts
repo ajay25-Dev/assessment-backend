@@ -884,7 +884,7 @@ export class AssessmentPipelineService {
       hardcoding_risk: hardcodingRisk,
       compilation_behaviour: compilationBehaviour,
       runtime_percentile: runtimePercentile,
-      readiness_label: null,
+      readiness_label: this.legacyReadinessLabel(readiness.bucket),
       readiness_bucket: readiness.bucket,
       readiness_reason: readiness.reason,
       strongest_section: strongestSection,
@@ -1286,6 +1286,12 @@ export class AssessmentPipelineService {
     if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') return 'Ready';
     if (label === 'Not Ready' || label === 'Risky High Scorer') return 'Failed';
     return 'Training Needed';
+  }
+
+  private legacyReadinessLabel(bucket: ReadinessBucket) {
+    if (bucket === 'Ready') return 'Ready';
+    if (bucket === 'Training Needed') return 'Needs Practice';
+    return 'At Risk';
   }
 
   private companyRecommendation(label: ReadinessLabel) {
