@@ -227,9 +227,11 @@ ${cases}
   }
 
   static int[][] parseIntMatrix(String input, String key) {
-    int start = input.indexOf(key + "=");
-    if (start < 0) return new int[0][0];
-    int first = input.indexOf("[[", start);
+    java.util.regex.Matcher keyMatcher = java.util.regex.Pattern.compile(key + "\\\\s*=\\\\s*").matcher(input);
+    if (!keyMatcher.find()) return new int[0][0];
+    int valueStart = keyMatcher.end();
+    if (input.substring(valueStart).trim().startsWith("[]")) return new int[0][0];
+    int first = input.indexOf("[[", valueStart);
     if (first < 0) return new int[0][0];
     int depth = 0;
     int end = first;
@@ -1018,10 +1020,13 @@ def int_value(input_str, key):
     return int(match.group(1)) if match else None
 
 def matrix_value(input_str, key):
-    start = input_str.find(key + "=")
-    if start < 0:
+    match = re.search(rf"{re.escape(key)}\\s*=\\s*", input_str)
+    if not match:
         return []
-    first = input_str.find("[[", start)
+    value_start = match.end()
+    if input_str[value_start:].lstrip().startswith("[]"):
+        return []
+    first = input_str.find("[[", value_start)
     if first < 0:
         return []
     depth = 0
@@ -1161,9 +1166,11 @@ function intValue(inputStr, key) {
 }
 
 function matrixValue(inputStr, key) {
-    const start = inputStr.indexOf(key + "=");
-    if (start < 0) return [];
-    const first = inputStr.indexOf("[[", start);
+    const match = inputStr.match(new RegExp(key + "\\s*=\\s*"));
+    if (!match || match.index === undefined) return [];
+    const valueStart = match.index + match[0].length;
+    if (inputStr.slice(valueStart).trimStart().startsWith("[]")) return [];
+    const first = inputStr.indexOf("[[", valueStart);
     if (first < 0) return [];
     let depth = 0;
     let end = first;

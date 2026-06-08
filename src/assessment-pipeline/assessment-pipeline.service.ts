@@ -25,6 +25,7 @@ type FinalizeAnswer = {
   submissions?: number;
   status?: string;
   resultMessage?: string;
+  sqlExecutionMs?: number | null;
 };
 
 type FinalizeInput = {
@@ -274,6 +275,7 @@ export class AssessmentPipelineService {
         status: answer.status || 'unvisited',
         run_count: answer.runs || 0,
         submit_count: answer.submissions || 0,
+        execution_ms: this.nullableNumber(answer.sqlExecutionMs),
         sql_result_summary: answer.resultMessage || '',
       };
     });
@@ -595,13 +597,14 @@ export class AssessmentPipelineService {
           columns: [],
           rows: [],
           row_count: 0,
-          execution_ms: null,
+          execution_ms: this.nullableNumber(answer.sqlExecutionMs),
           error_text: answer.resultMessage || null,
           comparison_result: {
             final_snapshot: true,
             run_count: answer.runs || 0,
             submit_count: answer.submissions || 0,
             result_message: answer.resultMessage || '',
+            execution_ms: this.nullableNumber(answer.sqlExecutionMs),
           },
         };
       })
@@ -1097,6 +1100,11 @@ export class AssessmentPipelineService {
     const score = Number(value ?? fallback);
     if (!Number.isFinite(score)) return fallback;
     return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  private nullableNumber(value: unknown) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.round(parsed) : null;
   }
 
   private riskOutput(value: unknown) {
