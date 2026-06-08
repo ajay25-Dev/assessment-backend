@@ -884,7 +884,7 @@ export class AssessmentPipelineService {
       hardcoding_risk: hardcodingRisk,
       compilation_behaviour: compilationBehaviour,
       runtime_percentile: runtimePercentile,
-      readiness_label: readiness.label,
+      readiness_label: null,
       readiness_bucket: readiness.bucket,
       readiness_reason: readiness.reason,
       strongest_section: strongestSection,
@@ -907,19 +907,21 @@ export class AssessmentPipelineService {
       },
     };
 
-    const { data, error } = await this.getSupabase()
+    return this.insertReportRow(row);
+  }
+
+  private async insertReportRow(row: Record<string, unknown>) {
+    const result = await this.getSupabase()
       .from('student_assessment_reports')
       .insert(row)
       .select('*')
       .single();
 
-    if (error) {
-      throw new InternalServerErrorException(
-        `Could not write dashboard report: ${error.message}`,
-      );
-    }
+    if (!result.error) return result.data as Record<string, unknown>;
 
-    return data as Record<string, unknown>;
+    throw new InternalServerErrorException(
+      `Could not write dashboard report: ${result.error.message}`,
+    );
   }
 
   private fallbackQuestionEvaluation(section: Section, detail: Record<string, unknown>): EvaluationResult {
