@@ -15,6 +15,7 @@ import { SqlEvaluationService } from '../evaluations/sql-evaluation.service';
 import { QuestionBankService } from '../question-bank/question-bank.service';
 
 type Section = 'DSA' | 'SQL' | 'OOPs' | 'MCQ';
+type FinalizeStage = Section | 'DASHBOARD';
 
 type FinalizeAnswer = {
   value?: string;
@@ -128,34 +129,14 @@ export class AssessmentPipelineService {
       MCQ: mcq.score,
     };
 
-    const dashboardInput = {
-      student_id: input.student_id,
-      student_email: input.student_email || '',
-      student_name: input.student_email || input.student_id,
-      assessment: bank.assessment,
-      submitted_at: submittedAt,
-      duration_minutes: durationMinutes,
-      tab_events: input.tab_events || 0,
-      deterministic_scores: deterministicScores,
-      weights: bank.assessment?.scoring_weights || {
-        DSA: 40,
-        SQL: 25,
-        OOPs: 20,
-        MCQ: 15,
-      },
-      section_evaluations: {
-        DSA: dsa.evaluations.map((item) => item.output),
-        SQL: sql.evaluations.map((item) => item.output),
-        OOPs: oops.evaluations.map((item) => item.output),
-        MCQ: mcq.evaluations.map((item) => item.output),
-      },
-      deterministic_details: {
-        DSA: dsa.deterministic,
-        SQL: sql.deterministic,
-        OOPs: oops.deterministic,
-        MCQ: mcq.deterministic,
-      },
-    };
+    const dashboardInput = this.buildDashboardInput(
+      input,
+      bank,
+      deterministicScores,
+      { DSA: dsa, SQL: sql, OOPs: oops, MCQ: mcq },
+      submittedAt,
+      durationMinutes,
+    );
 
     const dashboardEvaluation = await this.tryEvaluate(
       'DASHBOARD',
@@ -187,9 +168,87 @@ export class AssessmentPipelineService {
 
     return {
       attempt_id: attemptId,
-      report_id: report.id,
-      report,
-      dashboard_evaluation: dashboardEvaluation.output,
+      report_id: String(report.id || ''),
+      status: 'finalized',
+    };
+  }
+
+  async processFinalizeStage(
+    attemptId: string,
+    rawStage: string,
+    rawInput: unknown,
+  ) {
+    const stage = this.parseFinalizeStage(rawStage);
+    const input = this.parseInput(rawInput);
+    const bank = (await this.questionBank.getBank()) as Bank;
+    const questions = bank.questions || [];
+    const questionsById = new Map(
+      questions.map((question) => [question.id, question]),
+    );
+
+    if (stage === 'DASHBOARD') {
+      const dsa = await this.evaluateCodingSection('DSA', questions, input);
+      const sql = await this.evaluateSqlSection(questions, input);
+      const oops = await this.evaluateCodingSection('OOPs', questions, input);
+      const mcq = await this.evaluateMcqSection(questions, input);
+      const deterministicScores = {
+        DSA: dsa.score,
+        SQL: sql.score,
+        OOPs: oops.score,
+        MCQ: mcq.score,
+      };
+      const dashboardInput = this.buildDashboardInput(
+        input,
+        bank,
+        deterministicScores,
+        { DSA: dsa, SQL: sql, OOPs: oops, MCQ: mcq },
+      );
+      const dashboardEvaluation = await this.tryEvaluate(
+        'DASHBOARD',
+        () => this.dashboardEvaluation.evaluate(dashboardInput),
+        this.fallbackDashboard(input, bank, deterministicScores),
+        true,
+      );
+
+      await this.replaceReportForAttempt(attemptId);
+      const report = await this.persistReport({
+        attemptId,
+        input,
+        bank,
+        dashboardEvaluation,
+        deterministicScores,
+        allEvaluations: {
+          DSA: dsa.evaluations,
+          SQL: sql.evaluations,
+          OOPs: oops.evaluations,
+          MCQ: mcq.evaluations,
+        },
+        dashboardInput,
+      });
+
+      return {
+        attempt_id: attemptId,
+        report_id: String(report.id || ''),
+        stage,
+        status: 'processed',
+      };
+    }
+
+    const summary =
+      stage === 'DSA' || stage === 'OOPs'
+        ? await this.evaluateCodingSection(stage, questions, input, true)
+        : stage === 'SQL'
+          ? await this.evaluateSqlSection(questions, input, true)
+          : await this.evaluateMcqSection(questions, input, true);
+
+    await this.replaceEvaluationsForSection(attemptId, stage);
+    await this.persistEvaluations(attemptId, questionsById, summary.evaluations);
+
+    return {
+      attempt_id: attemptId,
+      stage,
+      status: 'processed',
+      score: summary.score,
     };
   }
 
@@ -211,6 +270,7 @@ export class AssessmentPipelineService {
     section: 'DSA' | 'OOPs',
     questions: BankQuestion[],
     input: FinalizeInput,
+    useAi = false,
   ): Promise<SectionSummary> {
     const sectionQuestions = questions.filter((question) => question.section === section);
     const evaluations: EvaluationResult[] = [];
@@ -242,7 +302,7 @@ export class AssessmentPipelineService {
         await this.tryEvaluate(section, () =>
           section === 'DSA'
             ? this.dsaEvaluation.evaluate(detail)
-            : this.oopsEvaluation.evaluate(detail), fallback),
+            : this.oopsEvaluation.evaluate(detail), fallback, useAi),
       );
     }
 
@@ -258,6 +318,7 @@ export class AssessmentPipelineService {
   private async evaluateSqlSection(
     questions: BankQuestion[],
     input: FinalizeInput,
+    useAi = false,
   ): Promise<SectionSummary> {
     const sectionQuestions = questions.filter((question) => question.section === 'SQL');
     const evaluations: EvaluationResult[] = [];
@@ -286,6 +347,7 @@ export class AssessmentPipelineService {
           'SQL',
           () => this.sqlEvaluation.evaluate(detail),
           this.fallbackQuestionEvaluation('SQL', detail),
+          useAi,
         ),
       );
     }
@@ -302,6 +364,7 @@ export class AssessmentPipelineService {
   private async evaluateMcqSection(
     questions: BankQuestion[],
     input: FinalizeInput,
+    useAi = false,
   ): Promise<SectionSummary> {
     const sectionQuestions = questions.filter((question) => question.section === 'MCQ');
     const answers = sectionQuestions.map((question) => {
@@ -366,6 +429,7 @@ export class AssessmentPipelineService {
           placement_readiness_label: 'Near Ready',
         },
       },
+      useAi,
     );
 
     return {
@@ -379,7 +443,12 @@ export class AssessmentPipelineService {
     section: string,
     evaluate: () => Promise<EvaluationResult>,
     fallback: EvaluationResult,
+    useAi = false,
   ) {
+    if (!useAi || !this.isFinalizeAiEvaluationEnabled()) {
+      return fallback;
+    }
+
     try {
       return await evaluate();
     } catch (error) {
@@ -392,6 +461,66 @@ export class AssessmentPipelineService {
         },
       };
     }
+  }
+
+  private isFinalizeAiEvaluationEnabled() {
+    const value = String(
+      this.config.get<string>('ASSESSMENT_FINALIZE_AI_EVALUATION') || '',
+    )
+      .trim()
+      .toLowerCase();
+
+    return ['1', 'true', 'yes', 'on'].includes(value);
+  }
+
+  private parseFinalizeStage(stage: string): FinalizeStage {
+    const normalized = String(stage || '').trim().toUpperCase();
+    if (normalized === 'DSA') return 'DSA';
+    if (normalized === 'SQL') return 'SQL';
+    if (normalized === 'OOPS') return 'OOPs';
+    if (normalized === 'MCQ') return 'MCQ';
+    if (normalized === 'DASHBOARD') return 'DASHBOARD';
+    throw new BadRequestException('Invalid finalize processing stage');
+  }
+
+  private buildDashboardInput(
+    input: FinalizeInput,
+    bank: Bank,
+    deterministicScores: Record<string, number>,
+    summaries: Record<Section, SectionSummary>,
+    submittedAt = input.submitted_at || new Date().toISOString(),
+    durationMinutes = input.duration_minutes ||
+      bank.assessment?.duration_minutes ||
+      180,
+  ) {
+    return {
+      student_id: input.student_id,
+      student_email: input.student_email || '',
+      student_name: input.student_email || input.student_id,
+      assessment: bank.assessment,
+      submitted_at: submittedAt,
+      duration_minutes: durationMinutes,
+      tab_events: input.tab_events || 0,
+      deterministic_scores: deterministicScores,
+      weights: bank.assessment?.scoring_weights || {
+        DSA: 40,
+        SQL: 25,
+        OOPs: 20,
+        MCQ: 15,
+      },
+      section_evaluations: {
+        DSA: summaries.DSA.evaluations.map((item) => item.output),
+        SQL: summaries.SQL.evaluations.map((item) => item.output),
+        OOPs: summaries.OOPs.evaluations.map((item) => item.output),
+        MCQ: summaries.MCQ.evaluations.map((item) => item.output),
+      },
+      deterministic_details: {
+        DSA: summaries.DSA.deterministic,
+        SQL: summaries.SQL.deterministic,
+        OOPs: summaries.OOPs.deterministic,
+        MCQ: summaries.MCQ.deterministic,
+      },
+    };
   }
 
   private async persistAttempt(
@@ -512,6 +641,36 @@ export class AssessmentPipelineService {
     if (error) {
       throw new InternalServerErrorException(
         `Could not persist question evaluations: ${error.message}`,
+      );
+    }
+  }
+
+  private async replaceEvaluationsForSection(
+    attemptId: string,
+    section: Section,
+  ) {
+    const { error } = await this.getSupabase()
+      .from('student_question_evaluations')
+      .delete()
+      .eq('attempt_id', attemptId)
+      .eq('section', section);
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not replace ${section} evaluations: ${error.message}`,
+      );
+    }
+  }
+
+  private async replaceReportForAttempt(attemptId: string) {
+    const { error } = await this.getSupabase()
+      .from('student_assessment_reports')
+      .delete()
+      .eq('attempt_id', attemptId);
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not replace assessment report: ${error.message}`,
       );
     }
   }
