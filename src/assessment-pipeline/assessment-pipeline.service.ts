@@ -884,7 +884,7 @@ export class AssessmentPipelineService {
       hardcoding_risk: hardcodingRisk,
       compilation_behaviour: compilationBehaviour,
       runtime_percentile: runtimePercentile,
-      readiness_label: readiness.label,
+      readiness_label: this.legacyReadinessLabel(readiness.bucket),
       readiness_bucket: readiness.bucket,
       readiness_reason: readiness.reason,
       strongest_section: strongestSection,
@@ -907,19 +907,21 @@ export class AssessmentPipelineService {
       },
     };
 
-    const { data, error } = await this.getSupabase()
+    return this.insertReportRow(row);
+  }
+
+  private async insertReportRow(row: Record<string, unknown>) {
+    const result = await this.getSupabase()
       .from('student_assessment_reports')
       .insert(row)
       .select('*')
       .single();
 
-    if (error) {
-      throw new InternalServerErrorException(
-        `Could not write dashboard report: ${error.message}`,
-      );
-    }
+    if (!result.error) return result.data as Record<string, unknown>;
 
-    return data as Record<string, unknown>;
+    throw new InternalServerErrorException(
+      `Could not write dashboard report: ${result.error.message}`,
+    );
   }
 
   private fallbackQuestionEvaluation(section: Section, detail: Record<string, unknown>): EvaluationResult {
@@ -1284,6 +1286,12 @@ export class AssessmentPipelineService {
     if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') return 'Ready';
     if (label === 'Not Ready' || label === 'Risky High Scorer') return 'Failed';
     return 'Training Needed';
+  }
+
+  private legacyReadinessLabel(bucket: ReadinessBucket) {
+    if (bucket === 'Ready') return 'Ready';
+    if (bucket === 'Training Needed') return 'Needs Practice';
+    return 'At Risk';
   }
 
   private companyRecommendation(label: ReadinessLabel) {
