@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS student_assessment_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL,
   assessment_id UUID,
-  status VARCHAR(30) NOT NULL DEFAULT 'in_progress',
+  status VARCHAR(30) NOT NULL DEFAULT 'in_progress'
+    CHECK (status IN ('not_started', 'in_progress', 'submitted', 'auto_submitted', 'disqualified', 'expired', 'cancelled')),
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   submitted_at TIMESTAMPTZ,
   duration_minutes INT NOT NULL DEFAULT 180,
@@ -10,6 +11,17 @@ CREATE TABLE IF NOT EXISTS student_assessment_attempts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_student_assessment_attempts_unique_student_assessment
+  ON student_assessment_attempts(student_id, assessment_id)
+  WHERE assessment_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_student_assessment_attempts_unique_source_assessment
+  ON student_assessment_attempts (
+    student_id,
+    (client_metadata->>'source_assessment_id')
+  )
+  WHERE client_metadata ? 'source_assessment_id';
 
 CREATE TABLE IF NOT EXISTS student_question_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
