@@ -243,7 +243,7 @@ export class QuestionBankService {
     if (questionId === 'dsa_servicenow_incident_dependency') {
       this.parseIntValue(input, 'n', label);
       this.parseJsonMatrix(input, 'dependencies', label);
-      this.parseJsonArray(expected, label);
+      this.parseExpectedInteger(expected, label);
       return;
     }
     if (questionId === 'dsa_amazon_delivery_routes') {
@@ -254,12 +254,13 @@ export class QuestionBankService {
       return;
     }
     if (questionId === 'dsa_commvault_deduplication') {
-      this.parseJsonArray(input, label);
+      this.parseJsonMatrix(input, 'files', label);
+      this.parseJsonMatrix(input, 'queries', label);
       this.parseJsonArray(expected, label);
       return;
     }
     if (questionId === 'dsa_autodesk_versioned_kv') {
-      if (!/^(set|get)\("/.test(input.trim())) {
+      if (!/(?:^|;)\s*(?:v\d+\s*=\s*)?(set|get)\(/i.test(input.trim())) {
         throw new InternalServerErrorException(
           `${label} must contain executable set/get operations`,
         );
@@ -461,7 +462,7 @@ export class QuestionBankService {
   }
 
   private parseExpectedInteger(value: string, label: string) {
-    if (!/^\d+$/.test(value.trim())) {
+    if (!/^-?\d+$/.test(value.trim())) {
       throw new InternalServerErrorException(
         `${label} must contain an integer expected output`,
       );
