@@ -148,10 +148,10 @@ describe('QuestionBankService', () => {
 
   it('removes MCQ answer keys from the public question bank', async () => {
     const service = new QuestionBankService();
-    const privateBank = (await service.getBank()) as {
+    const privateBank = (await service.getBank()) as unknown as {
       questions: Array<{ section: string; correct_options?: string[] }>;
     };
-    const publicBank = (await service.getPublicBank()) as {
+    const publicBank = (await service.getPublicBank()) as unknown as {
       questions: Array<{
         section: string;
         correct_options?: string[];
@@ -177,7 +177,7 @@ describe('QuestionBankService', () => {
 
   it('includes visible SQL sample data in the public question bank', async () => {
     const service = new QuestionBankService();
-    const publicBank = (await service.getPublicBank()) as {
+    const publicBank = (await service.getPublicBank()) as unknown as {
       questions: Array<{
         section: string;
         sample_data_sql?: string;

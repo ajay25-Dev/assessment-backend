@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -39,6 +40,10 @@ type FinalizeInput = {
   tab_events?: number;
   camera_events?: number;
   submission_mode?: 'manual' | 'auto';
+  integrity_status?: 'disqualified' | null;
+  integrity_source?: 'tab_switch' | 'camera' | null;
+  integrity_message?: string | null;
+  integrity_event_count?: number | null;
   answers?: Record<string, FinalizeAnswer>;
 };
 
@@ -530,30 +535,75 @@ export class AssessmentPipelineService {
     durationMinutes: number,
   ) {
     const supabase = this.getSupabase();
+    const sourceAssessmentId = input.assessment_id || bank.assessment?.id;
+    if (!sourceAssessmentId) {
+      throw new BadRequestException('assessment_id is required');
+    }
+
+    if (sourceAssessmentId) {
+      const { data: existingAttempt, error: existingAttemptError } = await supabase
+        .from('student_assessment_attempts')
+        .select('id,status,client_metadata')
+        .eq('student_id', input.student_id)
+        .contains('client_metadata', { source_assessment_id: sourceAssessmentId })
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingAttemptError) {
+        throw new InternalServerErrorException(
+          `Could not check existing assessment attempts: ${existingAttemptError.message}`,
+        );
+      }
+
+      if (existingAttempt?.id) {
+        // Check if existing attempt has a final/completed/disqualified status
+        const finalStatuses = ['submitted', 'auto_submitted', 'disqualified'];
+        if (finalStatuses.includes(existingAttempt.status)) {
+          throw new ConflictException(
+            'Assessment already completed or disqualified. A new attempt cannot be created.',
+          );
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('student_assessment_attempts')
       .insert({
         student_id: input.student_id,
-        assessment_id: this.uuidOrNull(input.assessment_id),
-        status: input.submission_mode === 'auto' ? 'auto_submitted' : 'submitted',
+        assessment_id: this.uuidOrNull(sourceAssessmentId),
+        status:
+          input.integrity_status === 'disqualified' || input.submission_mode === 'auto'
+            ? 'auto_submitted'
+            : 'submitted',
         started_at: input.started_at || submittedAt,
         submitted_at: submittedAt,
         duration_minutes: durationMinutes,
         tab_visibility_events: input.tab_events || 0,
         last_seen_at: submittedAt,
         client_metadata: {
-          source_assessment_id: input.assessment_id || bank.assessment?.id,
+          source_assessment_id: sourceAssessmentId,
           student_email: input.student_email,
           submission_mode: input.submission_mode || 'manual',
           camera_events: input.camera_events || 0,
+          integrity_status: input.integrity_status || null,
+          integrity_source: input.integrity_source || null,
+          integrity_message: input.integrity_message || null,
+          integrity_event_count: input.integrity_event_count || null,
         },
       })
       .select('id')
       .single();
 
     if (error) {
+      const message = error.message || '';
+      if (error.code === '23505' || message.toLowerCase().includes('duplicate key')) {
+        throw new ConflictException(
+          'Assessment already completed or disqualified. A new attempt cannot be created.',
+        );
+      }
       throw new InternalServerErrorException(
-        `Could not create assessment attempt: ${error.message}`,
+        `Could not create assessment attempt: ${message}`,
       );
     }
 
@@ -849,6 +899,17 @@ export class AssessmentPipelineService {
     const runtimePercentile = String(output.runtime_percentile || 'Unknown');
     const strongestSection = this.strongestArea(sectionScores);
     const weakestSection = this.weakestArea(sectionScores);
+    const isDisqualified = params.input.integrity_status === 'disqualified';
+    const integrity = isDisqualified
+      ? {
+          status: 'disqualified',
+          source: params.input.integrity_source || 'tab_switch',
+          message:
+            params.input.integrity_message ||
+            'Integrity violation detected. The attempt was stopped and marked as disqualified.',
+          event_count: params.input.integrity_event_count || 1,
+        }
+      : null;
     const readiness = this.computeReadiness({
       marksScore,
       capabilityScore,
@@ -863,6 +924,28 @@ export class AssessmentPipelineService {
       strongestSection,
       weakestSection,
     });
+    const teacherAction = isDisqualified
+      ? 'Disqualify the attempt and review the integrity incident.'
+      : readiness.teacherAction;
+    const companyRecommendation = isDisqualified
+      ? 'Do not progress. Candidate was disqualified for cheating.'
+      : readiness.companyRecommendation;
+    const trainingRecommendation = isDisqualified
+      ? 'No training recommendation because the attempt was disqualified for cheating.'
+      : readiness.trainingRecommendation;
+    const studentSummary = isDisqualified
+      ? 'Assessment disqualified because a cheating signal was detected during the attempt.'
+      : String(output.student_summary || '');
+    const facultyInsight = isDisqualified
+      ? 'Assessment stopped due to an integrity violation and marked disqualified.'
+      : String(output.faculty_insight || '');
+    const riskSummary = {
+      ...readiness.riskSummary,
+      integrity_status: integrity?.status || null,
+      integrity_source: integrity?.source || null,
+      integrity_message: integrity?.message || null,
+      integrity_event_count: integrity?.event_count || null,
+    };
 
     const row = {
       student_id: params.input.student_id,
@@ -890,12 +973,12 @@ export class AssessmentPipelineService {
       strongest_section: strongestSection,
       weakest_section: weakestSection,
       training_priority: readiness.trainingPriority,
-      teacher_action: readiness.teacherAction,
-      risk_summary: readiness.riskSummary,
-      training_recommendation: String(output.training_recommendation || readiness.trainingRecommendation),
-      faculty_insight: String(output.faculty_insight || ''),
-      company_recommendation: readiness.companyRecommendation,
-      student_summary: String(output.student_summary || ''),
+      teacher_action: teacherAction,
+      risk_summary: riskSummary,
+      training_recommendation: String(output.training_recommendation || trainingRecommendation),
+      faculty_insight: facultyInsight,
+      company_recommendation: companyRecommendation,
+      student_summary: studentSummary,
       detailed_strengths: this.stringArrayOutput(output.detailed_strengths),
       detailed_weaknesses: this.stringArrayOutput(output.detailed_weaknesses),
       next_3_learning_actions: this.stringArrayOutput(output.next_3_learning_actions),
@@ -904,6 +987,7 @@ export class AssessmentPipelineService {
         section_evaluations: params.allEvaluations,
         dashboard_input: params.dashboardInput,
         deterministic_readiness: readiness,
+        integrity,
       },
     };
 

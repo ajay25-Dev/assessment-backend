@@ -9,7 +9,7 @@ type BankQuestion = {
   test_cases?: TestCase[];
   open_test_cases?: TestCase[];
   hidden_test_cases?: TestCase[];
-  options?: Array<{ label?: string }>;
+  options?: Array<{ label?: string; text?: string }>;
   correct_options?: string[];
   schema_files?: Record<string, string>;
   expected_columns?: unknown[];
@@ -91,6 +91,12 @@ export class QuestionBankService {
       ...bank,
       questions: await Promise.all(
         (bank.questions || []).map(async (question) => {
+          const normalizedQuestion = {
+            ...question,
+            title: this.normalizeDisplayText(question.title),
+            prompt: this.normalizeDisplayText(question.prompt),
+          };
+
           if (question.section === 'SQL') {
             const files = question.schema_files as
               | { schema?: string; visible_seed?: string }
@@ -102,8 +108,8 @@ export class QuestionBankService {
               ? await this.readDataFile(files.schema)
               : '';
             return {
-              ...question,
-              sample_data_sql: sampleDataSql,
+              ...normalizedQuestion,
+              sample_data_sql: this.normalizeDisplayText(sampleDataSql),
               sample_data_tables: this.parseSampleDataTables(
                 schemaSql,
                 sampleDataSql,
@@ -111,16 +117,21 @@ export class QuestionBankService {
             };
           }
 
-          if (question.section !== 'MCQ') return question;
+          if (question.section !== 'MCQ') return normalizedQuestion;
 
           const { correct_options, explanation, ...publicQuestion } = question as {
-            correct_options?: unknown[];
+            correct_options?: unknown[]; 
             explanation?: unknown;
             [key: string]: unknown;
           };
 
           return {
-            ...publicQuestion,
+            ...normalizedQuestion,
+            options: ((publicQuestion.options || []) as Array<{ label?: string; text?: string }>).map((option) => ({
+              ...option,
+              label: this.normalizeDisplayText(option.label),
+              text: this.normalizeDisplayText(option.text),
+            })),
             allow_multiple_answers: (correct_options || []).length > 1,
           };
         }),
@@ -300,6 +311,18 @@ export class QuestionBankService {
 
   private readDataFile(file: string) {
     return fs.readFile(join(__dirname, 'data', file), 'utf8');
+  }
+
+  private normalizeDisplayText(value: unknown) {
+    return String(value || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/â€œ|â€/g, '"')
+      .replace(/â€˜|â€™/g, "'")
+      .replace(/â€“|â€”/g, '-')
+      .trim();
   }
 
   private parseSampleDataTables(

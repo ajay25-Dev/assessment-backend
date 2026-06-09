@@ -258,7 +258,7 @@ CREATE TABLE IF NOT EXISTS public.student_assessment_attempts (
   student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   assessment_id UUID REFERENCES public.assessments(id) ON DELETE SET NULL,
   status TEXT NOT NULL DEFAULT 'in_progress'
-    CHECK (status IN ('not_started', 'in_progress', 'submitted', 'auto_submitted', 'expired', 'cancelled')),
+    CHECK (status IN ('not_started', 'in_progress', 'submitted', 'auto_submitted', 'disqualified', 'expired', 'cancelled')),
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   submitted_at TIMESTAMPTZ,
   duration_minutes INT NOT NULL DEFAULT 180,
@@ -269,6 +269,17 @@ CREATE TABLE IF NOT EXISTS public.student_assessment_attempts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_student_assessment_attempts_unique_student_assessment
+  ON public.student_assessment_attempts(student_id, assessment_id)
+  WHERE assessment_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_student_assessment_attempts_unique_source_assessment
+  ON public.student_assessment_attempts (
+    student_id,
+    (client_metadata->>'source_assessment_id')
+  )
+  WHERE client_metadata ? 'source_assessment_id';
 
 DROP TRIGGER IF EXISTS student_assessment_attempts_set_updated_at ON public.student_assessment_attempts;
 CREATE TRIGGER student_assessment_attempts_set_updated_at

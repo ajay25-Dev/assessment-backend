@@ -11,11 +11,11 @@
                                                "MCQ":  15
                                            },
                        "security":  {
-                                        "tab_switch_protection_enabled":  false,
-                                        "max_tab_switch_events":  3,
+                                        "tab_switch_protection_enabled":  true,
+                                        "max_tab_switch_events":  2,
                                         "auto_submit_on_max_events":  true,
                                         "camera_proctoring_enabled":  true,
-                                        "max_camera_events":  3,
+                                        "max_camera_events":  2,
                                         "auto_submit_on_camera_events":  true
                                     },
                        "sections":  [
@@ -542,7 +542,7 @@
                           "title":  "Commvault Backup Deduplication System",
                           "difficulty":  "hard",
                           "marks":  100,
-                          "prompt":  "Real-World Scenario\nCommvault backup systems store large amounts of enterprise data. To save storage, repeated file chunks should not be stored again. Each file is broken into chunks. Every chunk has a unique hash. The system receives backup requests from multiple machines. You need to calculate how much new storage is required after deduplication.\n\nProblem Statement\nYou are given n backup files. Each file contains a list of chunk hashes. A chunk should be stored only once globally, even if it appears in multiple files. For each file, return how many new unique chunks were added to the backup system when that file was processed.\n\nInput: files = [[\"a1\",\"b2\",\"c3\"],[\"b2\",\"d4\"],[\"a1\",\"e5\",\"f6\"],[\"g7\",\"d4\"]] Output: [3,1,2,1]\n\nTwist to Make It Harder\nInside a single file, the same chunk may appear multiple times. Example: [\"a1\", \"a1\", \"b2\"]. This file should add only 2 new chunks, not 3.",
+                          "prompt":  "Real-World Scenario\nCommvault backup systems store large amounts of enterprise data. To save storage, repeated file chunks should not be stored again. Each file is broken into chunks. Every chunk has a unique hash. The system receives backup requests from multiple machines. You need to calculate how much new storage is required after deduplication.\n\nProblem Statement\nYou are given n backup files. Each file contains a list of chunk hashes. A chunk should be stored only once globally, even if it appears in multiple files. For each file, return how many new unique chunks were added to the backup system when that file was processed.\n\nInput: files = [[\"a1\",\"b2\",\"c3\"],[\"b2\",\"d4\"],[\"a1\",\"e5\",\"f6\"],[\"g7\",\"d4\"]] Output: [3,1,2,1]\n\nInside a single file, the same chunk may appear multiple times. Example: [\"a1\", \"a1\", \"b2\"]. This file should add only 2 new chunks, not 3.",
                           "constraints":  [
                                               "1 \u003c= files.length \u003c= 100000",
                                               "Total number of chunks across all files \u003c= 500000",
