@@ -541,9 +541,10 @@ export class AssessmentPipelineService {
     }
 
     if (sourceAssessmentId) {
+      // Fetch any existing attempt for this student/assessment. We will remove it to allow a fresh attempt.
       const { data: existingAttempt, error: existingAttemptError } = await supabase
         .from('student_assessment_attempts')
-        .select('id,status,client_metadata')
+        .select('id')
         .eq('student_id', input.student_id)
         .contains('client_metadata', { source_assessment_id: sourceAssessmentId })
         .order('created_at', { ascending: false })
@@ -557,13 +558,8 @@ export class AssessmentPipelineService {
       }
 
       if (existingAttempt?.id) {
-        // Check if existing attempt has a final/completed/disqualified status
-        const finalStatuses = ['submitted', 'auto_submitted', 'disqualified'];
-        if (finalStatuses.includes(existingAttempt.status)) {
-          throw new ConflictException(
-            'Assessment already completed or disqualified. A new attempt cannot be created.',
-          );
-        }
+        // Delete the previous attempt so a new one can be inserted without violating the unique index.
+        await supabase.from('student_assessment_attempts').delete().eq('id', existingAttempt.id);
       }
     }
 

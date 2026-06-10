@@ -126,25 +126,6 @@ export class TestHarnessService {
       .replace(/\n/g, '\\n');
   }
 
-  private functionCandidates(questionId: string) {
-    if (questionId === 'dsa_servicenow_incident_dependency') {
-      return ['resolve_incidents', 'resolveIncidents', 'findOrder', 'topologicalSort', 'canFinish'];
-    }
-    if (questionId === 'dsa_amazon_delivery_routes') {
-      return ['max_on_time_deliveries', 'maxOnTimeDeliveries'];
-    }
-    if (questionId === 'dsa_commvault_deduplication') {
-      return ['new_chunks_per_file', 'newChunksPerFile'];
-    }
-    if (questionId === 'dsa_autodesk_versioned_kv') {
-      return ['VersionedStore', 'versioned_store_create', 'versionedStoreCreate'];
-    }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return ['suspicious_customers', 'suspiciousCustomers'];
-    }
-    return [];
-  }
-
   private escapeCppLiteral(value: string) {
     return value
       .replace(/\\/g, '\\\\')
@@ -152,6 +133,26 @@ export class TestHarnessService {
       .replace(/\r/g, '\\r')
       .replace(/\n/g, '\\n');
   }
+
+  private functionCandidates(questionId: string) {
+    if (questionId === 'dsa_servicenow_incident_dependency') {
+      return ['max_on_time_incidents', 'maxOnTimeIncidents'];
+    }
+    if (questionId === 'dsa_amazon_delivery_routes') {
+      return ['max_on_time_deliveries', 'maxOnTimeDeliveries'];
+    }
+    if (questionId === 'dsa_commvault_deduplication') {
+      return ['unique_chunks_in_ranges', 'uniqueChunksInRanges'];
+    }
+    if (questionId === 'dsa_autodesk_versioned_kv') {
+      return ['VersionedStore', 'versioned_store_create', 'versionedStoreCreate'];
+    }
+    return [];
+  }
+
+  // ====================================================================
+  // Java harness
+  // ====================================================================
 
   private javaHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
     const cases = this.normalizedTestCases(testCases)
@@ -253,16 +254,74 @@ ${cases}
     return rows.toArray(new int[0][]);
   }
 
+  static int[] parseOneDIntArray(String input, String key) {
+    java.util.regex.Matcher keyMatcher = java.util.regex.Pattern.compile(key + "\\\\s*=\\\\s*\\\\[").matcher(input);
+    if (!keyMatcher.find()) return new int[0];
+    int start = keyMatcher.end();
+    int end = input.indexOf("]", start);
+    if (end < 0) return new int[0];
+    String body = input.substring(start, end).trim();
+    if (body.isEmpty()) return new int[0];
+    String[] parts = body.split(",");
+    int[] result = new int[parts.length];
+    for (int i = 0; i < parts.length; i++) result[i] = Integer.parseInt(parts[i].trim());
+    return result;
+  }
+
   static String[][] parseStringMatrix(String input) {
     java.util.List<String[]> rows = new java.util.ArrayList<>();
-    java.util.regex.Matcher rowMatcher = java.util.regex.Pattern.compile("\\\\[([^\\\\[\\\\]]*)\\\\]").matcher(input);
-    while (rowMatcher.find()) {
-      java.util.List<String> values = new java.util.ArrayList<>();
-      java.util.regex.Matcher valueMatcher = java.util.regex.Pattern.compile("\\\\\\"([^\\\\\\"]*)\\\\\\"").matcher(rowMatcher.group(1));
-      while (valueMatcher.find()) values.add(valueMatcher.group(1));
-      if (!values.isEmpty()) rows.add(values.toArray(new String[0]));
+    // Track bracket depth: 0=outside, 1=in outer array, 2=in inner array
+    int depth = 0;
+    java.util.List<String> currentRow = new java.util.ArrayList<>();
+    int tokenStart = -1;
+    boolean inStr = false;
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (c == '\\\\') { i++; continue; }
+      if (c == '"') {
+        if (tokenStart < 0) tokenStart = i + 1;
+        else {
+          currentRow.add(input.substring(tokenStart, i));
+          tokenStart = -1;
+        }
+        inStr = !inStr;
+        continue;
+      }
+      if (!inStr) {
+        if (c == '[') {
+          depth++;
+          if (depth == 2) currentRow = new java.util.ArrayList<>();
+          continue;
+        }
+        if (c == ']') {
+          depth--;
+          if (depth == 1) {
+            // End of an inner array — add row (even if empty)
+            rows.add(currentRow.toArray(new String[0]));
+            currentRow = new java.util.ArrayList<>();
+          }
+          continue;
+        }
+      }
     }
     return rows.toArray(new String[0][]);
+  }
+
+  static String[][] parseStringMatrixByKey(String input, String key) {
+    java.util.regex.Matcher keyMatcher = java.util.regex.Pattern.compile(key + "\\\\s*=\\\\s*").matcher(input);
+    if (!keyMatcher.find()) return new String[0][0];
+    int start = keyMatcher.end();
+    if (input.substring(start).trim().startsWith("[]")) return new String[0][0];
+    int bracketStart = input.indexOf("[", start);
+    if (bracketStart < 0) return new String[0][0];
+    int depth = 0;
+    int bracketEnd = bracketStart;
+    for (; bracketEnd < input.length(); bracketEnd++) {
+      if (input.charAt(bracketEnd) == '[') depth++;
+      if (input.charAt(bracketEnd) == ']') depth--;
+      if (depth == 0) break;
+    }
+    return parseStringMatrix(input.substring(bracketStart, bracketEnd + 1));
   }
 
   static String[][] parseStringIntPairs(String input, String key) {
@@ -272,47 +331,67 @@ ${cases}
     return rows.toArray(new String[0][]);
   }
 
+  /**
+   * Resolve a version token: either a literal integer like "0" or a variable name like "v1".
+   */
+  static int resolveJavaVersion(String token, java.util.Map<String, Integer> vars) {
+    token = token.trim();
+    if (token.matches("-?\\\\d+")) {
+      return Integer.parseInt(token);
+    }
+    Integer v = vars.get(token);
+    return v != null ? v : 0;
+  }
+
   ${questionId === 'dsa_autodesk_versioned_kv' ? `static String runVersionedStore(String input) {
     VersionedStore store = new VersionedStore();
     java.util.List<String> outputs = new java.util.ArrayList<>();
+    java.util.Map<String, Integer> vars = new java.util.HashMap<>();
+    // Base version 0 is always available
+    vars.put("0", 0);
     for (String op : input.split(";")) {
       String trimmed = op.trim();
-      java.util.regex.Matcher set = java.util.regex.Pattern.compile("set\\\\(\\\\\\"([^\\\\\\"]+)\\\\\\",\\\\s*(-?\\\\d+)\\\\)").matcher(trimmed);
-      java.util.regex.Matcher get = java.util.regex.Pattern.compile("get\\\\(\\\\\\"([^\\\\\\"]+)\\\\\\",\\\\s*(-?\\\\d+)\\\\)").matcher(trimmed);
-      if (set.find()) store.set(set.group(1), Integer.parseInt(set.group(2)));
-      if (get.find()) outputs.add(store.get(get.group(1), Integer.parseInt(get.group(2))));
+      if (trimmed.isEmpty()) continue;
+      // Match: v1=set(baseVersion,"key",value)
+      java.util.regex.Matcher setAssign = java.util.regex.Pattern.compile(
+        "(\\\\w+)\\\\s*=\\\\s*set\\\\s*\\\\(\\\\s*([^,]+)\\\\s*,\\\\s*\\\\\\"([^\\\\\\"]+)\\\\\\"\\\\s*,\\\\s*(-?\\\\d+)\\\\s*\\\\)"
+      ).matcher(trimmed);
+      // Match: set(baseVersion,"key",value)  (no assignment)
+      java.util.regex.Matcher setNoAssign = java.util.regex.Pattern.compile(
+        "set\\\\s*\\\\(\\\\s*([^,]+)\\\\s*,\\\\s*\\\\\\"([^\\\\\\"]+)\\\\\\"\\\\s*,\\\\s*(-?\\\\d+)\\\\s*\\\\)"
+      ).matcher(trimmed);
+      // Match: get(versionVar,"key")
+      java.util.regex.Matcher getOp = java.util.regex.Pattern.compile(
+        "get\\\\s*\\\\(\\\\s*([^,]+)\\\\s*,\\\\s*\\\\\\"([^\\\\\\"]+)\\\\\\"\\\\s*\\\\)"
+      ).matcher(trimmed);
+      if (setAssign.find()) {
+        String targetVar = setAssign.group(1);
+        String baseToken = setAssign.group(2);
+        String key = setAssign.group(3);
+        int value = Integer.parseInt(setAssign.group(4));
+        int baseVersion = resolveJavaVersion(baseToken, vars);
+        int newVersion = store.set(baseVersion, key, value);
+        vars.put(targetVar, newVersion);
+      } else if (setNoAssign.find()) {
+        // standalone set with no assignment (shouldn't happen in valid tests)
+        String baseToken = setNoAssign.group(1);
+        String key = setNoAssign.group(2);
+        int value = Integer.parseInt(setNoAssign.group(3));
+        int baseVersion = resolveJavaVersion(baseToken, vars);
+        store.set(baseVersion, key, value);
+      } else if (getOp.find()) {
+        String versionToken = getOp.group(1);
+        String key = getOp.group(2);
+        int version = resolveJavaVersion(versionToken, vars);
+        String result = store.get(version, key);
+        outputs.add(result != null ? result : "NULL");
+      }
     }
     return String.join(", ", outputs);
   }` : ''}
 
   static boolean compare(String questionId, String actual, String expected, String input) {
-    if ("dsa_servicenow_incident_dependency".equals(questionId)) {
-      return compareTopologicalOrder(actual, expected, input);
-    }
     return normalize(actual).equals(normalize(expected));
-  }
-
-  static boolean compareTopologicalOrder(String actual, String expected, String input) {
-    int n = parseIntValue(input, "n");
-    int[][] dependencies = parseIntMatrix(input, "dependencies");
-    int[] order = parseIntArray(actual);
-    if ("[]".equals(expected.trim())) return order.length == 0;
-    if (order.length != n) return false;
-    int[] position = new int[n];
-    java.util.Arrays.fill(position, -1);
-    for (int i = 0; i < order.length; i++) {
-      int value = order[i];
-      if (value < 0 || value >= n || position[value] != -1) return false;
-      position[value] = i;
-    }
-    for (int[] edge : dependencies) {
-      if (edge.length < 2) return false;
-      int dependent = edge[0];
-      int prerequisite = edge[1];
-      if (dependent == prerequisite) return false;
-      if (position[prerequisite] >= position[dependent]) return false;
-    }
-    return true;
   }
 
   static int[] parseIntArray(String value) {
@@ -372,7 +451,9 @@ ${cases}
     if (questionId === 'dsa_servicenow_incident_dependency') {
       return `int n = parseIntValue(tc.input, "n");
         int[][] dependencies = parseIntMatrix(tc.input, "dependencies");
-        actual = toJson(solution.resolveIncidents(n, dependencies));`;
+        int[] durations = parseOneDIntArray(tc.input, "durations");
+        int[] deadlines = parseOneDIntArray(tc.input, "deadlines");
+        actual = String.valueOf(solution.maxOnTimeIncidents(n, dependencies, durations, deadlines));`;
     }
     if (questionId === 'dsa_amazon_delivery_routes') {
       return `int n = parseIntValue(tc.input, "n");
@@ -381,20 +462,19 @@ ${cases}
         actual = String.valueOf(solution.maxOnTimeDeliveries(n, roads, packages));`;
     }
     if (questionId === 'dsa_commvault_deduplication') {
-      return `String[][] files = parseStringMatrix(tc.input);
-        actual = toJson(solution.newChunksPerFile(files));`;
+      return `String[][] files = parseStringMatrixByKey(tc.input, "files");
+        int[][] queries = parseIntMatrix(tc.input, "queries");
+        actual = toJson(solution.uniqueChunksInRanges(files, queries));`;
     }
     if (questionId === 'dsa_autodesk_versioned_kv') {
       return `actual = runVersionedStore(tc.input);`;
     }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return `String[][] transactions = parseStringIntPairs(tc.input, "transactions");
-        int k = parseIntValue(tc.input, "k");
-        int t = parseIntValue(tc.input, "t");
-        actual = toJson(solution.suspiciousCustomers(transactions, k, t));`;
-    }
     return `actual = "[ERROR] Unsupported question";`;
   }
+
+  // ====================================================================
+  // C++ harness
+  // ====================================================================
 
   private cppHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
     return `
@@ -454,23 +534,73 @@ static vector<vector<int>> __joraIntMatrix(const string& input, const string& ke
   return rows;
 }
 
+static vector<int> __joraOneDArray(const string& input, const string& key) {
+  vector<int> values;
+  string searchKey = key + "=[";
+  size_t pos = input.find(searchKey);
+  if (pos == string::npos) return values;
+  pos = input.find("[", pos);
+  size_t end = input.find("]", pos);
+  if (end == string::npos) return values;
+  string body = input.substr(pos + 1, end - pos - 1);
+  istringstream ss(body);
+  string token;
+  while (getline(ss, token, ',')) {
+    size_t s = token.find_first_not_of(" ");
+    size_t e = token.find_last_not_of(" ");
+    if (s != string::npos) values.push_back(stoi(token.substr(s, e - s + 1)));
+  }
+  return values;
+}
+
 static vector<vector<string>> __joraStringMatrix(const string& input) {
   vector<vector<string>> rows;
+  // Track bracket depth: 0=outside, 1=in outer array, 2=in inner array
+  int depth = 0;
+  vector<string> currentRow;
   for (size_t p = 0; p < input.size(); ++p) {
-    if (input[p] != '[' || p + 1 >= input.size() || input[p + 1] == '[') continue;
-    vector<string> row;
-    while (p < input.size() && input[p] != ']') {
-      if (input[p] == '"') {
+    if (input[p] == '\\\\') { ++p; continue; }
+    if (input[p] == '"') {
+      if (p + 1 < input.size()) {
         size_t q = input.find('"', p + 1);
         if (q == string::npos) break;
-        row.push_back(input.substr(p + 1, q - p - 1));
+        currentRow.push_back(input.substr(p + 1, q - p - 1));
         p = q;
       }
-      p++;
+      continue;
     }
-    if (!row.empty()) rows.push_back(row);
+    if (input[p] == '[') {
+      depth++;
+      if (depth == 2) currentRow.clear();
+      continue;
+    }
+    if (input[p] == ']') {
+      depth--;
+      if (depth == 1) {
+        // End of an inner array — add row (even if empty)
+        rows.push_back(currentRow);
+        currentRow.clear();
+      }
+      continue;
+    }
   }
   return rows;
+}
+
+static vector<vector<string>> __joraStringMatrixByKey(const string& input, const string& key) {
+  string searchKey = key + "=";
+  size_t keyPos = input.find(searchKey);
+  if (keyPos == string::npos) return {};
+  size_t bracketStart = input.find("[", keyPos);
+  if (bracketStart == string::npos) return {};
+  int depth = 0;
+  size_t bracketEnd = bracketStart;
+  for (; bracketEnd < input.size(); ++bracketEnd) {
+    if (input[bracketEnd] == '[') depth++;
+    if (input[bracketEnd] == ']') depth--;
+    if (depth == 0) break;
+  }
+  return __joraStringMatrix(input.substr(bracketStart, bracketEnd - bracketStart + 1));
 }
 
 static vector<pair<string,int>> __joraTransactions(const string& input) {
@@ -513,17 +643,52 @@ static string __joraJsonVector(const vector<string>& values) {
   return out + "]";
 }
 
+/**
+ * Resolve a version token: either a literal integer like "0" or a variable name like "v1".
+ */
+static int __joraResolveVersion(const string& token, const map<string, int>& vars) {
+  if (!token.empty() && (isdigit((unsigned char)token[0]) || token[0] == '-')) {
+    return stoi(token);
+  }
+  auto it = vars.find(token);
+  if (it != vars.end()) return it->second;
+  return 0;
+}
+
 ${questionId === 'dsa_autodesk_versioned_kv' ? `static string __joraRunVersionedStore(const string& input) {
   VersionedStore store;
   vector<string> outputs;
-  regex setPattern("set\\\\(\\\\"([^\\\\"]+)\\\\",\\\\s*(-?\\\\d+)\\\\)");
-  regex getPattern("get\\\\(\\\\"([^\\\\"]+)\\\\",\\\\s*(-?\\\\d+)\\\\)");
+  map<string, int> vars;
+  vars["0"] = 0;
+  // Split by semicolons
   stringstream ss(input);
   string op;
   while (getline(ss, op, ';')) {
+    string trimmed = op;
+    // Trim whitespace
+    size_t first = trimmed.find_first_not_of(" \\t");
+    if (first == string::npos) continue;
+    trimmed = trimmed.substr(first);
+    // Pattern: vX=set(baseVersion,"key",value)
+    regex setAssignPattern("(\\\\w+)\\\\s*=\\\\s*set\\\\s*\\\\(\\\\s*([^,]+)\\\\s*,\\\\s*\\\\\\"([^\\\\\\"]+)\\\\\\"\\\\s*,\\\\s*(-?\\\\d+)\\\\s*\\\\)");
+    // Pattern: get(versionVar,"key")
+    regex getPattern("get\\\\s*\\\\(\\\\s*([^,]+)\\\\s*,\\\\s*\\\\\\"([^\\\\\\"]+)\\\\\\"\\\\s*\\\\)");
     smatch match;
-    if (regex_search(op, match, setPattern)) store.set(match[1], stoi(match[2]));
-    if (regex_search(op, match, getPattern)) outputs.push_back(store.get(match[1], stoi(match[2])));
+    if (regex_match(trimmed, match, setAssignPattern)) {
+      string targetVar = match[1];
+      string baseToken = match[2];
+      string key = match[3];
+      int value = stoi(match[4]);
+      int baseVersion = __joraResolveVersion(baseToken, vars);
+      int newVersion = store.set(baseVersion, key, value);
+      vars[targetVar] = newVersion;
+    } else if (regex_match(trimmed, match, getPattern)) {
+      string versionToken = match[1];
+      string key = match[2];
+      int version = __joraResolveVersion(versionToken, vars);
+      string result = store.get(version, key);
+      outputs.push_back(result.empty() ? "NULL" : result);
+    }
   }
   string out;
   for (size_t i = 0; i < outputs.size(); ++i) {
@@ -559,32 +724,7 @@ static vector<int> __joraIntArray(const string& value) {
   return values;
 }
 
-static bool __joraCompareTopologicalOrder(const string& actual, const string& expected, const string& input) {
-  int n = __joraIntValue(input, "n");
-  auto dependencies = __joraIntMatrix(input, "dependencies");
-  auto order = __joraIntArray(actual);
-  if (__joraNormalize(expected) == "[]") return order.empty();
-  if ((int)order.size() != n) return false;
-  vector<int> position(n, -1);
-  for (int i = 0; i < (int)order.size(); ++i) {
-    int value = order[i];
-    if (value < 0 || value >= n || position[value] != -1) return false;
-    position[value] = i;
-  }
-  for (const auto& edge : dependencies) {
-    if (edge.size() < 2) return false;
-    int dependent = edge[0];
-    int prerequisite = edge[1];
-    if (dependent == prerequisite) return false;
-    if (position[prerequisite] >= position[dependent]) return false;
-  }
-  return true;
-}
-
 static bool __joraCompare(const string& questionId, const string& actual, const string& expected, const string& input) {
-  if (questionId == "dsa_servicenow_incident_dependency") {
-    return __joraCompareTopologicalOrder(actual, expected, input);
-  }
   return __joraNormalize(actual) == __joraNormalize(expected);
 }
 
@@ -634,7 +774,9 @@ ${this.normalizedTestCases(testCases)
     if (questionId === 'dsa_servicenow_incident_dependency') {
       return `int n = __joraIntValue(cases[i].input, "n");
         auto dependencies = __joraIntMatrix(cases[i].input, "dependencies");
-        actual = __joraJsonVector(solution.resolveIncidents(n, dependencies));`;
+        auto durations = __joraOneDArray(cases[i].input, "durations");
+        auto deadlines = __joraOneDArray(cases[i].input, "deadlines");
+        actual = to_string(solution.maxOnTimeIncidents(n, dependencies, durations, deadlines));`;
     }
     if (questionId === 'dsa_amazon_delivery_routes') {
       return `int n = __joraIntValue(cases[i].input, "n");
@@ -643,20 +785,19 @@ ${this.normalizedTestCases(testCases)
         actual = to_string(solution.maxOnTimeDeliveries(n, roads, packages));`;
     }
     if (questionId === 'dsa_commvault_deduplication') {
-      return `auto files = __joraStringMatrix(cases[i].input);
-        actual = __joraJsonVector(solution.newChunksPerFile(files));`;
+      return `auto files = __joraStringMatrixByKey(cases[i].input, "files");
+        auto queries = __joraIntMatrix(cases[i].input, "queries");
+        actual = __joraJsonVector(solution.uniqueChunksInRanges(files, queries));`;
     }
     if (questionId === 'dsa_autodesk_versioned_kv') {
       return `actual = __joraRunVersionedStore(cases[i].input);`;
     }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return `auto transactions = __joraTransactions(cases[i].input);
-        int k = __joraIntValue(cases[i].input, "k");
-        int t = __joraIntValue(cases[i].input, "t");
-        actual = __joraJsonVector(solution.suspiciousCustomers(transactions, k, t));`;
-    }
     return `actual = "[ERROR] Unsupported question";`;
   }
+
+  // ====================================================================
+  // C harness
+  // ====================================================================
 
   private cHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
     return `
@@ -723,74 +864,134 @@ static int** parse_matrix(const char* input, const char* key, int* rows, int** c
   return matrix;
 }
 
+static int* parse_one_d_array(const char* input, const char* key, int* size) {
+  *size = 0;
+  const char* pos = strstr(input, key);
+  if (!pos) return NULL;
+  pos = strchr(pos, '[');
+  if (!pos) return NULL;
+  pos++;
+  const char* end = strchr(pos, ']');
+  if (!end) return NULL;
+  int cap = 16;
+  int* result = malloc(sizeof(int) * cap);
+  while (pos < end) {
+    while (*pos && (*pos == ' ' || *pos == ',')) pos++;
+    if (pos >= end || !*pos) break;
+    if (*size >= cap) { cap *= 2; result = realloc(result, sizeof(int) * cap); }
+    result[*size] = (int)strtol(pos, (char**)&pos, 10);
+    (*size)++;
+  }
+  return result;
+}
+
 static char*** parse_string_matrix(const char* input, int* rows, int** colSizes) {
   *rows = 0;
   *colSizes = NULL;
   int rowCap = 8;
   char*** matrix = malloc(sizeof(char**) * rowCap);
+  // Track bracket depth: 0=outside, 1=in outer array, 2=in inner array
+  int depth = 0;
   const char* pos = input;
-  while ((pos = strchr(pos, '[')) != NULL) {
-    if (*(pos + 1) == '[') {
-      pos++;
+  while (*pos) {
+    if (*pos == '\\\\') { pos++; continue; }
+    if (*pos == '"') {
+      const char* end = strchr(pos + 1, '"');
+      if (!end) break;
+      // Collect later when we exit inner array
+      pos = end;
       continue;
     }
-    int cols = 0;
-    int colCap = 4;
-    char** row = malloc(sizeof(char*) * colCap);
-    const char* end = strchr(pos, ']');
-    const char* cursor = pos;
-    while (end && cursor < end && (cursor = strchr(cursor, '"')) != NULL && cursor < end) {
-      const char* close = strchr(cursor + 1, '"');
-      if (!close || close > end) break;
-      if (cols >= colCap) {
-        colCap *= 2;
-        row = realloc(row, sizeof(char*) * colCap);
+    if (*pos == '[') {
+      depth++;
+      if (depth == 2) {
+        // Start a new inner array — collect quoted strings until we reach the inner ']'
+        int colCap = 4;
+        int cols = 0;
+        char** row = malloc(sizeof(char*) * colCap);
+        const char* inner = pos + 1;
+        while (*inner && depth == 2) {
+          if (*inner == '\\\\') { inner++; continue; }
+          if (*inner == '"') {
+            const char* q2 = strchr(inner + 1, '"');
+            if (!q2) break;
+            int strLen = (int)(q2 - inner - 1);
+            if (cols >= colCap) {
+              colCap *= 2;
+              row = realloc(row, sizeof(char*) * colCap);
+            }
+            row[cols] = malloc((size_t)strLen + 1);
+            memcpy(row[cols], inner + 1, (size_t)strLen);
+            row[cols][strLen] = '\\0';
+            cols++;
+            inner = q2 + 1;
+          } else if (*inner == ']') {
+            depth--;
+            // End of inner array — add even if empty
+            if (*rows >= rowCap) {
+              rowCap *= 2;
+              matrix = realloc(matrix, sizeof(char**) * rowCap);
+            }
+            matrix[*rows] = row;
+            *colSizes = realloc(*colSizes, sizeof(int) * ((*rows) + 1));
+            (*colSizes)[*rows] = cols;
+            (*rows)++;
+            pos = inner;
+          } else {
+            inner++;
+          }
+        }
+      } else {
+        pos++;
       }
-      int len = (int)(close - cursor - 1);
-      row[cols] = malloc((size_t)len + 1);
-      memcpy(row[cols], cursor + 1, (size_t)len);
-      row[cols][len] = '\\0';
-      cols++;
-      cursor = close + 1;
+      continue;
     }
-    if (cols > 0) {
-      if (*rows >= rowCap) {
-        rowCap *= 2;
-        matrix = realloc(matrix, sizeof(char**) * rowCap);
-      }
-      matrix[*rows] = row;
-      *colSizes = realloc(*colSizes, sizeof(int) * ((*rows) + 1));
-      (*colSizes)[*rows] = cols;
-      (*rows)++;
+    if (*pos == ']') {
+      depth--;
+      if (depth == 0) break;
     }
-    pos = end ? end + 1 : pos + 1;
+    pos++;
   }
   return matrix;
 }
 
-static void parse_transactions(const char* input, char*** customerIds, int** timestamps, int* size) {
-  *size = 0;
-  int cap = 8;
-  *customerIds = malloc(sizeof(char*) * cap);
-  *timestamps = malloc(sizeof(int) * cap);
-  const char* cursor = input;
-  while ((cursor = strchr(cursor, '"')) != NULL) {
-    const char* close = strchr(cursor + 1, '"');
-    if (!close) break;
-    if (*size >= cap) {
-      cap *= 2;
-      *customerIds = realloc(*customerIds, sizeof(char*) * cap);
-      *timestamps = realloc(*timestamps, sizeof(int) * cap);
-    }
-    int len = (int)(close - cursor - 1);
-    (*customerIds)[*size] = malloc((size_t)len + 1);
-    memcpy((*customerIds)[*size], cursor + 1, (size_t)len);
-    (*customerIds)[*size][len] = '\\0';
-    cursor = close + 1;
-    while (*cursor && !isdigit((unsigned char)*cursor) && *cursor != '-') cursor++;
-    (*timestamps)[*size] = (int)strtol(cursor, (char**)&cursor, 10);
-    (*size)++;
+static char*** parse_string_matrix_by_key(const char* input, const char* key, int* rows, int** colSizes) {
+  const char* pos = strstr(input, key);
+  if (!pos) { *rows = 0; *colSizes = NULL; return NULL; }
+  pos = strchr(pos, '[');
+  if (!pos) { *rows = 0; *colSizes = NULL; return NULL; }
+  /* Find matching end bracket */
+  const char* cursor = pos;
+  int depth = 0;
+  const char* end = pos;
+  for (; *end; end++) {
+    if (*end == '[') depth++;
+    if (*end == ']') depth--;
+    if (depth == 0) break;
   }
+  /* Create a temporary null-terminated substring */
+  int len = (int)(end - pos + 1);
+  char* tmp = malloc((size_t)len + 1);
+  memcpy(tmp, pos, (size_t)len);
+  tmp[len] = '\\0';
+  char*** result = parse_string_matrix(tmp, rows, colSizes);
+  free(tmp);
+  return result;
+}
+
+/**
+ * Resolve a version token: either a literal integer or a variable name.
+ */
+static int resolve_c_version(const char* token, int* varMap, const char** varNames, int varCount) {
+  if (*token == '-' || isdigit((unsigned char)*token)) {
+    return atoi(token);
+  }
+  for (int i = 0; i < varCount; i++) {
+    if (varNames[i] && strcmp(varNames[i], token) == 0) {
+      return varMap[i];
+    }
+  }
+  return 0;
 }
 
 static void print_result_row(int number, const char* input, const char* expected, const char* actual, int passed, const char* purpose) {
@@ -842,48 +1043,7 @@ static int parse_int_array(const char* value, int* out, int capacity) {
   return size;
 }
 
-static int compare_topological_order(const char* actual, const char* expected, const char* input) {
-  int expectedIsEmpty = strcmp(expected, "[]") == 0;
-  int order[4096];
-  int orderSize = parse_int_array(actual, order, 4096);
-  if (expectedIsEmpty) return orderSize == 0;
-
-  int n = parse_int_value(input, "n");
-  if (n < 0 || n > 4096 || orderSize != n) return 0;
-  int* position = malloc(sizeof(int) * (size_t)n);
-  for (int i = 0; i < n; i++) position[i] = -1;
-  for (int i = 0; i < orderSize; i++) {
-    int value = order[i];
-    if (value < 0 || value >= n || position[value] != -1) {
-      free(position);
-      return 0;
-    }
-    position[value] = i;
-  }
-
-  int rows = 0;
-  int* colSizes = NULL;
-  int** dependencies = parse_matrix(input, "dependencies", &rows, &colSizes);
-  for (int i = 0; i < rows; i++) {
-    if (colSizes[i] < 2) {
-      free(position);
-      return 0;
-    }
-    int dependent = dependencies[i][0];
-    int prerequisite = dependencies[i][1];
-    if (dependent == prerequisite || position[prerequisite] >= position[dependent]) {
-      free(position);
-      return 0;
-    }
-  }
-  free(position);
-  return 1;
-}
-
 static int compare_result(const char* questionId, const char* actual, const char* expected, const char* input) {
-  if (strcmp(questionId, "dsa_servicenow_incident_dependency") == 0) {
-    return compare_topological_order(actual, expected, input);
-  }
   return strcmp(actual, expected) == 0;
 }
 
@@ -918,12 +1078,15 @@ ${this.normalizedTestCases(testCases)
   private cInvocation(questionId: string) {
     if (questionId === 'dsa_servicenow_incident_dependency') {
       return `int n = parse_int_value(cases[i].input, "n");
-    int rows = 0;
-    int* colSizes = NULL;
-    int** matrix = parse_matrix(cases[i].input, "dependencies", &rows, &colSizes);
-    int resultSize = 0;
-    int* result = resolveIncidents(n, matrix, rows, colSizes, &resultSize);
-    append_int_array(actual, result, resultSize);`;
+    int depRows = 0;
+    int* depColSizes = NULL;
+    int** dependencies = parse_matrix(cases[i].input, "dependencies", &depRows, &depColSizes);
+    int durSize = 0;
+    int* durations = parse_one_d_array(cases[i].input, "durations", &durSize);
+    int deadSize = 0;
+    int* deadlines = parse_one_d_array(cases[i].input, "deadlines", &deadSize);
+    int result = maxOnTimeIncidents(n, dependencies, depRows, depColSizes, durations, durSize, deadlines, deadSize);
+    sprintf(actual, "%d", result);`;
     }
     if (questionId === 'dsa_amazon_delivery_routes') {
       return `int n = parse_int_value(cases[i].input, "n");
@@ -939,61 +1102,139 @@ ${this.normalizedTestCases(testCases)
     if (questionId === 'dsa_commvault_deduplication') {
       return `int filesSize = 0;
     int* filesColSize = NULL;
-    char*** files = parse_string_matrix(cases[i].input, &filesSize, &filesColSize);
+    char*** files = parse_string_matrix_by_key(cases[i].input, "files", &filesSize, &filesColSize);
+    int queriesRows = 0;
+    int* queriesColSizes = NULL;
+    int** queries = parse_matrix(cases[i].input, "queries", &queriesRows, &queriesColSizes);
     int resultSize = 0;
-    int* result = newChunksPerFile(files, filesSize, filesColSize, &resultSize);
+    int* result = uniqueChunksInRanges(files, filesSize, filesColSize, queries, queriesRows, queriesColSizes, &resultSize);
     append_int_array(actual, result, resultSize);`;
     }
     if (questionId === 'dsa_autodesk_versioned_kv') {
       return `VersionedStore* store = versionedStoreCreate();
     char outputs[2048] = {0};
+    int varMap[64] = {0};
+    const char* varNames[64];
+    int varCount = 0;
+    varNames[varCount] = "0";
+    varMap[varCount] = 0;
+    varCount++;
     const char* cursor = cases[i].input;
     while (*cursor) {
-      if (strncmp(cursor, "set(", 4) == 0) {
-        const char* q1 = strchr(cursor, '"');
-        const char* q2 = q1 ? strchr(q1 + 1, '"') : NULL;
-        const char* comma = q2 ? strchr(q2, ',') : NULL;
-        if (q1 && q2 && comma) {
-          char key[256] = {0};
-          int len = (int)(q2 - q1 - 1);
-          memcpy(key, q1 + 1, (size_t)len);
-          int value = atoi(comma + 1);
-          versionedStoreSet(store, key, value);
-        }
-      } else if (strncmp(cursor, "get(", 4) == 0) {
-        const char* q1 = strchr(cursor, '"');
-        const char* q2 = q1 ? strchr(q1 + 1, '"') : NULL;
-        const char* comma = q2 ? strchr(q2, ',') : NULL;
-        if (q1 && q2 && comma) {
-          char key[256] = {0};
-          int len = (int)(q2 - q1 - 1);
-          memcpy(key, q1 + 1, (size_t)len);
-          int version = atoi(comma + 1);
-          const char* value = versionedStoreGet(store, key, version);
-          if (outputs[0]) strcat(outputs, ", ");
-          strcat(outputs, value ? value : "NULL");
+      // Try to match: vX=set(baseVersion,"key",value)
+      char targetVar[64] = {0};
+      char baseToken[64] = {0};
+      char key[256] = {0};
+      int value = 0;
+      int parsed = 0;
+      // Skip spaces
+      while (*cursor == ' ') cursor++;
+      // Check for vX=set(
+      if (strncmp(cursor, "set(", 4) != 0 && strncmp(cursor, "get(", 4) != 0) {
+        // Try to extract vX= prefix
+        const char* eq = strchr(cursor, '=');
+        if (eq && (strncmp(eq + 1, "set(", 4) == 0 || strncmp(eq + 1, "set (", 5) == 0)) {
+          int namLen = (int)(eq - cursor);
+          if (namLen > 0 && namLen < 64) {
+            memcpy(targetVar, cursor, (size_t)namLen);
+            targetVar[namLen] = '\\0';
+          }
+          cursor = eq + 1;
         }
       }
-      const char* semi = strchr(cursor, ';');
-      if (!semi) break;
-      cursor = semi + 1;
+      if (strncmp(cursor, "set", 3) == 0) {
+        const char* pos = strchr(cursor, '(');
+        if (pos) {
+          const char* comma1 = strchr(pos + 1, ',');
+          const char* q1 = comma1 ? strchr(comma1 + 1, '"') : NULL;
+          const char* q2 = q1 ? strchr(q1 + 1, '"') : NULL;
+          const char* comma2 = q2 ? strchr(q2 + 1, ',') : NULL;
+          if (comma1 && q1 && q2 && comma2) {
+            // Extract base token
+            int btLen = (int)(comma1 - pos - 1);
+            if (btLen > 0 && btLen < 64) {
+              memcpy(baseToken, pos + 1, (size_t)btLen);
+              baseToken[btLen] = '\\0';
+            }
+            // Trim whitespace from baseToken
+            char* ts = baseToken;
+            while (*ts == ' ') ts++;
+            memmove(baseToken, ts, strlen(ts) + 1);
+            // Extract key
+            int kLen = (int)(q2 - q1 - 1);
+            if (kLen > 0 && kLen < 256) {
+              memcpy(key, q1 + 1, (size_t)kLen);
+              key[kLen] = '\\0';
+            }
+            // Extract value
+            const char* valStart = comma2 + 1;
+            while (*valStart == ' ') valStart++;
+            value = atoi(valStart);
+            // Resolve base version
+            int baseVersion = resolve_c_version(baseToken, varMap, varNames, varCount);
+            int newVersion = versionedStoreSet(store, baseVersion, key, value);
+            // Store the return value if target variable was specified
+            if (targetVar[0] != '\\0') {
+              if (varCount < 64) {
+                varNames[varCount] = strdup(targetVar);
+                varMap[varCount] = newVersion;
+                varCount++;
+              }
+            }
+            parsed = 1;
+          }
+        }
+      } else if (strncmp(cursor, "get", 3) == 0) {
+        const char* pos = strchr(cursor, '(');
+        if (pos) {
+          const char* comma = strchr(pos + 1, ',');
+          const char* q1 = comma ? strchr(comma + 1, '"') : NULL;
+          const char* q2 = q1 ? strchr(q1 + 1, '"') : NULL;
+          if (comma && q1 && q2) {
+            // Extract version token
+            int vtLen = (int)(comma - pos - 1);
+            char versionToken[64] = {0};
+            if (vtLen > 0 && vtLen < 64) {
+              memcpy(versionToken, pos + 1, (size_t)vtLen);
+              versionToken[vtLen] = '\\0';
+            }
+            // Trim
+            char* ts = versionToken;
+            while (*ts == ' ') ts++;
+            memmove(versionToken, ts, strlen(ts) + 1);
+            // Extract key
+            int kLen = (int)(q2 - q1 - 1);
+            if (kLen > 0 && kLen < 256) {
+              memcpy(key, q1 + 1, (size_t)kLen);
+              key[kLen] = '\\0';
+            }
+            int version = resolve_c_version(versionToken, varMap, varNames, varCount);
+            const char* value = versionedStoreGet(store, version, key);
+            if (outputs[0]) strcat(outputs, ", ");
+            strcat(outputs, value ? value : "NULL");
+            parsed = 1;
+          }
+        }
+      }
+      if (!parsed) {
+        const char* semi = strchr(cursor, ';');
+        if (!semi) break;
+        cursor = semi + 1;
+      } else {
+        const char* semi = strchr(cursor, ';');
+        if (!semi) break;
+        cursor = semi + 1;
+      }
       while (*cursor == ' ') cursor++;
     }
     strcat(actual, outputs);`;
     }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      return `char** customerIds = NULL;
-    int* timestamps = NULL;
-    int transactionsSize = 0;
-    parse_transactions(cases[i].input, &customerIds, &timestamps, &transactionsSize);
-    int k = parse_int_value(cases[i].input, "k");
-    int t = parse_int_value(cases[i].input, "t");
-    int resultSize = 0;
-    char** result = suspiciousCustomers(customerIds, timestamps, transactionsSize, k, t, &resultSize);
-    append_string_array(actual, result, resultSize);`;
-    }
     return `strcat(actual, "[ERROR] Unsupported question");`;
   }
+
+  // ====================================================================
+  // Python harness
+  // ====================================================================
 
   private pythonHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
     const testCasesJson = JSON.stringify(
@@ -1041,27 +1282,59 @@ def matrix_value(input_str, key):
         end += 1
     return json.loads(input_str[first:end + 1])
 
+def one_d_array_value(input_str, key):
+    match = re.search(rf"{re.escape(key)}\\s*=\\s*\\[", input_str)
+    if not match:
+        return []
+    start = match.end()
+    end = input_str.find("]", start)
+    if end < 0:
+        return []
+    body = input_str[start:end].strip()
+    if not body:
+        return []
+    return [int(x.strip()) for x in body.split(",")]
+
+def resolve_version(token, vars_dict):
+    token = token.strip()
+    if token.lstrip('-').isdigit():
+        return int(token)
+    return vars_dict.get(token, 0)
+
 def invoke_user_func(question_id, func, input_str):
     if question_id == "dsa_servicenow_incident_dependency":
-        return func(int_value(input_str, "n"), matrix_value(input_str, "dependencies"))
+        return func(int_value(input_str, "n"), matrix_value(input_str, "dependencies"), one_d_array_value(input_str, "durations"), one_d_array_value(input_str, "deadlines"))
     if question_id == "dsa_amazon_delivery_routes":
         return func(int_value(input_str, "n"), matrix_value(input_str, "roads"), matrix_value(input_str, "packages"))
     if question_id == "dsa_commvault_deduplication":
-        return func(json.loads(input_str))
+        return func(matrix_value(input_str, "files"), matrix_value(input_str, "queries"))
     if question_id == "dsa_autodesk_versioned_kv":
         store = func()
         outputs = []
+        vars_dict = {"0": 0}
         for op in input_str.split(";"):
-            set_match = re.search(r'set\\("([^"]+)",\\s*(-?\\d+)\\)', op.strip())
-            get_match = re.search(r'get\\("([^"]+)",\\s*(-?\\d+)\\)', op.strip())
-            if set_match:
-                store.set(set_match.group(1), int(set_match.group(2)))
-            if get_match:
-                value = store.get(get_match.group(1), int(get_match.group(2)))
-                outputs.append("NULL" if value is None else str(value))
+            op = op.strip()
+            if not op:
+                continue
+            # Match: vX=set(baseVersion,"key",value)
+            set_assign_match = re.match(r'(\\w+)\\s*=\\s*set\\s*\\(\\s*([^,]+)\\s*,\\s*"([^"]+)"\\s*,\\s*(-?\\d+)\\s*\\)', op)
+            # Match: get(versionVar,"key")
+            get_match = re.match(r'get\\s*\\(\\s*([^,]+)\\s*,\\s*"([^"]+)"\\s*\\)', op)
+            if set_assign_match:
+                target_var = set_assign_match.group(1)
+                base_token = set_assign_match.group(2)
+                key = set_assign_match.group(3)
+                value = int(set_assign_match.group(4))
+                base_version = resolve_version(base_token, vars_dict)
+                new_version = store.set(base_version, key, value)
+                vars_dict[target_var] = new_version
+            elif get_match:
+                version_token = get_match.group(1)
+                key = get_match.group(2)
+                version = resolve_version(version_token, vars_dict)
+                result = store.get(version, key)
+                outputs.append("NULL" if result is None else str(result))
         return ", ".join(outputs)
-    if question_id == "dsa_amazon_fraud_window":
-        return func(matrix_value(input_str, "transactions"), int_value(input_str, "k"), int_value(input_str, "t"))
     return func(input_str)
 
 def find_user_func():
@@ -1082,24 +1355,7 @@ def find_user_func():
                     return candidate
     return None
 
-def compare_topological_order(result, expected_str, input_str):
-    if expected_str.strip() == "[]":
-        return isinstance(result, list) and len(result) == 0
-    n = int_value(input_str, "n")
-    dependencies = matrix_value(input_str, "dependencies")
-    if not isinstance(result, list) or len(result) != n:
-        return False
-    if sorted(result) != list(range(n)):
-        return False
-    position = {node: index for index, node in enumerate(result)}
-    for after, before in dependencies:
-        if after == before or position[before] >= position[after]:
-            return False
-    return True
-
 def compare_outputs(question_id, result, expected_str, input_str):
-    if question_id == "dsa_servicenow_incident_dependency":
-        return compare_topological_order(result, expected_str, input_str)
     if isinstance(result, (list, dict)):
         try:
             return result == json.loads(expected_str)
@@ -1142,6 +1398,10 @@ print("===TEST_RESULTS_END===")
 `;
   }
 
+  // ====================================================================
+  // JavaScript harness
+  // ====================================================================
+
   private javascriptHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
     const testCasesJson = JSON.stringify(
       testCases.map((tc) => ({
@@ -1182,10 +1442,29 @@ function matrixValue(inputStr, key) {
     return JSON.parse(inputStr.slice(first, end + 1));
 }
 
+function oneDArrayValue(inputStr, key) {
+    const match = inputStr.match(new RegExp(key + "\\s*=\\s*\\["));
+    if (!match) return [];
+    const start = match.index + match[0].length;
+    const end = inputStr.indexOf("]", start);
+    if (end < 0) return [];
+    const body = inputStr.slice(start, end).trim();
+    if (!body) return [];
+    return body.split(",").map(x => Number(x.trim()));
+}
+
+function resolveVersion(token, vars) {
+    token = token.trim();
+    if (/^-?\\d+$/.test(token)) {
+        return Number(token);
+    }
+    return vars[token] !== undefined ? vars[token] : 0;
+}
+
 function invokeUserFunc(questionId, func, inputStr) {
-    if (questionId === "dsa_servicenow_incident_dependency") return func(intValue(inputStr, "n"), matrixValue(inputStr, "dependencies"));
+    if (questionId === "dsa_servicenow_incident_dependency") return func(intValue(inputStr, "n"), matrixValue(inputStr, "dependencies"), oneDArrayValue(inputStr, "durations"), oneDArrayValue(inputStr, "deadlines"));
     if (questionId === "dsa_amazon_delivery_routes") return func(intValue(inputStr, "n"), matrixValue(inputStr, "roads"), matrixValue(inputStr, "packages"));
-    if (questionId === "dsa_commvault_deduplication") return func(JSON.parse(inputStr));
+    if (questionId === "dsa_commvault_deduplication") return func(matrixValue(inputStr, "files"), matrixValue(inputStr, "queries"));
     if (questionId === "dsa_autodesk_versioned_kv") {
         let store;
         try {
@@ -1194,18 +1473,32 @@ function invokeUserFunc(questionId, func, inputStr) {
             store = func();
         }
         const outputs = [];
+        const vars = { "0": 0 };
         for (const op of inputStr.split(";")) {
-            const setMatch = op.trim().match(/set\("([^"]+)",\s*(-?\d+)\)/);
-            const getMatch = op.trim().match(/get\("([^"]+)",\s*(-?\d+)\)/);
-            if (setMatch) store.set(setMatch[1], Number(setMatch[2]));
-            if (getMatch) {
-                const value = store.get(getMatch[1], Number(getMatch[2]));
+            const trimmed = op.trim();
+            if (!trimmed) continue;
+            // Match: vX=set(baseVersion,"key",value)
+            const setAssignMatch = trimmed.match(/^(\\w+)\\s*=\\s*set\\s*\\(\\s*([^,]+)\\s*,\\s*"([^"]+)"\\s*,\\s*(-?\\d+)\\s*\\)/);
+            // Match: get(versionVar,"key")
+            const getMatch = trimmed.match(/^get\\s*\\(\\s*([^,]+)\\s*,\\s*"([^"]+)"\\s*\\)/);
+            if (setAssignMatch) {
+                const targetVar = setAssignMatch[1];
+                const baseToken = setAssignMatch[2];
+                const key = setAssignMatch[3];
+                const value = Number(setAssignMatch[4]);
+                const baseVersion = resolveVersion(baseToken, vars);
+                const newVersion = store.set(baseVersion, key, value);
+                vars[targetVar] = newVersion;
+            } else if (getMatch) {
+                const versionToken = getMatch[1];
+                const key = getMatch[2];
+                const version = resolveVersion(versionToken, vars);
+                const value = store.get(version, key);
                 outputs.push(value === null || value === undefined ? "NULL" : String(value));
             }
         }
         return outputs.join(", ");
     }
-    if (questionId === "dsa_amazon_fraud_window") return func(matrixValue(inputStr, "transactions"), intValue(inputStr, "k"), intValue(inputStr, "t"));
     return func(inputStr);
 }
 function findUserFunc() {
@@ -1217,18 +1510,7 @@ function findUserFunc() {
     return null;
 }
 
-function compareTopologicalOrder(result, expectedStr, inputStr) {
-    if (expectedStr.trim() === "[]") return Array.isArray(result) && result.length === 0;
-    const n = intValue(inputStr, "n");
-    const dependencies = matrixValue(inputStr, "dependencies");
-    if (!Array.isArray(result) || result.length !== n) return false;
-    if (JSON.stringify([...result].sort((a, b) => a - b)) !== JSON.stringify(Array.from({ length: n }, (_, i) => i))) return false;
-    const position = new Map(result.map((node, index) => [node, index]));
-    return dependencies.every(([after, before]) => after !== before && position.get(before) < position.get(after));
-}
-
 function compareOutputs(questionId, result, expectedStr, inputStr) {
-    if (questionId === "dsa_servicenow_incident_dependency") return compareTopologicalOrder(result, expectedStr, inputStr);
     if (Array.isArray(result) || (result && typeof result === "object")) {
         try {
             return JSON.stringify(result) === JSON.stringify(JSON.parse(expectedStr));
