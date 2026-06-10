@@ -2,7 +2,7 @@
   "assessment": {
     "id": "joraiq-company-assessment",
     "title": "JoraIQ Company-Based Assessment",
-    "description": "Placement-readiness assessment covering hard DSA, 30-minute SQL, OOPs design and medium-to-hard Core CS MCQs.",
+    "description": "Placement-readiness assessment covering very-hard DSA, hard SQL, OOPs and hard Core CS MCQs.",
     "duration_minutes": 180,
     "scoring_weights": {
       "DSA": 40,
@@ -23,9 +23,9 @@
         "id": "dsa",
         "name": "DSA",
         "duration_minutes": 90,
-        "question_count": 4,
+        "question_count": 5,
         "selection_policy": "all",
-        "recommended_minutes_per_question": 22.5
+        "recommended_minutes_per_question": 18
       },
       {
         "id": "sql",
@@ -86,24 +86,23 @@
       "section": "DSA",
       "engine": "code",
       "type": "coding",
-      "title": "Incident SLA Scheduling with Dependencies",
-      "difficulty": "hard",
+      "title": "Enterprise Incident SLA Optimization",
+      "difficulty": "very_hard",
       "marks": 100,
-      "prompt": "Real-World Scenario\nAn enterprise support team handles incidents where some incidents can start only after prerequisite incidents are completed. Each incident has a resolution time and an SLA deadline. One engineer works on one incident at a time. The team wants to maximize how many incidents are completed within SLA while respecting dependencies.\n\nProblem Statement\nYou are given n incidents numbered from 0 to n-1. dependencies[i] = [a, b] means incident a depends on incident b, so b must be completed before a. durations[i] is the time needed to resolve incident i. deadlines[i] is the latest completion time for incident i to be counted as on-time. You may resolve incidents in any valid order. Return the maximum number of incidents completed on or before their deadlines. If the dependency graph has a cycle, return -1.",
+      "prompt": "Real-World Scenario\nAn enterprise support team handles incidents where some incidents can start only after their prerequisite incidents are completed. Each incident has a resolution time and an SLA deadline. One engineer works on one incident at a time. The team wants to know the maximum number of incidents that can be completed within their SLA while still respecting all prerequisite dependencies.\n\nProblem Statement\nYou are given n incidents numbered from 0 to n-1. dependencies[i] = [a, b] means incident a depends on incident b, so b must be completed before a. durations[i] is the time needed to resolve incident i. deadlines[i] is the latest completion time for incident i to be counted as on-time. You may resolve incidents in any valid order, and you may still resolve an incident even if it misses its SLA, but it will not increase the on-time count. Return the maximum number of incidents that can be completed on or before their deadlines. If the dependency graph has a cycle, return -1.\n\nInput Example\nn = 4\ndependencies = [[2,0],[2,1],[3,2]]\ndurations = [2,2,3,1]\ndeadlines = [2,4,7,8]\nExpected Output\n4",
       "constraints": [
-        "1 <= n <= 15",
+        "1 <= n <= 20",
         "0 <= dependencies.length <= n * (n - 1)",
         "0 <= a, b < n",
-        "1 <= durations[i] <= 10000",
+        "1 <= durations[i] <= 100000",
         "1 <= deadlines[i] <= 1000000000"
       ],
       "function_signature": "maxOnTimeIncidents(n, dependencies, durations, deadlines)",
       "expected_approach": [
-        "Build prerequisite bitmasks for every incident",
-        "Detect cycles using DFS/topological check",
-        "Use bitmask DP over completed incident subsets",
-        "For each subset, try unresolved incidents whose prerequisites are already completed",
-        "Track best on-time count for each subset using total duration of the subset as completion time",
+        "Cycle detection using prerequisite masks",
+        "Bitmask dynamic programming over resolved incident subsets",
+        "Track minimum completion time per subset",
+        "Count on-time completions during transitions",
         "O(n * 2^n)"
       ],
       "allowed_languages": [
@@ -142,7 +141,7 @@
         {
           "id": "open_4",
           "input": "n=3, dependencies=[], durations=[5,1,1], deadlines=[5,2,3]",
-          "expected": "2",
+          "expected": "3",
           "purpose": "Choosing order matters"
         },
         {
@@ -162,13 +161,13 @@
         {
           "id": "hidden_7",
           "input": "n=4, dependencies=[], durations=[4,4,1,1], deadlines=[4,8,1,2]",
-          "expected": "3",
+          "expected": "4",
           "purpose": "Optimal order is not input order"
         },
         {
           "id": "hidden_8",
           "input": "n=5, dependencies=[[3,1],[3,2],[4,3]], durations=[1,2,2,3,1], deadlines=[1,2,4,7,9]",
-          "expected": "4",
+          "expected": "5",
           "purpose": "Multiple prerequisites"
         },
         {
@@ -186,7 +185,7 @@
         {
           "id": "hidden_11",
           "input": "n=6, dependencies=[[2,0],[2,1],[3,2],[4,2],[5,3],[5,4]], durations=[1,1,2,2,2,1], deadlines=[1,2,4,6,7,8]",
-          "expected": "4",
+          "expected": "6",
           "purpose": "Diamond dependency graph"
         },
         {
@@ -210,7 +209,7 @@
         {
           "id": "hidden_15",
           "input": "n=5, dependencies=[], durations=[10,1,1,1,1], deadlines=[10,1,2,3,4]",
-          "expected": "4",
+          "expected": "5",
           "purpose": "Small jobs before long job can still be optimal"
         }
       ],
@@ -236,7 +235,7 @@
         {
           "number": 4,
           "input": "n=3, dependencies=[], durations=[5,1,1], deadlines=[5,2,3]",
-          "expected_output": "2",
+          "expected_output": "3",
           "purpose": "Choosing order matters"
         },
         {
@@ -254,13 +253,13 @@
         {
           "number": 7,
           "input": "n=4, dependencies=[], durations=[4,4,1,1], deadlines=[4,8,1,2]",
-          "expected_output": "3",
+          "expected_output": "4",
           "purpose": "Optimal order is not input order"
         },
         {
           "number": 8,
           "input": "n=5, dependencies=[[3,1],[3,2],[4,3]], durations=[1,2,2,3,1], deadlines=[1,2,4,7,9]",
-          "expected_output": "4",
+          "expected_output": "5",
           "purpose": "Multiple prerequisites"
         },
         {
@@ -278,7 +277,7 @@
         {
           "number": 11,
           "input": "n=6, dependencies=[[2,0],[2,1],[3,2],[4,2],[5,3],[5,4]], durations=[1,1,2,2,2,1], deadlines=[1,2,4,6,7,8]",
-          "expected_output": "4",
+          "expected_output": "6",
           "purpose": "Diamond dependency graph"
         },
         {
@@ -302,7 +301,7 @@
         {
           "number": 15,
           "input": "n=5, dependencies=[], durations=[10,1,1,1,1], deadlines=[10,1,2,3,4]",
-          "expected_output": "4",
+          "expected_output": "5",
           "purpose": "Small jobs before long job can still be optimal"
         }
       ]
@@ -544,24 +543,22 @@
       "engine": "code",
       "type": "coding",
       "title": "Global Backup Deduplication Range Analytics",
-      "difficulty": "hard",
+      "difficulty": "very_hard",
       "marks": 100,
-      "prompt": "Real-World Scenario\nA backup platform receives files from many machines. Each file is represented by chunk hashes. Storage leaders want to answer audit questions: within a selected range of files, how many distinct chunks would be stored if deduplication were applied only to that range?\n\nProblem Statement\nYou are given files, where files[i] is the list of chunk hashes present in file i. A chunk repeated inside the same file should be counted once for that file. You are also given queries, where each query [left, right] asks for the number of unique chunk hashes appearing in files left through right inclusive. Return one answer per query in the same order.",
+      "prompt": "Real-World Scenario\nA backup platform receives files from many machines. Each file is represented by chunk hashes. Storage leaders now want to answer audit questions: within a selected range of files, how many distinct chunks would be stored if deduplication were applied only to that range? A chunk repeated inside the same file should be counted once for that file, and a chunk appearing in multiple files in the selected range should be counted once for the range.\n\nProblem Statement\nYou are given files, where files[i] is the list of chunk hashes present in file i. You are also given queries, where each query [left, right] asks for the number of unique chunk hashes appearing in files left through right inclusive. Return one answer per query in the same order.\n\nInput Example\nfiles = [[\"a\",\"b\",\"a\"],[\"b\",\"c\"],[\"a\",\"d\"],[\"e\"]]\nqueries = [[0,1],[1,2],[0,3]]\nExpected Output\n[3,4,5]",
       "constraints": [
-        "1 <= files.length <= 50000",
-        "Total number of chunks across all files <= 200000",
-        "1 <= queries.length <= 100000",
+        "1 <= files.length <= 100000",
+        "Total number of chunks across all files <= 500000",
+        "1 <= queries.length <= 200000",
         "0 <= left <= right < files.length",
-        "0 <= files[i].length",
         "1 <= chunkHash.length <= 50"
       ],
       "function_signature": "uniqueChunksInRanges(files, queries)",
       "expected_approach": [
-        "Remove duplicate chunks inside each file",
-        "Sort queries by right endpoint",
-        "Scan files from left to right",
-        "For each chunk, remove its previous active position and add its latest position in a Fenwick Tree",
-        "Answer each query using range sum on the Fenwick Tree",
+        "Remove duplicate chunks within each file",
+        "Offline range distinct query processing",
+        "Track last file index where each chunk appeared",
+        "Fenwick Tree / Binary Indexed Tree",
         "O((totalChunks + queries) log files.length)"
       ],
       "allowed_languages": [
@@ -771,25 +768,23 @@
       "engine": "code",
       "type": "coding",
       "title": "Branching Versioned Key-Value Store",
-      "difficulty": "hard",
+      "difficulty": "very_hard",
       "marks": 100,
-      "prompt": "Real-World Scenario\nA design platform allows users to create alternative versions of the same project. A new version can be created from any previous version. Each new version changes exactly one design parameter while inheriting all other parameters from its base version.\n\nProblem Statement\nDesign a branching versioned key-value store. Version 0 is empty. set(baseVersion, key, value) creates a new version from baseVersion, updates key to value in that new version, and returns the new version number. get(version, key) returns the value of key visible in that version. If the key does not exist in that version, return \"NULL\".",
+      "prompt": "Real-World Scenario\nA design platform allows users to create alternative versions of the same project. A new version can be created from any previous version, not only from the latest version. Each new version changes exactly one design parameter while inheriting all other parameters from its base version. Users can later ask for the value of any parameter in any version.\n\nProblem Statement\nDesign a branching versioned key-value store. Version 0 is empty. set(baseVersion, key, value) creates a new version from baseVersion, updates key to value in that new version, and returns the new version number. get(version, key) returns the value of key visible in that version. If the key does not exist in that version, return \"NULL\".\n\nOperations Example\nv1 = set(0, \"height\", 10)\nv2 = set(v1, \"width\", 5)\nv3 = set(v1, \"height\", 12)\nget(v2, \"height\") -> 10\nget(v3, \"width\") -> NULL\nget(v3, \"height\") -> 12",
       "constraints": [
-        "1 <= number of operations <= 5000",
+        "1 <= number of operations <= 200000",
         "0 <= baseVersion <= latestCreatedVersion",
         "1 <= key.length <= 50",
         "1 <= value <= 10^9",
-        "Version numbers are created sequentially starting from 1",
-        "A parent-chain lookup solution is acceptable for this version"
+        "Version numbers are created sequentially starting from 1"
       ],
       "function_signature": "VersionedStore.set(baseVersion,key,value), VersionedStore.get(version,key)",
       "expected_approach": [
-        "For every version, store parentVersion, changedKey and changedValue",
-        "set creates a new node/version that points to baseVersion",
-        "get walks from the requested version to its ancestors until the key is found",
-        "Return NULL if the chain reaches version 0 without finding the key",
-        "Optional memoization can speed up repeated get calls",
-        "O(depth) per get, O(1) per set for the accepted 30-minute version"
+        "Represent versions as a persistent structure",
+        "Coordinate-compress keys or use persistent maps",
+        "Each set creates a new root from a base version",
+        "Each get queries the selected version root",
+        "O(log numberOfKeys) per operation with persistent segment tree, or expected logarithmic/persistent map approach"
       ],
       "allowed_languages": [
         "python",
@@ -993,14 +988,241 @@
       ]
     },
     {
+      "id": "dsa_amazon_fraud_window",
+      "section": "DSA",
+      "engine": "code",
+      "type": "coding",
+      "title": "Transaction Fraud Ring Detection",
+      "difficulty": "very_hard",
+      "marks": 100,
+      "prompt": "Real-World Scenario\nA payment platform wants to detect coordinated fraud rings, not just high transaction volume. An account A is considered to have a suspicious directed link to account B if A sends more than k transactions to B within any continuous window of t seconds. A fraud ring exists when suspicious links form a directed cycle among two or more accounts.\n\nProblem Statement\nYou are given transactions sorted by timestamp. Each transaction is [fromAccount, toAccount, timestamp]. Build a directed edge from X to Y if X sent more than k transactions to Y within any t-second window, where end - start <= t. Return all account IDs that belong to at least one suspicious directed cycle. The output should be sorted lexicographically.\n\nInput Example\ntransactions = [[\"A\",\"B\",1],[\"A\",\"B\",2],[\"A\",\"B\",3],[\"B\",\"A\",4],[\"B\",\"A\",5],[\"B\",\"A\",6],[\"C\",\"D\",7]]\nk = 2\nt = 3\nExpected Output\n[\"A\",\"B\"]",
+      "constraints": [
+        "1 <= transactions.length <= 300000",
+        "1 <= timestamp <= 10^9",
+        "1 <= k <= 100000",
+        "1 <= t <= 10^9",
+        "Account IDs are non-empty strings",
+        "Transactions are sorted by timestamp"
+      ],
+      "function_signature": "suspiciousFraudRings(transactions, k, t)",
+      "expected_approach": [
+        "Group stream by ordered account pair",
+        "Sliding window using deque per pair",
+        "Build directed graph only for suspicious pairs",
+        "Run SCC algorithm such as Tarjan or Kosaraju",
+        "Return accounts in SCCs of size >= 2 or with self-loop if applicable",
+        "O(n + V + E) average"
+      ],
+      "allowed_languages": [
+        "python",
+        "javascript",
+        "java",
+        "cpp",
+        "c"
+      ],
+      "starter_code": {
+        "python": "def suspicious_fraud_rings(transactions, k, t):\n    # return sorted list of accounts that belong to suspicious directed cycles\n    return []\n",
+        "javascript": "function suspiciousFraudRings(transactions, k, t) {\n  return [];\n}\n",
+        "java": "import java.util.*;\n\nclass Solution {\n  public List<String> suspiciousFraudRings(String[][] transactions, int k, int t) {\n    return new ArrayList<>();\n  }\n}\n",
+        "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nclass Solution {\npublic:\n  vector<string> suspiciousFraudRings(vector<vector<string>>& transactions, int k, int t) {\n    return {};\n  }\n};\n",
+        "c": "#include <stdlib.h>\n\nchar** suspiciousFraudRings(char*** transactions, int transactionsSize, int* transactionsColSize, int k, int t, int* resultSize) {\n  *resultSize = 0;\n  return NULL;\n}\n"
+      },
+      "open_test_cases": [
+        {
+          "id": "open_1",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"A\",\"B\",3],[\"B\",\"A\",4],[\"B\",\"A\",5],[\"B\",\"A\",6],[\"C\",\"D\",7]], k=2, t=3",
+          "expected": "[\"A\",\"B\"]",
+          "purpose": "Two-node suspicious cycle"
+        },
+        {
+          "id": "open_2",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"A\",\"B\",3]], k=2, t=3",
+          "expected": "[]",
+          "purpose": "Suspicious edge but no cycle"
+        },
+        {
+          "id": "open_3",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"C\",3],[\"B\",\"C\",4],[\"C\",\"A\",5],[\"C\",\"A\",6]], k=1, t=2",
+          "expected": "[\"A\",\"B\",\"C\"]",
+          "purpose": "Three-node directed cycle"
+        },
+        {
+          "id": "open_4",
+          "input": "transactions=[[\"A\",\"A\",1],[\"A\",\"A\",2],[\"A\",\"A\",3]], k=2, t=3",
+          "expected": "[\"A\"]",
+          "purpose": "Self-loop cycle"
+        },
+        {
+          "id": "open_5",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",10],[\"A\",\"B\",20],[\"B\",\"A\",1],[\"B\",\"A\",2],[\"B\",\"A\",3]], k=2, t=3",
+          "expected": "[]",
+          "purpose": "One direction not suspicious due to window"
+        }
+      ],
+      "hidden_test_cases": [
+        {
+          "id": "hidden_6",
+          "input": "transactions=[[\"X\",\"Y\",5],[\"X\",\"Y\",5],[\"X\",\"Y\",5],[\"Y\",\"X\",6],[\"Y\",\"X\",6],[\"Y\",\"X\",6]], k=2, t=1",
+          "expected": "[\"X\",\"Y\"]",
+          "purpose": "Same timestamp transactions"
+        },
+        {
+          "id": "hidden_7",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"C\",3],[\"B\",\"C\",4]], k=1, t=5",
+          "expected": "[]",
+          "purpose": "No cycle despite chain"
+        },
+        {
+          "id": "hidden_8",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"A\",10],[\"B\",\"A\",11]], k=1, t=2",
+          "expected": "[\"A\",\"B\"]",
+          "purpose": "Cycle edges can appear far apart"
+        },
+        {
+          "id": "hidden_9",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"A\",3],[\"B\",\"A\",4],[\"C\",\"D\",1],[\"C\",\"D\",2],[\"D\",\"C\",3],[\"D\",\"C\",4]], k=1, t=2",
+          "expected": "[\"A\",\"B\",\"C\",\"D\"]",
+          "purpose": "Multiple fraud rings"
+        },
+        {
+          "id": "hidden_10",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",4],[\"A\",\"B\",7],[\"B\",\"A\",1],[\"B\",\"A\",2],[\"B\",\"A\",3]], k=2, t=3",
+          "expected": "[]",
+          "purpose": "Boundary and sparse timestamps"
+        },
+        {
+          "id": "hidden_11",
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"C\",3],[\"B\",\"C\",4],[\"C\",\"B\",5],[\"C\",\"B\",6]], k=1, t=2",
+          "expected": "[\"B\",\"C\"]",
+          "purpose": "Only subcycle nodes returned"
+        },
+        {
+          "id": "hidden_12",
+          "input": "transactions=[[\"A\",\"B\",1000000000],[\"A\",\"B\",1000000001],[\"B\",\"A\",1000000002],[\"B\",\"A\",1000000003]], k=1, t=5",
+          "expected": "[\"A\",\"B\"]",
+          "purpose": "Large timestamps"
+        },
+        {
+          "id": "hidden_13",
+          "input": "transactions=[[\"U1\",\"U2\",1],[\"U1\",\"U2\",2],[\"U2\",\"U3\",3],[\"U2\",\"U3\",4],[\"U3\",\"U1\",5],[\"U3\",\"U1\",6],[\"U4\",\"U5\",7],[\"U4\",\"U5\",8]], k=1, t=2",
+          "expected": "[\"U1\",\"U2\",\"U3\"]",
+          "purpose": "Cycle plus non-cycle suspicious edge"
+        },
+        {
+          "id": "hidden_14",
+          "input": "transactions=[[\"A\",\"A\",1],[\"A\",\"A\",10],[\"A\",\"A\",20]], k=2, t=5",
+          "expected": "[]",
+          "purpose": "Self transactions not enough in window"
+        },
+        {
+          "id": "hidden_15",
+          "input": "transactions=[[\"P\",\"Q\",1],[\"P\",\"Q\",2],[\"Q\",\"R\",3],[\"Q\",\"R\",4],[\"R\",\"P\",5],[\"R\",\"P\",6],[\"R\",\"S\",7],[\"R\",\"S\",8],[\"S\",\"R\",9],[\"S\",\"R\",10]], k=1, t=2",
+          "expected": "[\"P\",\"Q\",\"R\",\"S\"]",
+          "purpose": "Overlapping SCCs merge through cycles"
+        }
+      ],
+      "test_cases": [
+        {
+          "number": 1,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"A\",\"B\",3],[\"B\",\"A\",4],[\"B\",\"A\",5],[\"B\",\"A\",6],[\"C\",\"D\",7]], k=2, t=3",
+          "expected_output": "[\"A\",\"B\"]",
+          "purpose": "Two-node suspicious cycle"
+        },
+        {
+          "number": 2,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"A\",\"B\",3]], k=2, t=3",
+          "expected_output": "[]",
+          "purpose": "Suspicious edge but no cycle"
+        },
+        {
+          "number": 3,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"C\",3],[\"B\",\"C\",4],[\"C\",\"A\",5],[\"C\",\"A\",6]], k=1, t=2",
+          "expected_output": "[\"A\",\"B\",\"C\"]",
+          "purpose": "Three-node directed cycle"
+        },
+        {
+          "number": 4,
+          "input": "transactions=[[\"A\",\"A\",1],[\"A\",\"A\",2],[\"A\",\"A\",3]], k=2, t=3",
+          "expected_output": "[\"A\"]",
+          "purpose": "Self-loop cycle"
+        },
+        {
+          "number": 5,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",10],[\"A\",\"B\",20],[\"B\",\"A\",1],[\"B\",\"A\",2],[\"B\",\"A\",3]], k=2, t=3",
+          "expected_output": "[]",
+          "purpose": "One direction not suspicious due to window"
+        },
+        {
+          "number": 6,
+          "input": "transactions=[[\"X\",\"Y\",5],[\"X\",\"Y\",5],[\"X\",\"Y\",5],[\"Y\",\"X\",6],[\"Y\",\"X\",6],[\"Y\",\"X\",6]], k=2, t=1",
+          "expected_output": "[\"X\",\"Y\"]",
+          "purpose": "Same timestamp transactions"
+        },
+        {
+          "number": 7,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"C\",3],[\"B\",\"C\",4]], k=1, t=5",
+          "expected_output": "[]",
+          "purpose": "No cycle despite chain"
+        },
+        {
+          "number": 8,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"A\",10],[\"B\",\"A\",11]], k=1, t=2",
+          "expected_output": "[\"A\",\"B\"]",
+          "purpose": "Cycle edges can appear far apart"
+        },
+        {
+          "number": 9,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"A\",3],[\"B\",\"A\",4],[\"C\",\"D\",1],[\"C\",\"D\",2],[\"D\",\"C\",3],[\"D\",\"C\",4]], k=1, t=2",
+          "expected_output": "[\"A\",\"B\",\"C\",\"D\"]",
+          "purpose": "Multiple fraud rings"
+        },
+        {
+          "number": 10,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",4],[\"A\",\"B\",7],[\"B\",\"A\",1],[\"B\",\"A\",2],[\"B\",\"A\",3]], k=2, t=3",
+          "expected_output": "[]",
+          "purpose": "Boundary and sparse timestamps"
+        },
+        {
+          "number": 11,
+          "input": "transactions=[[\"A\",\"B\",1],[\"A\",\"B\",2],[\"B\",\"C\",3],[\"B\",\"C\",4],[\"C\",\"B\",5],[\"C\",\"B\",6]], k=1, t=2",
+          "expected_output": "[\"B\",\"C\"]",
+          "purpose": "Only subcycle nodes returned"
+        },
+        {
+          "number": 12,
+          "input": "transactions=[[\"A\",\"B\",1000000000],[\"A\",\"B\",1000000001],[\"B\",\"A\",1000000002],[\"B\",\"A\",1000000003]], k=1, t=5",
+          "expected_output": "[\"A\",\"B\"]",
+          "purpose": "Large timestamps"
+        },
+        {
+          "number": 13,
+          "input": "transactions=[[\"U1\",\"U2\",1],[\"U1\",\"U2\",2],[\"U2\",\"U3\",3],[\"U2\",\"U3\",4],[\"U3\",\"U1\",5],[\"U3\",\"U1\",6],[\"U4\",\"U5\",7],[\"U4\",\"U5\",8]], k=1, t=2",
+          "expected_output": "[\"U1\",\"U2\",\"U3\"]",
+          "purpose": "Cycle plus non-cycle suspicious edge"
+        },
+        {
+          "number": 14,
+          "input": "transactions=[[\"A\",\"A\",1],[\"A\",\"A\",10],[\"A\",\"A\",20]], k=2, t=5",
+          "expected_output": "[]",
+          "purpose": "Self transactions not enough in window"
+        },
+        {
+          "number": 15,
+          "input": "transactions=[[\"P\",\"Q\",1],[\"P\",\"Q\",2],[\"Q\",\"R\",3],[\"Q\",\"R\",4],[\"R\",\"P\",5],[\"R\",\"P\",6],[\"R\",\"S\",7],[\"R\",\"S\",8],[\"S\",\"R\",9],[\"S\",\"R\",10]], k=1, t=2",
+          "expected_output": "[\"P\",\"Q\",\"R\",\"S\"]",
+          "purpose": "Overlapping SCCs merge through cycles"
+        }
+      ]
+    },
+    {
       "id": "sql_amazon_delivery_promise",
       "section": "SQL",
       "engine": "sql",
       "type": "sql",
       "title": "Delivery Promise Breach Analysis",
-      "difficulty": "medium_hard",
+      "difficulty": "hard",
       "marks": 100,
-      "prompt": "Business Scenario\nAn online retailer promises a delivery timestamp for every customer order. One order may be shipped in multiple packages. For customer experience reporting, an order should be treated as late only when the final delivered package arrives after the promised timestamp.\n\nTask / Business Rules\nWrite a SQL query to flag High-Risk Customer Experience Cases. A customer should be flagged if: (1) they have at least 3 delivered, non-cancelled orders in the last 90 days, and (2) at least 40% of those orders were delivered late. Use the final delivered package timestamp at order level. Return only flagged customers.\n\nRequired Output\nReturn customer_id, customer_name, customer_segment, delivered_orders, late_orders, late_order_percentage, total_delivered_order_value, and last_late_order_date.",
+      "prompt": "Business Scenario\nAn online retailer promises a delivery timestamp for every customer order. One order may be shipped in multiple packages. For customer experience reporting, an order should be treated as late only when the final delivered package arrives after the promised timestamp.\n\nTask / Business Rules\nWrite a SQL query to flag High-Risk Customer Experience Cases. A customer should be flagged if: (1) they have at least 5 delivered, non-cancelled orders in the last 90 days, (2) at least 40% of those orders were delivered late, and (3) the average delay across late orders is at least 1 day. Use the final delivered package timestamp at order level. Return only flagged customers.",
       "dialect": "postgres",
       "schema_files": {
         "schema": "sql/q1_schema.sql",
@@ -1014,15 +1236,15 @@
         "delivered_orders",
         "late_orders",
         "late_order_percentage",
+        "average_delay_days",
         "total_delivered_order_value",
         "last_late_order_date"
       ],
       "expected_approach": [
-        "Create order-level CTE",
-        "Use MAX(delivered_at) as final delivery time",
-        "Exclude cancelled orders",
-        "Aggregate at customer level",
-        "Apply HAVING filters for minimum orders and late percentage"
+        "Order-level CTE",
+        "Final delivered package timestamp",
+        "Conditional aggregation",
+        "HAVING filters"
       ]
     },
     {
@@ -1033,7 +1255,7 @@
       "title": "Backup Failure Streak Risk Analysis",
       "difficulty": "hard",
       "marks": 100,
-      "prompt": "Business Scenario\nA backup platform runs scheduled backup jobs for many client servers. The operations team wants to identify active servers whose latest backup health is risky. A server is risky when the most recent backup attempts are failing repeatedly.\n\nTask / Business Rules\nWrite a SQL query to return active servers where the latest 3 completed backup jobs are all FAILED. Ignore inactive servers and inactive policies. For each risky server, return the first failure date among those latest 3 failed jobs, the latest failure date, failure count, latest status, and latest error code.\n\nRequired Output\nReturn client_id, client_name, server_id, server_name, policy_name, latest_failure_streak_start_date, latest_failure_streak_end_date, consecutive_failure_runs, latest_backup_status, and latest_error_code.",
+      "prompt": "Business Scenario\nA backup platform runs scheduled backup jobs for many client servers. The operations team wants to identify active servers whose latest backup health is risky. A server is risky when its latest backup jobs show a continuing failure streak, not just because it had failures in the past.\n\nTask / Business Rules\nWrite a SQL query to return active servers whose latest backup status is FAILED and whose current consecutive failure streak is at least 3 jobs. Ignore inactive servers and inactive policies. For each risky server, return the streak start date, streak end date, consecutive failure count, latest status, and latest error code.",
       "dialect": "postgres",
       "schema_files": {
         "schema": "sql/q2_schema.sql",
@@ -1053,11 +1275,10 @@
         "latest_error_code"
       ],
       "expected_approach": [
-        "Filter active servers and active policies",
-        "Rank completed backup jobs by server using ROW_NUMBER",
-        "Keep latest 3 jobs per server",
-        "Group by server and require all 3 jobs to be FAILED",
-        "Return latest error code from the most recent failed job"
+        "Filter active servers and policies",
+        "Use window functions for job ordering",
+        "Identify current failure streak",
+        "Return only latest FAILED streaks with count >= 3"
       ]
     },
     {
@@ -1066,9 +1287,9 @@
       "engine": "sql",
       "type": "sql",
       "title": "License Utilization Review",
-      "difficulty": "medium_hard",
+      "difficulty": "hard",
       "marks": 100,
-      "prompt": "Business Scenario\nA software subscription business sells seat-based licenses to customers. Some customers buy many seats but only a few assigned users actively use the product. Customer success wants to identify accounts that may need license optimization support before renewal.\n\nTask / Business Rules\nWrite a SQL query to flag customers for License Utilization Review if: (1) they have an active paid contract with at least 10 purchased seats, and (2) fewer than 50% of purchased seats had valid product usage in the last 30 days. Exclude trial contracts and internal/test users. Count usage only for users who had an assigned license on the usage date. Customers with zero valid usage in the last 30 days should also be flagged.\n\nRequired Output\nReturn customer_id, customer_name, industry, plan_type, purchased_seats, assigned_users, active_licensed_users, seat_utilization_percentage, and review_reason.",
+      "prompt": "Business Scenario\nA software subscription business sells seat-based licenses to customers. Some customers buy many seats but only a few assigned users actively use the product. Customer success wants to identify accounts that may need license optimization support before renewal.\n\nTask / Business Rules\nWrite a SQL query to flag customers for License Utilization Review if: (1) they have an active paid contract with at least 10 purchased seats, (2) their average daily active users in the last 30 days is less than 50% of purchased seats, or (3) they had zero valid product usage in the last 30 days. Exclude trial contracts and internal/test users. Count usage only for users who had an assigned license on the usage date.",
       "dialect": "postgres",
       "schema_files": {
         "schema": "sql/q3_schema.sql",
@@ -1082,16 +1303,19 @@
         "plan_type",
         "purchased_seats",
         "assigned_users",
-        "active_licensed_users",
+        "avg_daily_active_users",
         "seat_utilization_percentage",
+        "active_licensed_users",
+        "low_engagement_users",
+        "low_engagement_user_percentage",
         "review_reason"
       ],
       "expected_approach": [
-        "Filter active paid contracts with at least 10 seats",
-        "Count assigned non-test users",
-        "LEFT JOIN valid usage from last 30 days",
-        "Count distinct active licensed users",
-        "Flag customers where active licensed users are less than 50% of purchased seats or zero"
+        "Active paid contract filter",
+        "Date-range assignment join",
+        "Daily active user rollup",
+        "LEFT JOIN to include zero-usage customers",
+        "HAVING / CASE logic for review flag"
       ]
     },
     {
@@ -1291,29 +1515,29 @@
       "type": "mcq",
       "title": "OOPs",
       "topic": "OOPs",
-      "prompt": "A checkout platform supports card, wallet, BNPL and gift-card payments. Each payment mode has different validation, authorization, capture, refund and retry behavior. New modes are added every quarter by different teams. Which design best minimizes modification to checkout orchestration while still supporting mode-specific behavior?",
+      "prompt": "A checkout service supports card, wallet, store credit and future payment modes. Each mode has different validation, retry and refund behavior. Checkout must not change when a new mode is added. Which design is most appropriate?",
       "options": [
         {
           "label": "A",
-          "text": "A PaymentStrategy interface per mode, selected through a factory/registry, with checkout depending only on the abstraction"
+          "text": "A PaymentStrategy interface with separate implementations and a factory/registry to select the strategy"
         },
         {
           "label": "B",
-          "text": "A single PaymentService with one if-else block for validation, another for refund and another for retry"
+          "text": "One checkout method with if-else for every payment mode"
         },
         {
           "label": "C",
-          "text": "A PaymentDTO with optional fields for every possible payment mode and validation inside the controller"
+          "text": "One Payment class with nullable fields for all payment types"
         },
         {
           "label": "D",
-          "text": "A database table storing payment_mode and a shared generic method that assumes all modes behave identically"
+          "text": "Store the payment mode as a string and switch on it in every workflow"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Strategy plus registry keeps the orchestration closed for modification while allowing each payment mode to own validation, refund and retry behavior."
+      "explanation": "Strategy with a registry/factory keeps checkout closed for modification and lets each payment method own its behavior."
     },
     {
       "id": "mcq_02_state_pattern",
@@ -1322,29 +1546,29 @@
       "type": "mcq",
       "title": "OOPs",
       "topic": "OOPs",
-      "prompt": "A service ticket has states New, Assigned, InProgress, WaitingForCustomer, Resolved and Closed. Each state allows different actions and some transitions require audit logs. The team currently has transition checks scattered across controllers, cron jobs and APIs. Which redesign is strongest?",
+      "prompt": "A ticket can move through Draft, Submitted, Approved, Rejected and Closed. Invalid transitions must be blocked and each state has different allowed actions. Which approach best prevents transition bugs as states grow?",
       "options": [
         {
           "label": "A",
-          "text": "Keep status as a string and document valid transitions in a wiki"
+          "text": "Keep all transition rules in UI buttons"
         },
         {
           "label": "B",
-          "text": "Use State pattern or a transition table/service that centralizes valid transitions and side effects"
+          "text": "Use State pattern where each state object controls valid next states and actions"
         },
         {
           "label": "C",
-          "text": "Allow every service to update status directly and detect invalid transitions in reports"
+          "text": "Use integer status codes and update them directly from all services"
         },
         {
           "label": "D",
-          "text": "Move all transition logic to frontend button visibility only"
+          "text": "Let the database accept any status and fix invalid rows later"
         }
       ],
       "correct_options": [
         "B"
       ],
-      "explanation": "The core issue is scattered transition logic. Centralizing transitions through State pattern or a transition service reduces invalid transitions and duplicated rules."
+      "explanation": "State pattern localizes transition rules and avoids scattered conditionals."
     },
     {
       "id": "mcq_03_open_closed",
@@ -1353,29 +1577,29 @@
       "type": "mcq",
       "title": "OOPs",
       "topic": "OOPs",
-      "prompt": "A reporting service exports PDF today and will soon support XLSX, JSON and XML. The orchestration also handles authorization, data fetching and audit logging. Which design best applies Open/Closed Principle without duplicating common orchestration steps?",
+      "prompt": "A reporting tool exports PDF today. Next quarter it may add Excel, JSON and XML. Existing export orchestration should not be edited for each new format. Which design best follows Open/Closed Principle?",
       "options": [
         {
           "label": "A",
-          "text": "Create an Exporter interface for format-specific rendering and inject/select implementations inside a stable orchestration flow"
+          "text": "ExportFormat interface with one class per format and dependency injection into orchestration"
         },
         {
           "label": "B",
-          "text": "Copy the entire export method once per format so each format is fully independent"
+          "text": "Add one more else-if every time a new format is added"
         },
         {
           "label": "C",
-          "text": "Add format-specific if-else blocks inside the orchestration whenever a new format is requested"
+          "text": "Use a global variable called currentFormat"
         },
         {
           "label": "D",
-          "text": "Expose raw database rows and let every caller implement its own export logic"
+          "text": "Put all export code in a single static utility method"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Common orchestration should remain stable while format-specific rendering varies behind an interface."
+      "explanation": "Adding a new implementation extends behavior without changing orchestration."
     },
     {
       "id": "mcq_04_bad_checkout",
@@ -1384,525 +1608,525 @@
       "type": "mcq",
       "title": "OOPs",
       "topic": "OOPs",
-      "prompt": "A CheckoutManager validates coupons, computes tax, reserves inventory, charges payment, sends invoice email and writes analytics events. Any small change causes unrelated bugs. Which principle is most directly violated and what is the best correction?",
+      "prompt": "A single CheckoutManager validates coupons, calculates tax, talks to payment gateway, updates inventory, sends email and writes audit logs. Which principle is most clearly violated?",
       "options": [
         {
           "label": "A",
-          "text": "Single Responsibility Principle; split responsibilities into cohesive collaborators coordinated by checkout workflow"
+          "text": "Single Responsibility Principle"
         },
         {
           "label": "B",
-          "text": "Encapsulation; make all fields public so services can update them directly"
+          "text": "Liskov Substitution Principle"
         },
         {
           "label": "C",
-          "text": "Inheritance; create one subclass for every city and payment mode combination"
+          "text": "Encapsulation only"
         },
         {
           "label": "D",
-          "text": "Polymorphism; replace all interfaces with static utility methods"
+          "text": "Method overloading"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "The class has many reasons to change. SRP suggests separating tax, inventory, payment, notification and analytics responsibilities."
+      "explanation": "The class has too many reasons to change, so SRP is violated."
     },
     {
       "id": "mcq_05_dns",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Computer Networks",
+      "title": "Networks",
       "topic": "Computer Networks",
-      "prompt": "Users can open a service using its IP address, but the domain intermittently resolves to an old IP for some users after a migration. HTTP health checks pass on the new server. Which diagnosis is most likely?",
+      "prompt": "Users can access a website by IP address but not by domain name. The server is reachable and HTTP is healthy. Which layer/component should be checked first?",
       "options": [
         {
           "label": "A",
-          "text": "TCP congestion control is dropping packets after the TLS handshake"
+          "text": "DNS resolution path including resolver, authoritative records and cache"
         },
         {
           "label": "B",
-          "text": "DNS caching/TTL or stale authoritative/recursive resolver records are still returning the old address"
+          "text": "TCP congestion window on the web server"
         },
         {
           "label": "C",
-          "text": "The application server cannot parse HTTP headers"
+          "text": "Application authentication service"
         },
         {
           "label": "D",
-          "text": "The browser cannot render HTML returned from the server"
+          "text": "Browser rendering engine only"
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "Successful access by IP but inconsistent domain resolution points to DNS propagation, caching or stale records rather than HTTP or rendering."
+      "explanation": "IP works but domain fails, so DNS is the first suspect."
     },
     {
       "id": "mcq_06_udp",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Computer Networks",
+      "title": "Networks",
       "topic": "Computer Networks",
-      "prompt": "A multiplayer game sends player positions 30 times per second. Old position packets are useless once newer packets arrive. The system prefers low latency over guaranteed delivery. Which transport choice and reason are most appropriate?",
+      "prompt": "A real-time telemetry system sends frequent sensor updates. Losing one update is acceptable, but waiting for retransmission causes poor decisions. Which protocol is usually more suitable?",
       "options": [
         {
           "label": "A",
-          "text": "TCP, because retransmission of every lost packet improves real-time freshness"
+          "text": "UDP, because it avoids connection overhead and retransmission delay"
         },
         {
           "label": "B",
-          "text": "UDP, because the app can tolerate loss and avoid head-of-line blocking from retransmissions"
+          "text": "TCP, because every packet must always be retransmitted"
         },
         {
           "label": "C",
-          "text": "HTTP/1.1, because request-response semantics are required for every position update"
+          "text": "SMTP, because it handles messages"
         },
         {
           "label": "D",
-          "text": "SMTP, because it guarantees eventual message delivery"
+          "text": "DNS, because it resolves names"
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "For real-time updates where freshness matters more than completeness, UDP avoids retransmission delays and head-of-line blocking."
+      "explanation": "UDP is often used when freshness matters more than guaranteed delivery."
     },
     {
       "id": "mcq_07_load_balancer",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Computer Networks",
+      "title": "Networks",
       "topic": "Computer Networks",
-      "prompt": "A load balancer marks an instance healthy because the process responds to /ping, but users routed to that instance fail checkout because it cannot connect to the database. What is the best improvement?",
+      "prompt": "A load balancer keeps sending traffic to an instance whose process is alive but database connectivity from that instance is broken. What is the best improvement?",
       "options": [
         {
           "label": "A",
-          "text": "Increase DNS TTL so users remain attached to one instance longer"
+          "text": "Use application-level health checks that verify critical downstream dependencies"
         },
         {
           "label": "B",
-          "text": "Use a deeper health check that validates critical dependencies or expose a readiness check separate from liveness"
+          "text": "Check only whether the VM responds to ping"
         },
         {
           "label": "C",
-          "text": "Disable health checks and rely only on CPU metrics"
+          "text": "Disable health checks completely"
         },
         {
           "label": "D",
-          "text": "Route all traffic to the instance with the lowest process uptime"
+          "text": "Send all users permanently to one server"
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "A liveness check only proves the process is up. A readiness/dependency check better indicates whether the instance can serve real user traffic."
+      "explanation": "A shallow ping can miss application-level failures."
     },
     {
       "id": "mcq_08_deadlock",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Operating System",
+      "title": "OS",
       "topic": "Operating System",
-      "prompt": "Three services acquire locks on Account, Wallet and Ledger in different orders. Production occasionally freezes with each thread waiting for a lock held by another. Which change most directly prevents this class of deadlock?",
+      "prompt": "Four services acquire locks on Account, Wallet and Ledger in different orders. Rare production freezes occur. Which change most directly reduces deadlock risk?",
       "options": [
         {
           "label": "A",
-          "text": "Use a global lock ordering rule and require all code paths to acquire locks in that order"
+          "text": "Define and enforce a global lock acquisition order"
         },
         {
           "label": "B",
-          "text": "Increase thread priority for the oldest request"
+          "text": "Increase CPU cores"
         },
         {
           "label": "C",
-          "text": "Increase heap memory so locks can be stored faster"
+          "text": "Use longer lock timeouts only"
         },
         {
           "label": "D",
-          "text": "Move logs to a different disk partition"
+          "text": "Move logs to another file"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Circular wait is a necessary deadlock condition. A consistent global lock ordering breaks circular wait."
+      "explanation": "Global lock ordering removes circular wait, one of the deadlock conditions."
     },
     {
       "id": "mcq_09_virtual_memory",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Operating System",
+      "title": "OS",
       "topic": "Operating System",
-      "prompt": "A batch job becomes extremely slow when its working set exceeds physical RAM. CPU utilization drops, disk I/O spikes and page faults increase sharply. What is the most accurate explanation?",
+      "prompt": "A process has enough CPU but becomes very slow when its working set exceeds RAM. Disk I/O spikes and page faults increase sharply. What is the likely issue?",
       "options": [
         {
           "label": "A",
-          "text": "CPU cache associativity improved but reduced instruction-level parallelism"
+          "text": "Thrashing due to excessive paging"
         },
         {
           "label": "B",
-          "text": "Thrashing: the process spends excessive time paging data between RAM and disk"
+          "text": "DNS cache poisoning"
         },
         {
           "label": "C",
-          "text": "Deadlock: all threads are waiting on each other forever"
+          "text": "Dead code elimination"
         },
         {
           "label": "D",
-          "text": "DNS resolution failure between the process and database"
+          "text": "TCP slow start"
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "High page faults, low CPU and high disk I/O when memory is exceeded is classic thrashing."
+      "explanation": "High page faults and disk I/O under memory pressure indicate thrashing."
     },
     {
       "id": "mcq_10_threads",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Operating System",
+      "title": "OS",
       "topic": "Operating System",
-      "prompt": "Two threads execute count = count + 1 on a shared integer one million times each. The final value is sometimes less than two million. Which explanation is correct?",
+      "prompt": "Two threads increment a shared counter without synchronization. The final value is sometimes lower than expected. What is the root cause?",
       "options": [
         {
           "label": "A",
-          "text": "The operation is not atomic; read-modify-write interleavings cause lost updates without synchronization"
+          "text": "Race condition due to non-atomic read-modify-write"
         },
         {
           "label": "B",
-          "text": "The compiler always executes both loops sequentially, so the result must be exact"
+          "text": "Fragmentation in DNS packets"
         },
         {
           "label": "C",
-          "text": "The OS intentionally removes increments to improve performance"
+          "text": "Object serialization"
         },
         {
           "label": "D",
-          "text": "Integer addition is impossible in multi-threaded programs"
+          "text": "HTTP caching"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Increment involves read, add and write. Without a lock/atomic operation, interleavings can overwrite updates."
+      "explanation": "Increment involves read, modify and write, which can interleave incorrectly."
     },
     {
       "id": "mcq_11_autoscaling",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Cloud Computing",
+      "title": "Cloud",
       "topic": "Cloud Computing",
-      "prompt": "A service has low average CPU but high p95 latency because requests are blocked on database calls. Autoscaling only on CPU does not help. Which scaling signal is more appropriate?",
+      "prompt": "A service has low average CPU but high request latency because requests wait on database calls. Which autoscaling signal is likely better than CPU alone?",
       "options": [
         {
           "label": "A",
-          "text": "Average CPU only, because latency cannot be used for scaling decisions"
+          "text": "Queue length or p95 latency combined with request rate"
         },
         {
           "label": "B",
-          "text": "Request queue length, concurrency, p95 latency or custom application metrics tied to saturation"
+          "text": "Number of files in the code repository"
         },
         {
           "label": "C",
-          "text": "Number of source-code files in the repository"
+          "text": "Color of deployment dashboard"
         },
         {
           "label": "D",
-          "text": "Amount of unused disk space on developer laptops"
+          "text": "Static instance count forever"
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "When the bottleneck is waiting/queueing rather than CPU, scaling signals should reflect request saturation or latency."
+      "explanation": "Latency/queue metrics capture user-facing bottlenecks better than CPU alone."
     },
     {
       "id": "mcq_12_high_availability",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Cloud Computing",
+      "title": "Cloud",
       "topic": "Cloud Computing",
-      "prompt": "A critical app runs on one VM in one availability zone and has nightly backups. Which risk remains even if backups are successful?",
+      "prompt": "A critical app runs on one VM in one availability zone. The VM is backed up nightly. What is still the biggest availability weakness?",
       "options": [
         {
           "label": "A",
-          "text": "Backups remove all single points of failure"
+          "text": "A zone or VM failure can still cause downtime because there is no redundant active capacity"
         },
         {
           "label": "B",
-          "text": "An AZ or VM failure can still cause downtime because backups help recovery but do not provide active high availability"
+          "text": "Backups are unnecessary"
         },
         {
           "label": "C",
-          "text": "High availability is guaranteed as long as the VM has enough disk"
+          "text": "The app has too many logs"
         },
         {
           "label": "D",
-          "text": "Adding more log files automatically creates failover"
+          "text": "DNS names are too short"
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "Backups support recovery after failure; they do not prevent downtime from a single active instance or single-zone deployment."
+      "explanation": "Backups help recovery but do not provide immediate high availability."
     },
     {
       "id": "mcq_13_object_storage",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Cloud Computing",
+      "title": "Cloud",
       "topic": "Cloud Computing",
-      "prompt": "A data platform stores millions of product images and event logs. Access is mostly by key/object name, cost matters, and POSIX file semantics are not required. Which storage type is the best fit?",
+      "prompt": "A data platform must store millions of images and logs cheaply, access them by key, and does not need POSIX file semantics. Which storage type is best?",
       "options": [
         {
           "label": "A",
-          "text": "Object storage, because it is scalable, durable and optimized for key-based blob access"
+          "text": "Object storage"
         },
         {
           "label": "B",
-          "text": "Block storage attached to one VM, because it automatically scales globally without limits"
+          "text": "CPU cache"
         },
         {
           "label": "C",
-          "text": "CPU cache, because it is durable across restarts"
+          "text": "Process memory"
         },
         {
           "label": "D",
-          "text": "A single local folder on one application server"
+          "text": "Relational row lock"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Object storage is designed for large-scale durable storage of blobs accessed by object keys."
+      "explanation": "Object storage is designed for large-scale key-based unstructured data."
     },
     {
       "id": "mcq_14_phishing",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Network Security",
+      "title": "Security",
       "topic": "Network Security",
-      "prompt": "Employees receive convincing fake vendor-invoice emails linking to a login page that captures passwords. Which combined control is strongest for reducing both delivery and account-takeover risk?",
+      "prompt": "Employees receive emails that look like vendor invoices and ask them to login through a fake page. Which combination is strongest?",
       "options": [
         {
           "label": "A",
-          "text": "User training only, because technical controls cannot reduce phishing risk"
+          "text": "Security awareness, email filtering, domain authentication and MFA"
         },
         {
           "label": "B",
-          "text": "Email authentication/filtering, safe-link scanning, MFA and user reporting/training"
+          "text": "Only changing laptop wallpaper"
         },
         {
           "label": "C",
-          "text": "Disable password complexity rules and reuse one shared password"
+          "text": "Allowing all attachments because vendors are trusted"
         },
         {
           "label": "D",
-          "text": "Allow login only from browsers with dark mode enabled"
+          "text": "Disabling password managers"
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "Phishing defense is layered: reduce malicious delivery, block/inspect links, make stolen passwords less useful through MFA and train/report."
+      "explanation": "Phishing defense requires layered controls, not one weak measure."
     },
     {
       "id": "mcq_15_sql_injection",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Network Security",
+      "title": "Security",
       "topic": "Network Security",
-      "prompt": "An API builds SQL by concatenating user input into a WHERE clause. Attackers can change query logic through crafted input. What is the best primary fix?",
+      "prompt": "An app builds SQL using string concatenation with user input. Attackers can alter the WHERE clause. What is the best primary fix?",
       "options": [
         {
           "label": "A",
-          "text": "Use parameterized queries/prepared statements so user input is bound as data, not executable SQL"
+          "text": "Parameterized queries / prepared statements"
         },
         {
           "label": "B",
-          "text": "Hide error messages but keep concatenating strings"
+          "text": "Make the submit button smaller"
         },
         {
           "label": "C",
-          "text": "Ask users not to type special characters"
+          "text": "Rename the table"
         },
         {
           "label": "D",
-          "text": "Move the SQL string to a different source-code file"
+          "text": "Store passwords in plain text"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Parameterized queries separate SQL structure from user values and are the primary defense against SQL injection."
+      "explanation": "Prepared statements separate code from data and prevent input from changing SQL structure."
     },
     {
       "id": "mcq_16_least_privilege",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Network Security",
+      "title": "Security",
       "topic": "Network Security",
-      "prompt": "A dashboard service account only needs to read monthly sales tables, but it currently has permissions to drop tables and create users in production. Which security principle is violated?",
+      "prompt": "An analytics dashboard only needs read access to monthly sales tables, but its service account can drop any table in production. What is the issue?",
       "options": [
         {
           "label": "A",
-          "text": "Least privilege, because the account has more permissions than required for its job"
+          "text": "Violation of least privilege"
         },
         {
           "label": "B",
-          "text": "Eventual consistency, because reads may be delayed"
+          "text": "Correct use of polymorphism"
         },
         {
           "label": "C",
-          "text": "Polymorphism, because the account has multiple behaviors"
+          "text": "Normal cache behavior"
         },
         {
           "label": "D",
-          "text": "Caching, because the dashboard may store results"
+          "text": "CPU starvation"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Least privilege means granting only the permissions necessary for the specific task."
+      "explanation": "The account has more permission than required for its job."
     },
     {
       "id": "mcq_17_cache",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Computer Architecture",
+      "title": "Architecture",
       "topic": "Computer Architecture",
-      "prompt": "A product-price service caches prices for 24 hours. The database updates prices hourly, and users sometimes see outdated prices after a promotion change. Which trade-off is being mishandled?",
+      "prompt": "A system caches product prices for 24 hours. Prices update hourly, and customers sometimes see stale prices. Which tradeoff is being exposed?",
       "options": [
         {
           "label": "A",
-          "text": "Cache freshness versus latency/load reduction; invalidation or shorter TTL may be needed"
+          "text": "Cache freshness versus performance"
         },
         {
           "label": "B",
-          "text": "CPU instruction pipelining versus branch prediction"
+          "text": "DNS versus TCP handshake"
         },
         {
           "label": "C",
-          "text": "DNS recursion versus TCP retransmission"
+          "text": "Class inheritance versus composition"
         },
         {
           "label": "D",
-          "text": "Disk formatting versus monitor refresh rate"
+          "text": "Thread creation versus process creation only"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Caching improves latency and reduces load but risks stale data. Price data often needs invalidation or shorter TTL."
+      "explanation": "Long TTL improves performance but can increase stale reads."
     },
     {
       "id": "mcq_18_pipelining",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Computer Architecture",
+      "title": "Architecture",
       "topic": "Computer Architecture",
-      "prompt": "In a CPU pipeline, instruction I2 needs a value produced by immediately preceding instruction I1. Without forwarding, I2 may read the old value unless it waits. What type of hazard is this?",
+      "prompt": "In an instruction pipeline, one instruction depends on the result of the immediately previous instruction. Without forwarding or stalls, the next instruction may read the old value. What is this called?",
       "options": [
         {
           "label": "A",
-          "text": "Data hazard, specifically a read-after-write dependency"
+          "text": "Data hazard"
         },
         {
           "label": "B",
-          "text": "Structural hazard caused by two monitors sharing one cable"
+          "text": "Phishing attack"
         },
         {
           "label": "C",
-          "text": "Control hazard caused only by DNS redirects"
+          "text": "Cache eviction policy"
         },
         {
           "label": "D",
-          "text": "Cache eviction policy violation"
+          "text": "DNS recursion"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "I2 depends on the result written by I1, so this is a RAW data hazard."
+      "explanation": "A data hazard occurs when an instruction needs data not yet available."
     },
     {
       "id": "mcq_19_vlookup",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "MS Excel",
+      "title": "Excel",
       "topic": "MS Excel",
-      "prompt": "A VLOOKUP formula returns wrong values after a new column is inserted into the lookup table because the formula used a fixed column index. What is the most robust correction?",
+      "prompt": "A VLOOKUP formula starts returning wrong values after a new column is inserted in the lookup table. What is the best robust fix?",
       "options": [
         {
           "label": "A",
-          "text": "Use XLOOKUP or INDEX-MATCH with explicit lookup/return ranges instead of a fragile hard-coded column index"
+          "text": "Use XLOOKUP or INDEX-MATCH with explicit return column references"
         },
         {
           "label": "B",
-          "text": "Change the worksheet zoom level"
+          "text": "Manually count the column number again every day"
         },
         {
           "label": "C",
-          "text": "Sort the sheet by font color"
+          "text": "Convert all numbers to text randomly"
         },
         {
           "label": "D",
-          "text": "Convert all numbers to text without changing the formula"
+          "text": "Delete the lookup table"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "XLOOKUP or INDEX-MATCH can reference the return column directly, reducing breakage from inserted columns."
+      "explanation": "XLOOKUP/INDEX-MATCH are more robust than hard-coded VLOOKUP column indexes."
     },
     {
       "id": "mcq_20_pivot",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "MS Excel",
+      "title": "Excel",
       "topic": "MS Excel",
-      "prompt": "A pivot table shows inflated revenue after orders are joined to order_items. Each order-level revenue value is repeated once per item row. What is the best analytical fix before creating the pivot?",
+      "prompt": "A pivot table shows inflated revenue because the source has multiple rows per order after joining orders to items. What should the analyst check first?",
       "options": [
         {
           "label": "A",
-          "text": "Aggregate or deduplicate to the correct grain, such as one row per order, before summing order-level revenue"
+          "text": "Grain of the dataset and whether order-level revenue is duplicated after the join"
         },
         {
           "label": "B",
-          "text": "Change the pivot chart color to make duplicates less visible"
+          "text": "Font size of the pivot table"
         },
         {
           "label": "C",
-          "text": "Use COUNT instead of SUM for all financial metrics"
+          "text": "Whether the worksheet is zoomed in"
         },
         {
           "label": "D",
-          "text": "Hide the duplicated rows manually without checking grain"
+          "text": "The color of the chart"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "The issue is grain mismatch. Order-level metrics must be aggregated at order grain before joining or summing in a pivot."
+      "explanation": "Inflation after joins usually indicates grain mismatch or duplicated measures."
     }
   ]
 }

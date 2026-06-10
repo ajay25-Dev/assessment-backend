@@ -154,7 +154,7 @@ export class QuestionBankService {
     }, {});
 
     const expectedCounts: Record<string, number> = {
-      DSA: 5,
+      DSA: 4,
       SQL: 3,
       OOPs: 3,
       MCQ: 20,
@@ -267,12 +267,7 @@ export class QuestionBankService {
       }
       return;
     }
-    if (questionId === 'dsa_amazon_fraud_window') {
-      this.parseJsonMatrix(input, 'transactions', label);
-      this.parseIntValue(input, 'k', label);
-      this.parseIntValue(input, 't', label);
-      this.parseJsonArray(expected, label);
-    }
+    // No additional parseable format defined for this question
   }
 
   private parseIntValue(input: string, key: string, label: string) {

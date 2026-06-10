@@ -134,7 +134,9 @@ export const mcqEvaluationOutputSchema = strictObject({
   }),
   topic_scores: {
     type: 'object',
+    properties: {},
     additionalProperties: { type: 'integer' },
+    required: [],
   },
   strong_topics: stringArray,
   weak_topics: stringArray,
