@@ -28,6 +28,31 @@ type FinalizeAnswer = {
   status?: string;
   resultMessage?: string;
   sqlExecutionMs?: number | null;
+  testResults?: {
+    test_results?: Array<{ passed?: boolean }>;
+    total?: number;
+    passed?: number;
+  } | null;
+  test_results?: {
+    test_results?: Array<{ passed?: boolean }>;
+    total?: number;
+    passed?: number;
+  } | null;
+};
+
+type DsaQuestionSubmitInput = {
+  student_id?: string;
+  student_email?: string;
+  assessment_id?: string;
+  attempt_id?: string;
+  question_id?: string;
+  started_at?: string;
+  submitted_at?: string;
+  duration_minutes?: number;
+  submission_mode?: 'manual' | 'auto';
+  answer?: FinalizeAnswer;
+  dsa_output?: Record<string, unknown>;
+  test_results?: FinalizeAnswer['testResults'];
 };
 
 type FinalizeInput = {
@@ -61,11 +86,23 @@ type BankQuestion = {
   explanation?: string;
   misconception_mapping?: Record<string, string>;
   expected_approach?: unknown;
+  expected_code?: unknown;
+  expected_time_complexity?: string;
+  expected_space_complexity?: string;
   evaluator_context?: unknown;
   test_cases?: unknown[];
   open_test_cases?: unknown[];
   hidden_test_cases?: unknown[];
   schema_ref?: unknown;
+};
+
+type CodeTestSummary = {
+  openPassed: number | null;
+  openTotal: number | null;
+  hiddenPassed: number | null;
+  hiddenTotal: number | null;
+  totalPassed: number | null;
+  totalTests: number | null;
 };
 
 type Bank = {
@@ -112,69 +149,71 @@ export class AssessmentPipelineService {
   async finalize(rawInput: unknown) {
     const input = this.parseInput(rawInput);
     const bank = (await this.questionBank.getBank()) as Bank;
-    const questions = bank.questions || [];
-    const questionsById = new Map(questions.map((question) => [question.id, question]));
     const submittedAt = input.submitted_at || new Date().toISOString();
     const durationMinutes =
       input.duration_minutes || bank.assessment?.duration_minutes || 180;
 
-    const attemptId = await this.persistAttempt(input, bank, submittedAt, durationMinutes);
-    await this.persistQuestionAttempts(attemptId, input, questions);
-    await this.persistFinalRuntimeSnapshots(attemptId, input, questions);
-
-    const dsa = await this.evaluateCodingSection('DSA', questions, input);
-    const sql = await this.evaluateSqlSection(questions, input);
-    const oops = await this.evaluateCodingSection('OOPs', questions, input);
-    const mcq = await this.evaluateMcqSection(questions, input);
-
-    const deterministicScores = {
-      DSA: dsa.score,
-      SQL: sql.score,
-      OOPs: oops.score,
-      MCQ: mcq.score,
-    };
-
-    const dashboardInput = this.buildDashboardInput(
+    const attemptId = await this.upsertAssessmentAttempt(
       input,
       bank,
-      deterministicScores,
-      { DSA: dsa, SQL: sql, OOPs: oops, MCQ: mcq },
       submittedAt,
       durationMinutes,
+      input.integrity_status === 'disqualified'
+        ? 'disqualified'
+        : input.submission_mode === 'auto'
+          ? 'auto_submitted'
+          : 'submitted',
     );
+    return {
+      attempt_id: attemptId,
+      status: 'finalized',
+    };
+  }
 
-    const dashboardEvaluation = await this.tryEvaluate(
-      'DASHBOARD',
-      () => this.dashboardEvaluation.evaluate(dashboardInput),
-      this.fallbackDashboard(input, bank, deterministicScores),
-    );
+  async persistDsaQuestionSubmission(rawInput: unknown) {
+    const input = this.parseDsaQuestionSubmitInput(rawInput);
+    const bank = (await this.questionBank.getBank()) as Bank;
+    const questions = bank.questions || [];
+    const question = questions.find((item) => item.id === input.question_id);
 
-    await this.persistEvaluations(attemptId, questionsById, [
-      ...dsa.evaluations,
-      ...sql.evaluations,
-      ...oops.evaluations,
-      ...mcq.evaluations,
-    ]);
+    if (!question) {
+      throw new BadRequestException(`Unknown question_id ${input.question_id}`);
+    }
+    if (question.section !== 'DSA' || question.engine !== 'code') {
+      throw new BadRequestException(`${question.id} is not a DSA coding question`);
+    }
 
-    const report = await this.persistReport({
-      attemptId,
-      input,
-      bank,
-      dashboardEvaluation,
-      deterministicScores,
-      allEvaluations: {
-        DSA: dsa.evaluations,
-        SQL: sql.evaluations,
-        OOPs: oops.evaluations,
-        MCQ: mcq.evaluations,
+    const submittedAt = input.submitted_at || new Date().toISOString();
+    const durationMinutes =
+      input.duration_minutes || bank.assessment?.duration_minutes || 180;
+    const attemptId = await this.upsertAssessmentAttempt(
+      {
+        student_id: input.student_id,
+        student_email: input.student_email,
+        assessment_id: input.assessment_id,
+        started_at: input.started_at,
+        submitted_at: submittedAt,
+        duration_minutes: durationMinutes,
+        submission_mode: input.submission_mode || 'manual',
+        integrity_status: null,
+        integrity_source: null,
+        integrity_message: null,
+        integrity_event_count: null,
       },
-      dashboardInput,
-    });
+      bank,
+      submittedAt,
+      durationMinutes,
+      'in_progress',
+    );
+
+    await this.persistQuestionAttemptSnapshot(attemptId, question, input, submittedAt);
+    await this.persistQuestionEvaluationSnapshot(attemptId, question, input, submittedAt);
 
     return {
       attempt_id: attemptId,
-      report_id: String(report.id || ''),
-      status: 'finalized',
+      question_id: question.id,
+      section: question.section,
+      status: 'saved',
     };
   }
 
@@ -202,18 +241,27 @@ export class AssessmentPipelineService {
         OOPs: oops.score,
         MCQ: mcq.score,
       };
+      const hiddenTestPassRate = this.aggregateHiddenTestPassRate(
+        questions,
+        input,
+      );
       const dashboardInput = this.buildDashboardInput(
         input,
         bank,
         deterministicScores,
         { DSA: dsa, SQL: sql, OOPs: oops, MCQ: mcq },
+        hiddenTestPassRate,
       );
-      const dashboardEvaluation = await this.tryEvaluate(
-        'DASHBOARD',
-        () => this.dashboardEvaluation.evaluate(dashboardInput),
-        this.fallbackDashboard(input, bank, deterministicScores),
-        true,
-      );
+      const dashboardEvaluation = await this.dashboardEvaluation
+        .evaluate(dashboardInput)
+        .catch(() =>
+          this.fallbackDashboard(
+            input,
+            bank,
+            deterministicScores,
+            hiddenTestPassRate,
+          ),
+        );
 
       await this.replaceReportForAttempt(attemptId);
       const report = await this.persistReport({
@@ -233,7 +281,7 @@ export class AssessmentPipelineService {
 
       return {
         attempt_id: attemptId,
-        report_id: String(report.id || ''),
+        report_id: this.textOutput((report as { id?: unknown }).id),
         stage,
         status: 'processed',
       };
@@ -247,7 +295,11 @@ export class AssessmentPipelineService {
           : await this.evaluateMcqSection(questions, input, true);
 
     await this.replaceEvaluationsForSection(attemptId, stage);
-    await this.persistEvaluations(attemptId, questionsById, summary.evaluations);
+    await this.persistEvaluations(
+      attemptId,
+      questionsById,
+      summary.evaluations,
+    );
 
     return {
       attempt_id: attemptId,
@@ -263,9 +315,29 @@ export class AssessmentPipelineService {
     }
 
     const input = rawInput as FinalizeInput;
-    if (!input.student_id) throw new BadRequestException('student_id is required');
-    if (!input.answers || typeof input.answers !== 'object') {
+    const studentId = String(input.student_id || '').trim();
+    if (!studentId) throw new BadRequestException('student_id is required');
+    input.student_id = studentId;
+
+    if (
+      !input.answers ||
+      typeof input.answers !== 'object' ||
+      Array.isArray(input.answers)
+    ) {
       throw new BadRequestException('answers are required');
+    }
+
+    for (const [questionId, answer] of Object.entries(input.answers)) {
+      if (!questionId.trim()) {
+        throw new BadRequestException(
+          'answers must use non-empty question ids',
+        );
+      }
+      if (!answer || typeof answer !== 'object' || Array.isArray(answer)) {
+        throw new BadRequestException(
+          `Answer for ${questionId} must be an object`,
+        );
+      }
     }
 
     return input;
@@ -277,7 +349,9 @@ export class AssessmentPipelineService {
     input: FinalizeInput,
     useAi = false,
   ): Promise<SectionSummary> {
-    const sectionQuestions = questions.filter((question) => question.section === section);
+    const sectionQuestions = questions.filter(
+      (question) => question.section === section,
+    );
     const evaluations: EvaluationResult[] = [];
     const details = sectionQuestions.map((question) => {
       const answer = input.answers?.[question.id] || {};
@@ -288,6 +362,9 @@ export class AssessmentPipelineService {
         topic: question.topic,
         difficulty: question.difficulty,
         expected_approach: question.expected_approach,
+        expected_code: question.expected_code,
+        expected_time_complexity: question.expected_time_complexity,
+        expected_space_complexity: question.expected_space_complexity,
         evaluator_context: question.evaluator_context,
         language: answer.language,
         submitted_code: answer.value || '',
@@ -295,25 +372,37 @@ export class AssessmentPipelineService {
         run_count: answer.runs || 0,
         submit_count: answer.submissions || 0,
         compiler_result_summary: answer.resultMessage || '',
+        testResults: answer.testResults || answer.test_results || null,
+        test_results: answer.testResults || answer.test_results || null,
         open_test_cases: question.open_test_cases || [],
-        hidden_test_cases: section === 'DSA' ? question.hidden_test_cases || [] : [],
+        hidden_test_cases:
+          section === 'DSA' ? question.hidden_test_cases || [] : [],
         all_doc_test_cases: question.test_cases || [],
       };
     });
 
     for (const detail of details) {
+      if (section === 'DSA') {
+        evaluations.push(await this.dsaEvaluation.evaluate(detail));
+        continue;
+      }
+
       const fallback = this.fallbackQuestionEvaluation(section, detail);
       evaluations.push(
-        await this.tryEvaluate(section, () =>
-          section === 'DSA'
-            ? this.dsaEvaluation.evaluate(detail)
-            : this.oopsEvaluation.evaluate(detail), fallback, useAi),
+        await this.tryEvaluate(
+          section,
+          () => this.oopsEvaluation.evaluate(detail),
+          fallback,
+          useAi,
+        ),
       );
     }
 
     return {
       score: this.average(
-        evaluations.map((item) => Number(item.output.overall_question_score || 0)),
+        evaluations.map((item) =>
+          Number(item.output.overall_question_score || 0),
+        ),
       ),
       evaluations,
       deterministic: { questions: details },
@@ -325,7 +414,9 @@ export class AssessmentPipelineService {
     input: FinalizeInput,
     useAi = false,
   ): Promise<SectionSummary> {
-    const sectionQuestions = questions.filter((question) => question.section === 'SQL');
+    const sectionQuestions = questions.filter(
+      (question) => question.section === 'SQL',
+    );
     const evaluations: EvaluationResult[] = [];
     const details = sectionQuestions.map((question) => {
       const answer = input.answers?.[question.id] || {};
@@ -335,6 +426,7 @@ export class AssessmentPipelineService {
         prompt: question.prompt,
         topic: question.topic,
         expected_approach: question.expected_approach,
+        expected_code: question.expected_code,
         evaluator_context: question.evaluator_context,
         schema_ref: question.schema_ref,
         submitted_query: answer.value || '',
@@ -359,7 +451,9 @@ export class AssessmentPipelineService {
 
     return {
       score: this.average(
-        evaluations.map((item) => Number(item.output.overall_question_score || 0)),
+        evaluations.map((item) =>
+          Number(item.output.overall_question_score || 0),
+        ),
       ),
       evaluations,
       deterministic: { questions: details },
@@ -371,39 +465,48 @@ export class AssessmentPipelineService {
     input: FinalizeInput,
     useAi = false,
   ): Promise<SectionSummary> {
-    const sectionQuestions = questions.filter((question) => question.section === 'MCQ');
+    const sectionQuestions = questions.filter(
+      (question) => question.section === 'MCQ',
+    );
     const answers = sectionQuestions.map((question) => {
       const answer = input.answers?.[question.id] || {};
       const selected = answer.selectedOptions || [];
       const correct = question.correct_options || [];
+      const score = this.sameStringSet(selected, correct) ? 100 : 0;
       return {
+        section: 'MCQ',
         question_id: question.id,
         question_title: question.title || question.id,
         topic: question.topic || 'general',
-        options: question.options || [],
+        options: (question.options || []).map((option) => ({
+          id: option.id || '',
+          label: option.label || '',
+          text: option.text || '',
+        })),
         selected_options: selected,
         correct_options: correct,
-        explanation: question.explanation,
-        misconception_mapping: question.misconception_mapping,
+        explanation: question.explanation || '',
+        misconception_mapping: question.misconception_mapping || {},
         is_correct: this.sameStringSet(selected, correct),
         answer_change_count: 0,
         time_spent_seconds: 0,
+        overall_question_score: score,
+        overall_mcq_score: score,
+        score_basis: 'selected_options_match',
       };
     });
-    const correctCount = answers.filter((answer) => answer.is_correct).length;
-    const score = sectionQuestions.length
-      ? Math.round((correctCount / sectionQuestions.length) * 100)
-      : 0;
+
+    const score = this.average(answers.map((answer) => Number(answer.overall_question_score || 0)));
     const payload = {
       student_id: input.student_id,
       total_questions: sectionQuestions.length,
-      correct_count: correctCount,
+      correct_count: answers.filter((answer) => answer.is_correct).length,
       deterministic_score: score,
       answers,
       tab_events: input.tab_events || 0,
     };
 
-    const evaluation = await this.tryEvaluate(
+    const sectionEvaluation = await this.tryEvaluate(
       'MCQ',
       () => this.mcqEvaluation.evaluate(payload),
       {
@@ -429,8 +532,10 @@ export class AssessmentPipelineService {
           misconceptions_detected: [],
           guessing_risk: 'Low',
           confidence_signal: 'Moderate',
-          time_behavior_summary: 'Deterministic fallback based on selected answers.',
-          revision_recommendation: 'Review incorrect concepts from the MCQ section.',
+          time_behavior_summary:
+            'Deterministic fallback based on selected answers.',
+          revision_recommendation:
+            'Review incorrect concepts from the MCQ section.',
           placement_readiness_label: 'Near Ready',
         },
       },
@@ -439,8 +544,16 @@ export class AssessmentPipelineService {
 
     return {
       score,
-      evaluations: [evaluation],
-      deterministic: payload,
+      evaluations: answers.map((answer) => ({
+        section: 'MCQ',
+        prompt_version: 'mcq-question-deterministic.v1',
+        model: 'deterministic',
+        output: answer,
+      })),
+      deterministic: {
+        questions: answers,
+        section: sectionEvaluation.output,
+      },
     };
   }
 
@@ -462,7 +575,9 @@ export class AssessmentPipelineService {
         output: {
           ...fallback.output,
           evaluation_error:
-            error instanceof Error ? error.message : `${section} evaluation failed`,
+            error instanceof Error
+              ? error.message
+              : `${section} evaluation failed`,
         },
       };
     }
@@ -479,7 +594,9 @@ export class AssessmentPipelineService {
   }
 
   private parseFinalizeStage(stage: string): FinalizeStage {
-    const normalized = String(stage || '').trim().toUpperCase();
+    const normalized = String(stage || '')
+      .trim()
+      .toUpperCase();
     if (normalized === 'DSA') return 'DSA';
     if (normalized === 'SQL') return 'SQL';
     if (normalized === 'OOPS') return 'OOPs';
@@ -493,6 +610,7 @@ export class AssessmentPipelineService {
     bank: Bank,
     deterministicScores: Record<string, number>,
     summaries: Record<Section, SectionSummary>,
+    hiddenTestPassRate = 0,
     submittedAt = input.submitted_at || new Date().toISOString(),
     durationMinutes = input.duration_minutes ||
       bank.assessment?.duration_minutes ||
@@ -506,12 +624,13 @@ export class AssessmentPipelineService {
       submitted_at: submittedAt,
       duration_minutes: durationMinutes,
       tab_events: input.tab_events || 0,
+      hidden_test_pass_rate: hiddenTestPassRate,
       deterministic_scores: deterministicScores,
       weights: bank.assessment?.scoring_weights || {
         DSA: 40,
-        SQL: 25,
+        SQL: 20,
         OOPs: 20,
-        MCQ: 15,
+        MCQ: 20,
       },
       section_evaluations: {
         DSA: summaries.DSA.evaluations.map((item) => item.output),
@@ -528,11 +647,25 @@ export class AssessmentPipelineService {
     };
   }
 
-  private async persistAttempt(
-    input: FinalizeInput,
+  private async upsertAssessmentAttempt(
+    input: Pick<
+      FinalizeInput,
+      | 'student_id'
+      | 'student_email'
+      | 'assessment_id'
+      | 'started_at'
+      | 'submitted_at'
+      | 'duration_minutes'
+      | 'submission_mode'
+      | 'integrity_status'
+      | 'integrity_source'
+      | 'integrity_message'
+      | 'integrity_event_count'
+    >,
     bank: Bank,
     submittedAt: string,
     durationMinutes: number,
+    targetStatus: 'in_progress' | 'submitted' | 'auto_submitted' | 'disqualified',
   ) {
     const supabase = this.getSupabase();
     const sourceAssessmentId = input.assessment_id || bank.assessment?.id;
@@ -540,27 +673,68 @@ export class AssessmentPipelineService {
       throw new BadRequestException('assessment_id is required');
     }
 
-    if (sourceAssessmentId) {
-      // Fetch any existing attempt for this student/assessment. We will remove it to allow a fresh attempt.
-      const { data: existingAttempt, error: existingAttemptError } = await supabase
+    const { data: existingAttempt, error: existingAttemptError } =
+      await supabase
         .from('student_assessment_attempts')
-        .select('id')
+        .select('id,status,client_metadata')
         .eq('student_id', input.student_id)
-        .contains('client_metadata', { source_assessment_id: sourceAssessmentId })
+        .contains('client_metadata', {
+          source_assessment_id: sourceAssessmentId,
+        })
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (existingAttemptError) {
-        throw new InternalServerErrorException(
-          `Could not check existing assessment attempts: ${existingAttemptError.message}`,
+    if (existingAttemptError) {
+      throw new InternalServerErrorException(
+        `Could not check existing assessment attempts: ${existingAttemptError.message}`,
+      );
+    }
+
+    if (existingAttempt?.id) {
+      const existingStatus = String(existingAttempt.status || '');
+      if (
+        targetStatus === 'in_progress' &&
+        ['submitted', 'auto_submitted', 'disqualified'].includes(existingStatus)
+      ) {
+        throw new ConflictException(
+          'Assessment already completed or disqualified. A new attempt cannot be created.',
         );
       }
 
-      if (existingAttempt?.id) {
-        // Delete the previous attempt so a new one can be inserted without violating the unique index.
-        await supabase.from('student_assessment_attempts').delete().eq('id', existingAttempt.id);
+      const { error: updateError } = await supabase
+        .from('student_assessment_attempts')
+        .update({
+          status: targetStatus,
+          started_at: input.started_at || submittedAt,
+          submitted_at:
+            targetStatus === 'in_progress'
+              ? null
+              : submittedAt,
+          duration_minutes: durationMinutes,
+          tab_visibility_events: (input as { tab_events?: number }).tab_events || 0,
+          last_seen_at: submittedAt,
+          client_metadata: {
+            ...(this.recordValue(existingAttempt.client_metadata) || {}),
+            source_assessment_id: sourceAssessmentId,
+            student_email: input.student_email,
+            submission_mode: input.submission_mode || 'manual',
+            camera_events: (input as { camera_events?: number }).camera_events || 0,
+            integrity_status: input.integrity_status || null,
+            integrity_source: input.integrity_source || null,
+            integrity_message: input.integrity_message || null,
+            integrity_event_count: input.integrity_event_count || null,
+          },
+        })
+        .eq('id', existingAttempt.id);
+
+      if (updateError) {
+        throw new InternalServerErrorException(
+          `Could not update assessment attempt: ${updateError.message}`,
+        );
       }
+
+      return String(existingAttempt.id);
     }
 
     const { data, error } = await supabase
@@ -568,20 +742,17 @@ export class AssessmentPipelineService {
       .insert({
         student_id: input.student_id,
         assessment_id: this.uuidOrNull(sourceAssessmentId),
-        status:
-          input.integrity_status === 'disqualified' || input.submission_mode === 'auto'
-            ? 'auto_submitted'
-            : 'submitted',
+        status: targetStatus,
         started_at: input.started_at || submittedAt,
-        submitted_at: submittedAt,
+        submitted_at: targetStatus === 'in_progress' ? null : submittedAt,
         duration_minutes: durationMinutes,
-        tab_visibility_events: input.tab_events || 0,
+        tab_visibility_events: (input as { tab_events?: number }).tab_events || 0,
         last_seen_at: submittedAt,
         client_metadata: {
           source_assessment_id: sourceAssessmentId,
           student_email: input.student_email,
           submission_mode: input.submission_mode || 'manual',
-          camera_events: input.camera_events || 0,
+          camera_events: (input as { camera_events?: number }).camera_events || 0,
           integrity_status: input.integrity_status || null,
           integrity_source: input.integrity_source || null,
           integrity_message: input.integrity_message || null,
@@ -593,7 +764,10 @@ export class AssessmentPipelineService {
 
     if (error) {
       const message = error.message || '';
-      if (error.code === '23505' || message.toLowerCase().includes('duplicate key')) {
+      if (
+        error.code === '23505' ||
+        message.toLowerCase().includes('duplicate key')
+      ) {
         throw new ConflictException(
           'Assessment already completed or disqualified. A new attempt cannot be created.',
         );
@@ -604,6 +778,96 @@ export class AssessmentPipelineService {
     }
 
     return String(data.id);
+  }
+
+  private async persistQuestionAttemptSnapshot(
+    attemptId: string,
+    question: BankQuestion,
+    input: DsaQuestionSubmitInput,
+    submittedAt: string,
+  ) {
+    const answer = input.answer || {};
+    const { error } = await this.getSupabase()
+      .from('student_question_attempts')
+      .upsert(
+        {
+          attempt_id: attemptId,
+          question_id: question.id,
+          section: question.section,
+          answer_text: answer.value || '',
+          selected_language: answer.language || null,
+          selected_options: answer.selectedOptions || [],
+          marked_for_review: Boolean(answer.marked),
+          status: this.questionStatus(answer.status || 'submitted'),
+          run_count: answer.runs || 0,
+          submit_count: answer.submissions || 0,
+          last_autosaved_at: submittedAt,
+        },
+        {
+          onConflict: 'attempt_id,question_id',
+        },
+      );
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not persist DSA question attempt: ${error.message}`,
+      );
+    }
+  }
+
+  private async persistQuestionEvaluationSnapshot(
+    attemptId: string,
+    question: BankQuestion,
+    input: DsaQuestionSubmitInput,
+    submittedAt: string,
+  ) {
+    const answer = input.answer || {};
+    const output = this.recordValue(input.dsa_output) || {};
+    const scoreValue = this.numberOutput(
+      output.overallQuestionScore,
+      this.numberOutput(output.overall_question_score),
+    );
+
+    const row = {
+      attempt_id: attemptId,
+      question_id: question.id,
+      section: question.section,
+      deterministic_score: scoreValue,
+      ai_evaluation: {
+        source: 'local-dsa-submit-preview',
+        submitted_at: submittedAt,
+        question_id: question.id,
+        question_title: question.title || question.id,
+        output,
+        answer_snapshot: {
+          value: answer.value || '',
+          language: answer.language || null,
+          runs: answer.runs || 0,
+          submissions: answer.submissions || 0,
+          status: answer.status || 'submitted',
+        },
+        test_results:
+          input.test_results ||
+          answer.testResults ||
+          answer.test_results ||
+          null,
+      },
+      final_score: scoreValue,
+      question_attempt_id: null,
+      assessment_question_id: null,
+    };
+
+    const { error } = await this.getSupabase()
+      .from('student_question_evaluations')
+      .upsert(row, {
+        onConflict: 'attempt_id,question_id',
+      });
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not persist DSA question evaluation: ${error.message}`,
+      );
+    }
   }
 
   private async persistQuestionAttempts(
@@ -639,6 +903,23 @@ export class AssessmentPipelineService {
     }
   }
 
+  private parseDsaQuestionSubmitInput(rawInput: unknown): DsaQuestionSubmitInput {
+    if (!rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) {
+      throw new BadRequestException('Submission payload must be a JSON object');
+    }
+
+    const input = rawInput as DsaQuestionSubmitInput;
+    const studentId = String(input.student_id || '').trim();
+    if (!studentId) throw new BadRequestException('student_id is required');
+    input.student_id = studentId;
+
+    const questionId = String(input.question_id || '').trim();
+    if (!questionId) throw new BadRequestException('question_id is required');
+    input.question_id = questionId;
+
+    return input;
+  }
+
   private async persistEvaluations(
     attemptId: string,
     questionsById: Map<string, BankQuestion>,
@@ -657,7 +938,7 @@ export class AssessmentPipelineService {
     }> = evaluations
       .map((evaluation) => {
         const output = evaluation.output as Record<string, unknown>;
-        const questionId = String(output.question_id || '');
+        const questionId = this.textOutput(output.question_id);
         if (!questionId) return null;
         return {
           attempt_id: attemptId,
@@ -742,7 +1023,7 @@ export class AssessmentPipelineService {
       .filter((question) => question.engine === 'code')
       .map((question) => {
         const answer = input.answers?.[question.id] || {};
-        const passSummary = this.parseTestSummary(answer.resultMessage);
+        const testSummary = this.codeTestSummary(question, answer);
         return {
           attempt_id: attemptId,
           question_id: question.id,
@@ -758,11 +1039,11 @@ export class AssessmentPipelineService {
           compile_output: null,
           runtime_ms: null,
           memory_kb: null,
-          open_tests_passed: passSummary?.passed ?? null,
-          open_tests_total: passSummary?.total ?? null,
-          hidden_tests_passed: null,
-          hidden_tests_total: null,
-          test_results: [],
+          open_tests_passed: testSummary.openPassed,
+          open_tests_total: testSummary.openTotal,
+          hidden_tests_passed: testSummary.hiddenPassed,
+          hidden_tests_total: testSummary.hiddenTotal,
+          test_results: this.submittedTestResults(answer)?.test_results || [],
           raw_provider_response: {
             final_snapshot: true,
             run_count: answer.runs || 0,
@@ -775,7 +1056,9 @@ export class AssessmentPipelineService {
 
     if (!rows.length) return;
 
-    const { error } = await this.getSupabase().from('student_code_runs').insert(rows);
+    const { error } = await this.getSupabase()
+      .from('student_code_runs')
+      .insert(rows);
     if (error) {
       throw new InternalServerErrorException(
         `Could not persist final code run snapshots: ${error.message}`,
@@ -817,7 +1100,9 @@ export class AssessmentPipelineService {
 
     if (!rows.length) return;
 
-    const { error } = await this.getSupabase().from('student_sql_runs').insert(rows);
+    const { error } = await this.getSupabase()
+      .from('student_sql_runs')
+      .insert(rows);
     if (error) {
       throw new InternalServerErrorException(
         `Could not persist final SQL run snapshots: ${error.message}`,
@@ -850,7 +1135,9 @@ export class AssessmentPipelineService {
 
     if (!rows.length) return;
 
-    const { error } = await this.getSupabase().from('student_mcq_answers').insert(rows);
+    const { error } = await this.getSupabase()
+      .from('student_mcq_answers')
+      .insert(rows);
     if (error) {
       throw new InternalServerErrorException(
         `Could not persist final MCQ answers: ${error.message}`,
@@ -859,12 +1146,101 @@ export class AssessmentPipelineService {
   }
 
   private parseTestSummary(message: string | undefined) {
-    const match = String(message || '').match(/Test results:\s*(\d+)\/(\d+)\s*passed/i);
+    const match = String(message || '').match(
+      /Test results:\s*(\d+)\/(\d+)\s*passed/i,
+    );
     if (!match) return null;
     return {
       passed: Number(match[1]),
       total: Number(match[2]),
     };
+  }
+
+  private submittedTestResults(answer: FinalizeAnswer) {
+    const structured =
+      answer.testResults ||
+      answer.test_results ||
+      (null as {
+        test_results?: Array<{ passed?: boolean }>;
+        total?: number;
+        passed?: number;
+      } | null);
+
+    if (!structured || typeof structured !== 'object') return null;
+    const rows = Array.isArray(structured.test_results)
+      ? structured.test_results
+      : [];
+    if (!rows.length) return null;
+    return {
+      test_results: rows.filter(
+        (item): item is { passed?: boolean } =>
+          Boolean(item) && typeof item === 'object',
+      ),
+      total: this.nullableNumber(structured.total),
+      passed: this.nullableNumber(structured.passed),
+    };
+  }
+
+  private codeTestSummary(
+    question: BankQuestion,
+    answer: FinalizeAnswer,
+  ): CodeTestSummary {
+    const openTotal =
+      question.open_test_cases?.length ||
+      (question.test_cases?.length
+        ? Math.min(question.test_cases.length, 5)
+        : 0);
+    const hiddenTotal = question.hidden_test_cases?.length || 0;
+    const structured = this.submittedTestResults(answer);
+
+    if (structured?.test_results?.length) {
+      const results = structured.test_results;
+      const countPassed = (items: Array<{ passed?: boolean }>) =>
+        items.filter((item) => item.passed).length;
+      const openResults = openTotal ? results.slice(0, openTotal) : [];
+      const hiddenResults = hiddenTotal
+        ? results.slice(openTotal, openTotal + hiddenTotal)
+        : [];
+      return {
+        openPassed: openTotal ? countPassed(openResults) : null,
+        openTotal: openTotal || null,
+        hiddenPassed: hiddenTotal ? countPassed(hiddenResults) : null,
+        hiddenTotal: hiddenTotal || null,
+        totalPassed:
+          structured.passed ?? countPassed(results) ?? results.length ?? null,
+        totalTests: structured.total ?? results.length ?? null,
+      };
+    }
+
+    const passSummary = this.parseTestSummary(answer.resultMessage);
+    return {
+      openPassed: passSummary?.passed ?? null,
+      openTotal: passSummary?.total ?? null,
+      hiddenPassed: null,
+      hiddenTotal: hiddenTotal || null,
+      totalPassed: passSummary?.passed ?? null,
+      totalTests: passSummary?.total ?? null,
+    };
+  }
+
+  private aggregateHiddenTestPassRate(
+    questions: BankQuestion[],
+    input: FinalizeInput,
+  ) {
+    const summaries = questions
+      .filter((question) => question.engine === 'code')
+      .map((question) =>
+        this.codeTestSummary(question, input.answers?.[question.id] || {}),
+      );
+    const hiddenPassed = summaries.reduce(
+      (sum, summary) => sum + Number(summary.hiddenPassed || 0),
+      0,
+    );
+    const hiddenTotal = summaries.reduce(
+      (sum, summary) => sum + Number(summary.hiddenTotal || 0),
+      0,
+    );
+    return hiddenTotal > 0 ? Math.round((hiddenPassed / hiddenTotal) * 100) : 0;
   }
 
   private async persistReport(params: {
@@ -880,19 +1256,30 @@ export class AssessmentPipelineService {
     const sectionScores = {
       DSA: this.numberOutput(output.dsa_score, params.deterministicScores.DSA),
       SQL: this.numberOutput(output.sql_score, params.deterministicScores.SQL),
-      OOPs: this.numberOutput(output.oops_score, params.deterministicScores.OOPs),
+      OOPs: this.numberOutput(
+        output.oops_score,
+        params.deterministicScores.OOPs,
+      ),
       MCQ: this.numberOutput(output.mcq_score, params.deterministicScores.MCQ),
     };
     const marksScore = this.numberOutput(output.overall_marks_score);
-    const capabilityScore = this.numberOutput(output.capability_score);
+    const capabilityScore = this.numberOutput(
+      output.problem_solving_score,
+      this.numberOutput(output.capability_score),
+    );
     const approachScore = this.numberOutput(output.approach_score);
     const complexityScore = this.numberOutput(output.complexity_score);
     const codeQualityScore = this.numberOutput(output.code_quality_score);
     const hiddenTestPassRate = this.numberOutput(output.hidden_test_pass_rate);
     const bruteForceRisk = this.riskOutput(output.brute_force_risk);
     const hardcodingRisk = this.riskOutput(output.hardcoding_risk);
-    const compilationBehaviour = this.compilationOutput(output.compilation_behaviour);
-    const runtimePercentile = String(output.runtime_percentile || 'Unknown');
+    const compilationBehaviour = this.compilationOutput(
+      output.compilation_behaviour,
+    );
+    const runtimePercentile = this.textOutput(
+      output.runtime_percentile,
+      'Unknown',
+    );
     const strongestSection = this.strongestArea(sectionScores);
     const weakestSection = this.weakestArea(sectionScores);
     const isDisqualified = params.input.integrity_status === 'disqualified';
@@ -909,7 +1296,6 @@ export class AssessmentPipelineService {
     const readiness = this.computeReadiness({
       marksScore,
       capabilityScore,
-      hiddenTestPassRate,
       approachScore,
       complexityScore,
       codeQualityScore,
@@ -931,10 +1317,10 @@ export class AssessmentPipelineService {
       : readiness.trainingRecommendation;
     const studentSummary = isDisqualified
       ? 'Assessment disqualified because a cheating signal was detected during the attempt.'
-      : String(output.student_summary || '');
+      : this.textOutput(output.student_summary);
     const facultyInsight = isDisqualified
       ? 'Assessment stopped due to an integrity violation and marked disqualified.'
-      : String(output.faculty_insight || '');
+      : this.textOutput(output.faculty_insight);
     const riskSummary = {
       ...readiness.riskSummary,
       integrity_status: integrity?.status || null,
@@ -971,13 +1357,17 @@ export class AssessmentPipelineService {
       training_priority: readiness.trainingPriority,
       teacher_action: teacherAction,
       risk_summary: riskSummary,
-      training_recommendation: String(output.training_recommendation || trainingRecommendation),
+      training_recommendation: String(
+        this.textOutput(output.training_recommendation, trainingRecommendation),
+      ),
       faculty_insight: facultyInsight,
       company_recommendation: companyRecommendation,
       student_summary: studentSummary,
       detailed_strengths: this.stringArrayOutput(output.detailed_strengths),
       detailed_weaknesses: this.stringArrayOutput(output.detailed_weaknesses),
-      next_3_learning_actions: this.stringArrayOutput(output.next_3_learning_actions),
+      next_3_learning_actions: this.stringArrayOutput(
+        output.next_3_learning_actions,
+      ),
       report_json: {
         dashboard_evaluation: params.dashboardEvaluation,
         section_evaluations: params.allEvaluations,
@@ -1004,13 +1394,23 @@ export class AssessmentPipelineService {
     );
   }
 
-  private fallbackQuestionEvaluation(section: Section, detail: Record<string, unknown>): EvaluationResult {
-    const hasAnswer = String(detail.submitted_code || detail.submitted_query || '').trim().length > 0;
-    const score = hasAnswer ? 45 : 0;
+  private fallbackQuestionEvaluation(
+    section: Section,
+    detail: Record<string, unknown>,
+  ): EvaluationResult {
+    const hasAnswer =
+      this.textOutput(detail.submitted_code || detail.submitted_query).trim()
+        .length > 0;
+    const summary = this.parseTestSummary(
+      this.textOutput(detail.compiler_result_summary),
+    );
+    const score = summary?.total
+      ? Math.round((summary.passed / summary.total) * 100)
+      : 0;
     const base = {
       section,
-      question_id: String(detail.question_id || ''),
-      question_title: String(detail.question_title || ''),
+      question_id: this.textOutput(detail.question_id),
+      question_title: this.textOutput(detail.question_title),
       overall_question_score: score,
       hardcoding_risk: 'Low',
       placement_readiness_label: 'Near Ready',
@@ -1021,34 +1421,7 @@ export class AssessmentPipelineService {
       prompt_version: 'fallback',
       model: 'deterministic',
       output:
-        section === 'DSA'
-          ? {
-              ...base,
-              correctness_score: score,
-              open_test_case_score: score,
-              hidden_test_case_score: 0,
-              approach_score: score,
-              time_complexity_score: score,
-              space_complexity_score: score,
-              edge_case_score: score,
-              code_quality_score: score,
-              brute_force_risk: 'Low',
-              optimization_level: hasAnswer ? 'Acceptable' : 'Incorrect',
-              detected_approach: 'Fallback evaluation from submitted code.',
-              expected_approach_match: false,
-              likely_time_complexity: 'Unknown',
-              likely_space_complexity: 'Unknown',
-              failed_case_analysis: [],
-              missed_edge_cases: [],
-              compilation_behavior: String(detail.compiler_result_summary || ''),
-              submission_behavior: `${detail.run_count || 0} runs, ${detail.submit_count || 0} submissions`,
-              runtime_observation: 'Not available in fallback.',
-              memory_observation: 'Not available in fallback.',
-              key_strengths: [],
-              key_weaknesses: hasAnswer ? [] : ['No answer submitted'],
-              improvement_recommendation: 'Review the expected approach and hidden edge cases.',
-            }
-          : section === 'SQL'
+        section === 'SQL'
             ? {
                 ...base,
                 result_correctness_score: score,
@@ -1064,10 +1437,11 @@ export class AssessmentPipelineService {
                 detected_mistakes: [],
                 missing_business_rules: [],
                 failed_case_analysis: [],
-                runtime_observation: String(detail.sql_result_summary || ''),
+                runtime_observation: this.textOutput(detail.sql_result_summary),
                 key_strengths: [],
                 key_weaknesses: hasAnswer ? [] : ['No query submitted'],
-                improvement_recommendation: 'Review joins, filters, NULLs, duplicates, and expected output.',
+                improvement_recommendation:
+                  'Review joins, filters, NULLs, duplicates, and expected output.',
               }
             : {
                 ...base,
@@ -1089,7 +1463,8 @@ export class AssessmentPipelineService {
                 red_flags: hasAnswer ? [] : ['No design submitted'],
                 key_strengths: [],
                 key_weaknesses: hasAnswer ? [] : ['No answer submitted'],
-                improvement_recommendation: 'Improve class boundaries, abstractions, and extensibility.',
+                improvement_recommendation:
+                  'Improve class boundaries, abstractions, and extensibility.',
               },
     };
   }
@@ -1098,12 +1473,13 @@ export class AssessmentPipelineService {
     input: FinalizeInput,
     bank: Bank,
     scores: Record<string, number>,
+    hiddenTestPassRate = 0,
   ): EvaluationResult {
     const weights = bank.assessment?.scoring_weights || {
       DSA: 40,
-      SQL: 25,
+      SQL: 20,
       OOPs: 20,
-      MCQ: 15,
+      MCQ: 20,
     };
     const weighted =
       (scores.DSA * Number(weights.DSA || 0) +
@@ -1120,7 +1496,9 @@ export class AssessmentPipelineService {
         student_id: input.student_id || '',
         student_name: input.student_email || input.student_id || '',
         overall_marks_score: Math.round(weighted),
-        capability_score: Math.round((scores.DSA + scores.SQL + scores.OOPs + scores.MCQ) / 4),
+        capability_score: Math.round(
+          (scores.DSA + scores.SQL + scores.OOPs + scores.MCQ) / 4,
+        ),
         dsa_score: scores.DSA,
         sql_score: scores.SQL,
         oops_score: scores.OOPs,
@@ -1128,26 +1506,30 @@ export class AssessmentPipelineService {
         approach_score: Math.round((scores.DSA + scores.SQL + scores.OOPs) / 3),
         complexity_score: Math.round((scores.DSA + scores.SQL) / 2),
         code_quality_score: Math.round((scores.DSA + scores.OOPs) / 2),
-        hidden_test_pass_rate: 0,
+        hidden_test_pass_rate: hiddenTestPassRate,
         brute_force_risk: 'Low',
         hardcoding_risk: 'Low',
         compilation_behaviour: 'Clean',
         runtime_percentile: 'Unknown',
         strongest_area: this.strongestArea(scores),
         weakest_area: this.weakestArea(scores),
-        readiness_label: weighted >= 70 ? 'Near Ready' : 'Trainable but Not Ready',
+        readiness_label:
+          weighted >= 70 ? 'Near Ready' : 'Trainable but Not Ready',
         company_recommendation:
           weighted >= 70
             ? 'Send only after mock interview'
             : 'Train for 2-3 weeks before sending',
-        training_recommendation: 'Review section-level weaknesses and rerun mock assessment.',
-        faculty_insight: 'Report generated with deterministic fallback because AI evaluation was unavailable.',
-        student_summary: 'Assessment submitted and scored from available evidence.',
+        training_recommendation:
+          'Review section-level weaknesses and rerun mock assessment.',
+        faculty_insight:
+          'Report generated with deterministic fallback because AI evaluation was unavailable.',
+        student_summary:
+          'Assessment submitted and scored from available evidence.',
         detailed_strengths: [],
         detailed_weaknesses: [],
         next_3_learning_actions: [
           'Review failed and unattempted questions',
-          'Practice hidden edge cases',
+          'Practice advanced edge cases',
           'Improve explanation and code structure',
         ],
       },
@@ -1180,19 +1562,23 @@ export class AssessmentPipelineService {
   private sameStringSet(left: string[], right: string[]) {
     const leftSet = new Set(left);
     const rightSet = new Set(right);
-    return leftSet.size === rightSet.size && [...leftSet].every((item) => rightSet.has(item));
+    return (
+      leftSet.size === rightSet.size &&
+      [...leftSet].every((item) => rightSet.has(item))
+    );
   }
 
   private average(values: number[]) {
     const valid = values.filter((value) => Number.isFinite(value));
     if (!valid.length) return 0;
-    return Math.round(valid.reduce((sum, value) => sum + value, 0) / valid.length);
+    return Math.round(
+      valid.reduce((sum, value) => sum + value, 0) / valid.length,
+    );
   }
 
   private computeReadiness(params: {
     marksScore: number;
     capabilityScore: number;
-    hiddenTestPassRate: number;
     approachScore: number;
     complexityScore: number;
     codeQualityScore: number;
@@ -1210,18 +1596,33 @@ export class AssessmentPipelineService {
       params.bruteForceRisk === 'High' ||
       params.hardcodingRisk === 'High';
 
-    if (params.marksScore < 45) reasons.push(`Overall marks score is low at ${params.marksScore}.`);
-    if (params.capabilityScore < 45) reasons.push(`Capability score is low at ${params.capabilityScore}.`);
-    if (params.hiddenTestPassRate < 30) reasons.push(`Hidden test pass rate is weak at ${params.hiddenTestPassRate}.`);
-    if (params.compilationBehaviour === 'Failed') reasons.push('Compilation failed on the submitted evidence.');
-    if (params.bruteForceRisk === 'High') reasons.push('Brute-force risk is high.');
-    if (params.hardcodingRisk === 'High') reasons.push('Hardcoding risk is high.');
+    if (params.marksScore < 45)
+      reasons.push(`Overall marks score is low at ${params.marksScore}.`);
+    if (params.capabilityScore < 45)
+      reasons.push(`Capability score is low at ${params.capabilityScore}.`);
+    if (params.compilationBehaviour === 'Failed')
+      reasons.push('Compilation failed on the submitted evidence.');
+    if (params.bruteForceRisk === 'High')
+      reasons.push('Brute-force risk is high.');
+    if (params.hardcodingRisk === 'High')
+      reasons.push('Hardcoding risk is high.');
 
-    if (params.approachScore < 50) concerns.push(`Approach score needs work at ${params.approachScore}.`);
-    if (params.complexityScore < 50) concerns.push(`Complexity handling is weak at ${params.complexityScore}.`);
-    if (params.codeQualityScore < 50) concerns.push(`Code quality is weak at ${params.codeQualityScore}.`);
-    if (params.sectionScores[params.weakestSection as keyof typeof params.sectionScores] < 50) {
-      concerns.push(`${params.weakestSection} is the weakest section and should be prioritized.`);
+    if (params.approachScore < 50)
+      concerns.push(`Approach score needs work at ${params.approachScore}.`);
+    if (params.complexityScore < 50)
+      concerns.push(
+        `Complexity handling is weak at ${params.complexityScore}.`,
+      );
+    if (params.codeQualityScore < 50)
+      concerns.push(`Code quality is weak at ${params.codeQualityScore}.`);
+    if (
+      params.sectionScores[
+        params.weakestSection as keyof typeof params.sectionScores
+      ] < 50
+    ) {
+      concerns.push(
+        `${params.weakestSection} is the weakest section and should be prioritized.`,
+      );
     }
 
     let label: ReadinessLabel = 'Trainable but Not Ready';
@@ -1233,15 +1634,12 @@ export class AssessmentPipelineService {
       label = 'Not Ready';
     } else if (
       params.marksScore >= 70 &&
-      (params.hiddenTestPassRate < 50 ||
-        params.bruteForceRisk === 'High' ||
-        params.hardcodingRisk === 'Medium')
+      (params.bruteForceRisk === 'High' || params.hardcodingRisk === 'Medium')
     ) {
       label = 'Risky High Scorer';
     } else if (
       params.marksScore >= 85 &&
       params.capabilityScore >= 85 &&
-      params.hiddenTestPassRate >= 80 &&
       params.bruteForceRisk === 'Low' &&
       params.hardcodingRisk === 'Low'
     ) {
@@ -1249,7 +1647,6 @@ export class AssessmentPipelineService {
     } else if (
       params.marksScore >= 75 &&
       params.capabilityScore >= 75 &&
-      params.hiddenTestPassRate >= 70 &&
       (params.bruteForceRisk === 'Low' || params.bruteForceRisk === 'Medium') &&
       params.hardcodingRisk === 'Low'
     ) {
@@ -1257,7 +1654,6 @@ export class AssessmentPipelineService {
     } else if (
       params.marksScore >= 60 &&
       params.capabilityScore >= 65 &&
-      params.hiddenTestPassRate >= 55 &&
       params.bruteForceRisk !== 'High' &&
       params.hardcodingRisk === 'Low'
     ) {
@@ -1267,15 +1663,25 @@ export class AssessmentPipelineService {
       (params.capabilityScore >= 45 && params.capabilityScore <= 65)
     ) {
       label = 'Trainable but Not Ready';
-    } else if (severeRisk || params.hiddenTestPassRate < 30) {
+    } else if (severeRisk) {
       label = 'Not Ready';
     }
 
     const bucket = this.bucketFromReadinessLabel(label);
-    const trainingPriority = this.trainingPriority(params.weakestSection, params.sectionScores);
-    const teacherAction = this.teacherAction(bucket, trainingPriority, severeRisk);
+    const trainingPriority = this.trainingPriority(
+      params.weakestSection,
+      params.sectionScores,
+    );
+    const teacherAction = this.teacherAction(
+      bucket,
+      trainingPriority,
+      severeRisk,
+    );
     const companyRecommendation = this.companyRecommendation(label);
-    const trainingRecommendation = this.trainingRecommendation(label, trainingPriority);
+    const trainingRecommendation = this.trainingRecommendation(
+      label,
+      trainingPriority,
+    );
     const riskSummary = {
       brute_force_risk: params.bruteForceRisk,
       hardcoding_risk: params.hardcodingRisk,
@@ -1290,11 +1696,12 @@ export class AssessmentPipelineService {
       reason: {
         label,
         bucket,
-        rules_triggered: reasons.length ? reasons : ['Profile is in the transition band and needs targeted practice.'],
+        rules_triggered: reasons.length
+          ? reasons
+          : ['Profile is in the transition band and needs targeted practice.'],
         score_snapshot: {
           marks_score: params.marksScore,
           capability_score: params.capabilityScore,
-          hidden_test_pass_rate: params.hiddenTestPassRate,
           approach_score: params.approachScore,
           complexity_score: params.complexityScore,
           code_quality_score: params.codeQualityScore,
@@ -1314,11 +1721,23 @@ export class AssessmentPipelineService {
     weakestSection: string,
     sectionScores: Record<'DSA' | 'SQL' | 'OOPs' | 'MCQ', number>,
   ) {
-    const score = sectionScores[weakestSection as keyof typeof sectionScores] ?? 0;
-    if (weakestSection === 'DSA') return score < 45 ? 'Core problem solving and hidden-case handling' : 'Algorithmic optimization and edge-case practice';
-    if (weakestSection === 'SQL') return score < 45 ? 'SQL correctness, joins, and result validation' : 'SQL efficiency, NULL handling, and business rules';
-    if (weakestSection === 'OOPs') return score < 45 ? 'Object modelling, abstraction, and class design' : 'SOLID design, extensibility, and structure';
-    return score < 45 ? 'Fundamental CS revision and accuracy drills' : 'MCQ revision for weaker theory areas';
+    const score =
+      sectionScores[weakestSection as keyof typeof sectionScores] ?? 0;
+    if (weakestSection === 'DSA')
+      return score < 45
+        ? 'Core problem solving and edge-case handling'
+        : 'Algorithmic optimization and edge-case practice';
+    if (weakestSection === 'SQL')
+      return score < 45
+        ? 'SQL correctness, joins, and result validation'
+        : 'SQL efficiency, NULL handling, and business rules';
+    if (weakestSection === 'OOPs')
+      return score < 45
+        ? 'Object modelling, abstraction, and class design'
+        : 'SOLID design, extensibility, and structure';
+    return score < 45
+      ? 'Fundamental CS revision and accuracy drills'
+      : 'MCQ revision for weaker theory areas';
   }
 
   private teacherAction(
@@ -1348,22 +1767,36 @@ export class AssessmentPipelineService {
     return Number.isFinite(parsed) ? Math.round(parsed) : null;
   }
 
+  private recordValue(value: unknown) {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  }
+
   private riskOutput(value: unknown) {
-    const text = String(value || '').toLowerCase();
+    const text = this.textOutput(value).toLowerCase();
     if (text === 'high') return 'High';
     if (text === 'medium') return 'Medium';
     return 'Low';
   }
 
   private compilationOutput(value: unknown) {
-    const text = String(value || '').toLowerCase();
+    const text = this.textOutput(value).toLowerCase();
     if (text.includes('fail')) return 'Failed';
     if (text.includes('warn')) return 'Warnings';
     return 'Clean';
   }
 
+  private textOutput(value: unknown, fallback = '') {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean')
+      return String(value);
+    return fallback;
+  }
+
   private bucketFromReadinessLabel(label: ReadinessLabel): ReadinessBucket {
-    if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') return 'Ready';
+    if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready')
+      return 'Ready';
     if (label === 'Not Ready' || label === 'Risky High Scorer') return 'Failed';
     return 'Training Needed';
   }
@@ -1375,16 +1808,26 @@ export class AssessmentPipelineService {
   }
 
   private companyRecommendation(label: ReadinessLabel) {
-    if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') {
+    if (
+      label === 'Elite 1% Company Ready' ||
+      label === 'Strong Company Ready'
+    ) {
       return 'Send to product/service company immediately';
     }
     if (label === 'Near Ready') return 'Send only after mock interview';
-    if (label === 'Trainable but Not Ready') return 'Train for 6-8 weeks before sending';
+    if (label === 'Trainable but Not Ready')
+      return 'Train for 6-8 weeks before sending';
     return 'Do not send to company yet';
   }
 
-  private trainingRecommendation(label: ReadinessLabel, trainingPriority: string) {
-    if (label === 'Elite 1% Company Ready' || label === 'Strong Company Ready') {
+  private trainingRecommendation(
+    label: ReadinessLabel,
+    trainingPriority: string,
+  ) {
+    if (
+      label === 'Elite 1% Company Ready' ||
+      label === 'Strong Company Ready'
+    ) {
       return 'Move to company-specific interview practice and maintain current strengths.';
     }
     if (label === 'Near Ready') {
@@ -1403,13 +1846,16 @@ export class AssessmentPipelineService {
 
   private uuidOrNull(value?: string) {
     if (!value) return null;
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
       ? value
       : null;
   }
 
   private questionStatus(value?: string) {
-    if (value === 'submitted' || value === 'ran' || value === 'saved') return value;
+    if (value === 'submitted' || value === 'ran' || value === 'saved')
+      return value;
     return 'unvisited';
   }
 

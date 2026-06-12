@@ -13,6 +13,10 @@ type BankQuestion = {
   correct_options?: string[];
   schema_files?: Record<string, string>;
   expected_columns?: unknown[];
+  expected_approach?: unknown[];
+  expected_code?: unknown[];
+  expected_time_complexity?: string;
+  expected_space_complexity?: string;
   evaluator_context?: {
     domain_rules?: unknown[];
     required_components?: unknown[];
@@ -28,6 +32,7 @@ type TestCase = {
   input?: string;
   expected?: string;
   expected_output?: string;
+  tags?: string[];
 };
 
 type SampleDataTable = {
@@ -119,15 +124,24 @@ export class QuestionBankService {
 
           if (question.section !== 'MCQ') return normalizedQuestion;
 
-          const { correct_options, explanation, ...publicQuestion } = question as {
-            correct_options?: unknown[]; 
-            explanation?: unknown;
-            [key: string]: unknown;
-          };
+          const { correct_options, explanation, ...sanitizedQuestion } =
+            question as {
+              correct_options?: unknown[];
+              explanation?: unknown;
+              [key: string]: unknown;
+            };
+          const publicQuestion = sanitizedQuestion as Record<string, unknown>;
 
           return {
-            ...normalizedQuestion,
-            options: ((publicQuestion.options || []) as Array<{ label?: string; text?: string }>).map((option) => ({
+            ...publicQuestion,
+            title: this.normalizeDisplayText(publicQuestion.title),
+            prompt: this.normalizeDisplayText(publicQuestion.prompt),
+            options: (
+              (publicQuestion.options || []) as Array<{
+                label?: string;
+                text?: string;
+              }>
+            ).map((option) => ({
               ...option,
               label: this.normalizeDisplayText(option.label),
               text: this.normalizeDisplayText(option.text),
@@ -218,14 +232,19 @@ export class QuestionBankService {
     cases.forEach((testCase) => {
       const label = `${question.id}:${testCase.id || testCase.number || '?'}`;
       const input = String(testCase.input || '');
-      const expected = String(testCase.expected_output || testCase.expected || '');
+      const expected = String(
+        testCase.expected_output || testCase.expected || '',
+      );
 
       if (!input.trim() || !expected.trim()) {
         throw new InternalServerErrorException(
           `${label} must include non-empty input and expected output`,
         );
       }
-      if (vagueExpectedPattern.test(input) || vagueExpectedPattern.test(expected)) {
+      if (
+        vagueExpectedPattern.test(input) ||
+        vagueExpectedPattern.test(expected)
+      ) {
         throw new InternalServerErrorException(
           `${label} contains a placeholder or non-deterministic expected output`,
         );
@@ -358,7 +377,9 @@ export class QuestionBankService {
         .split(/\r?\n/)
         .map((line) => line.trim().replace(/,$/, ''))
         .filter(Boolean)
-        .filter((line) => !/^(PRIMARY|FOREIGN|UNIQUE|CHECK|CONSTRAINT)\b/i.test(line))
+        .filter(
+          (line) => !/^(PRIMARY|FOREIGN|UNIQUE|CHECK|CONSTRAINT)\b/i.test(line),
+        )
         .map((line) => line.split(/\s+/)[0])
         .filter(Boolean);
     }
@@ -465,7 +486,9 @@ export class QuestionBankService {
   }
 
   private assertMcqAnswerKeys(question: BankQuestion) {
-    const labels = new Set((question.options || []).map((option) => option.label));
+    const labels = new Set(
+      (question.options || []).map((option) => option.label),
+    );
     const invalid = (question.correct_options || []).filter(
       (option) => !labels.has(option),
     );
@@ -492,7 +515,9 @@ export class QuestionBankService {
 
   private assertOopsContext(question: BankQuestion) {
     const context = question.evaluator_context;
-    const requiredKeys: Array<keyof NonNullable<BankQuestion['evaluator_context']>> = [
+    const requiredKeys: Array<
+      keyof NonNullable<BankQuestion['evaluator_context']>
+    > = [
       'domain_rules',
       'required_components',
       'design_constraints',

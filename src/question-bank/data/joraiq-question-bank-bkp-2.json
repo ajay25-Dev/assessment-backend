@@ -6,9 +6,9 @@
     "duration_minutes": 180,
     "scoring_weights": {
       "DSA": 40,
-      "SQL": 25,
+      "SQL": 20,
       "OOPs": 20,
-      "MCQ": 15
+      "MCQ": 20
     },
     "security": {
       "tab_switch_protection_enabled": true,

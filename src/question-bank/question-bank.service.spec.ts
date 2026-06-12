@@ -35,8 +35,17 @@ describe('QuestionBankService', () => {
       {},
     );
 
-    expect(bank.questions).toHaveLength(31);
-    expect(counts).toMatchObject({ DSA: 5, SQL: 3, OOPs: 3, MCQ: 20 });
+    expect(bank.questions).toHaveLength(30);
+    expect(counts).toMatchObject({ DSA: 4, SQL: 3, OOPs: 3, MCQ: 20 });
+    expect(
+      (bank as { assessment?: { scoring_weights?: Record<string, number> } })
+        .assessment?.scoring_weights,
+    ).toMatchObject({
+      DSA: 40,
+      SQL: 20,
+      OOPs: 20,
+      MCQ: 20,
+    });
     expect(
       bank.questions
         .filter((question) => question.section === 'DSA')
@@ -196,7 +205,9 @@ describe('QuestionBankService', () => {
         expect(question.sample_data_sql).not.toContain('hidden');
         expect(question.sample_data_tables?.length).toBeGreaterThan(0);
         expect(question.sample_data_tables?.[0].name).toBeTruthy();
-        expect(question.sample_data_tables?.[0].columns.length).toBeGreaterThan(0);
+        expect(question.sample_data_tables?.[0].columns.length).toBeGreaterThan(
+          0,
+        );
         expect(question.sample_data_tables?.[0].rows.length).toBeGreaterThan(0);
       });
   });

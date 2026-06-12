@@ -14,7 +14,7 @@ export type JsonSchema = {
   items?: JsonSchema;
   required?: string[];
   additionalProperties?: boolean | JsonSchema;
-  enum?: string[];
+  enum?: Array<string | number | boolean>;
   anyOf?: JsonSchema[];
   description?: string;
 };

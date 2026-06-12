@@ -27,7 +27,7 @@ export class OpenAiClientService {
   constructor(private readonly config: ConfigService) {}
 
   get model() {
-    return this.config.get<string>('OPENAI_EVALUATION_MODEL') || 'gpt-4.1';
+    return this.config.get<string>('OPENAI_EVALUATION_MODEL') || 'gpt-5.4-mini';
   }
 
   async generateStructuredJson(request: StructuredJsonRequest) {
@@ -138,7 +138,7 @@ export class OpenAiClientService {
       return;
     }
 
-    if (schema.enum && !schema.enum.includes(String(value))) {
+    if (schema.enum && !schema.enum.map(String).includes(String(value))) {
       throw new BadRequestException(
         `${path} must be one of: ${schema.enum.join(', ')}`,
       );
