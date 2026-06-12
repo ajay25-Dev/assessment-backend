@@ -30,7 +30,9 @@ describe('TestHarnessService', () => {
     });
 
     expect(source).toContain('compareTopologicalOrder');
-    expect(source).toContain('invokeUserFunc("dsa_servicenow_incident_dependency"');
+    expect(source).toContain(
+      'invokeUserFunc("dsa_servicenow_incident_dependency"',
+    );
     expect(source).not.toContain('lower.startsWith("any")');
     expect(source).not.toContain('includes("before")');
   });

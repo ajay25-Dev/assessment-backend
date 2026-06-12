@@ -12,6 +12,10 @@
       {
         "include": "question-bank/data/sql/*.sql",
         "watchAssets": true
+      },
+      {
+        "include": "evaluations/data/*.json",
+        "watchAssets": true
       }
     ]
   }

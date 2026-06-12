@@ -8,6 +8,7 @@ type TestCase = {
   expected?: string;
   expected_output: string;
   purpose: string;
+  tags?: string[];
 };
 
 type HarnessParams = {
@@ -24,7 +25,10 @@ export class TestHarnessService {
       return params.sourceCode;
     }
 
-    const testCases = await this.loadTestCases(params.questionId, params.runType);
+    const testCases = await this.loadTestCases(
+      params.questionId,
+      params.runType,
+    );
     return this.wrapWithHarness(
       params.language,
       params.sourceCode,
@@ -33,10 +37,19 @@ export class TestHarnessService {
     );
   }
 
-  private async loadTestCases(questionId: string, runType: 'run' | 'submit'): Promise<TestCase[]> {
+  private async loadTestCases(
+    questionId: string,
+    runType: 'run' | 'submit',
+  ): Promise<TestCase[]> {
     try {
       const raw = await fs.readFile(
-        join(__dirname, '..', 'question-bank', 'data', 'joraiq-question-bank.json'),
+        join(
+          __dirname,
+          '..',
+          'question-bank',
+          'data',
+          'joraiq-question-bank.json',
+        ),
         'utf8',
       );
       const bank = JSON.parse(raw) as {
@@ -50,6 +63,7 @@ export class TestHarnessService {
             expected?: string;
             expected_output: string;
             purpose: string;
+            tags?: string[];
           }>;
         }>;
       };
@@ -59,13 +73,14 @@ export class TestHarnessService {
 
       if (runType === 'run') {
         return (
-          question.open_test_cases ||
-          question.test_cases?.slice(0, 5) ||
-          []
+          question.open_test_cases || question.test_cases?.slice(0, 5) || []
         );
       }
 
-      if (question.open_test_cases?.length || question.hidden_test_cases?.length) {
+      if (
+        question.open_test_cases?.length ||
+        question.hidden_test_cases?.length
+      ) {
         return [
           ...(question.open_test_cases || []),
           ...(question.hidden_test_cases || []),
@@ -145,7 +160,11 @@ export class TestHarnessService {
       return ['unique_chunks_in_ranges', 'uniqueChunksInRanges'];
     }
     if (questionId === 'dsa_autodesk_versioned_kv') {
-      return ['VersionedStore', 'versioned_store_create', 'versionedStoreCreate'];
+      return [
+        'VersionedStore',
+        'versioned_store_create',
+        'versionedStoreCreate',
+      ];
     }
     return [];
   }
@@ -154,7 +173,11 @@ export class TestHarnessService {
   // Java harness
   // ====================================================================
 
-  private javaHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
+  private javaHarness(
+    sourceCode: string,
+    testCases: TestCase[],
+    questionId: string,
+  ): string {
     const cases = this.normalizedTestCases(testCases)
       .map(
         (tc) =>
@@ -343,7 +366,9 @@ ${cases}
     return v != null ? v : 0;
   }
 
-  ${questionId === 'dsa_autodesk_versioned_kv' ? `static String runVersionedStore(String input) {
+  ${
+    questionId === 'dsa_autodesk_versioned_kv'
+      ? `static String runVersionedStore(String input) {
     VersionedStore store = new VersionedStore();
     java.util.List<String> outputs = new java.util.ArrayList<>();
     java.util.Map<String, Integer> vars = new java.util.HashMap<>();
@@ -388,7 +413,9 @@ ${cases}
       }
     }
     return String.join(", ", outputs);
-  }` : ''}
+  }`
+      : ''
+  }
 
   static boolean compare(String questionId, String actual, String expected, String input) {
     return normalize(actual).equals(normalize(expected));
@@ -476,7 +503,11 @@ ${cases}
   // C++ harness
   // ====================================================================
 
-  private cppHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
+  private cppHarness(
+    sourceCode: string,
+    testCases: TestCase[],
+    questionId: string,
+  ): string {
     return `
 ${sourceCode}
 
@@ -655,7 +686,9 @@ static int __joraResolveVersion(const string& token, const map<string, int>& var
   return 0;
 }
 
-${questionId === 'dsa_autodesk_versioned_kv' ? `static string __joraRunVersionedStore(const string& input) {
+${
+  questionId === 'dsa_autodesk_versioned_kv'
+    ? `static string __joraRunVersionedStore(const string& input) {
   VersionedStore store;
   vector<string> outputs;
   map<string, int> vars;
@@ -696,7 +729,9 @@ ${questionId === 'dsa_autodesk_versioned_kv' ? `static string __joraRunVersioned
     out += outputs[i];
   }
   return out;
-}` : ''}
+}`
+    : ''
+}
 
 static string __joraEscape(string value) {
   string out;
@@ -799,7 +834,11 @@ ${this.normalizedTestCases(testCases)
   // C harness
   // ====================================================================
 
-  private cHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
+  private cHarness(
+    sourceCode: string,
+    testCases: TestCase[],
+    questionId: string,
+  ): string {
     return `
 ${sourceCode}
 #include <stdio.h>
@@ -1236,7 +1275,11 @@ ${this.normalizedTestCases(testCases)
   // Python harness
   // ====================================================================
 
-  private pythonHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
+  private pythonHarness(
+    sourceCode: string,
+    testCases: TestCase[],
+    questionId: string,
+  ): string {
     const testCasesJson = JSON.stringify(
       testCases.map((tc) => ({
         input: tc.input,
@@ -1402,7 +1445,11 @@ print("===TEST_RESULTS_END===")
   // JavaScript harness
   // ====================================================================
 
-  private javascriptHarness(sourceCode: string, testCases: TestCase[], questionId: string): string {
+  private javascriptHarness(
+    sourceCode: string,
+    testCases: TestCase[],
+    questionId: string,
+  ): string {
     const testCasesJson = JSON.stringify(
       testCases.map((tc) => ({
         input: tc.input,

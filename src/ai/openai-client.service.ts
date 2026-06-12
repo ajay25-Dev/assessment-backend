@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JsonObject, JsonSchema, StructuredJsonRequest } from './ai.types';
@@ -24,10 +25,12 @@ type OpenAiResponsesApiResponse = {
 
 @Injectable()
 export class OpenAiClientService {
+  private readonly logger = new Logger(OpenAiClientService.name);
+
   constructor(private readonly config: ConfigService) {}
 
   get model() {
-    return this.config.get<string>('OPENAI_EVALUATION_MODEL') || 'gpt-4.1';
+    return this.config.get<string>('OPENAI_EVALUATION_MODEL') || 'gpt-5.4-mini';
   }
 
   async generateStructuredJson(request: StructuredJsonRequest) {
@@ -64,6 +67,10 @@ export class OpenAiClientService {
       ),
     };
 
+    this.logger.log(
+      `OpenAI structured request: schema=${request.schemaName}, input_keys=${Object.keys(request.input).join(',')}, input_preview=${JSON.stringify(request.input).slice(0, 500)}`,
+    );
+
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
@@ -85,6 +92,7 @@ export class OpenAiClientService {
     }
 
     const outputText = this.extractOutputText(payload);
+    this.logger.log(`OpenAI structured response text: ${outputText.slice(0, 500)}`);
     const parsed = this.parseJson(outputText);
     this.assertMatchesSchema(parsed, request.schema);
 
@@ -138,7 +146,7 @@ export class OpenAiClientService {
       return;
     }
 
-    if (schema.enum && !schema.enum.includes(String(value))) {
+    if (schema.enum && !schema.enum.map(String).includes(String(value))) {
       throw new BadRequestException(
         `${path} must be one of: ${schema.enum.join(', ')}`,
       );

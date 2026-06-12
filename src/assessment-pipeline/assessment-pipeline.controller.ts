@@ -10,6 +10,11 @@ export class AssessmentPipelineController {
     return this.pipeline.finalize(body);
   }
 
+  @Post('dsa/submit')
+  persistDsaQuestionSubmission(@Body() body: unknown) {
+    return this.pipeline.persistDsaQuestionSubmission(body);
+  }
+
   @Post('finalize/:attemptId/:stage')
   processFinalizeStage(
     @Param('attemptId') attemptId: string,

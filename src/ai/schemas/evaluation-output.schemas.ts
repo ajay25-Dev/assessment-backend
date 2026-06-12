@@ -24,40 +24,53 @@ function strictObject(properties: Record<string, JsonSchema>): JsonSchema {
 const score = { type: 'integer' };
 const text = { type: 'string' };
 const bool = { type: 'boolean' };
+const scoreOrText: JsonSchema = { anyOf: [score, text] };
+const complexityRankEnum = Array.from({ length: 50 }, (_, index) => index + 1);
+
+export const dsaComplexityOutputSchema = strictObject({
+  student_time_complexity_rank: {
+    type: 'integer',
+    enum: complexityRankEnum,
+  },
+  student_space_complexity_rank: {
+    type: 'integer',
+    enum: complexityRankEnum,
+  },
+});
 
 export const dsaEvaluationOutputSchema = strictObject({
   section: { type: 'string', enum: ['DSA'] },
   question_id: text,
   question_title: text,
+  score_basis: text,
   correctness_score: score,
   open_test_case_score: score,
-  hidden_test_case_score: score,
-  approach_score: score,
+  hidden_test_case_score: scoreOrText,
+  expected_code_score: score,
+  matched_expected_code: stringArray,
+  missing_expected_code: stringArray,
+  expected_time_complexity: text,
+  expected_time_complexity_rank: score,
+  expected_time_complexity_label: text,
+  student_time_complexity_rank: score,
+  student_time_complexity_label: text,
+  time_complexity_rank_gap: score,
   time_complexity_score: score,
+  expected_space_complexity: text,
+  expected_space_complexity_rank: score,
+  expected_space_complexity_label: text,
+  student_space_complexity_rank: score,
+  student_space_complexity_label: text,
+  space_complexity_rank_gap: score,
   space_complexity_score: score,
-  edge_case_score: score,
-  code_quality_score: score,
+  edge_case_score: scoreOrText,
+  edge_cases_passed: scoreOrText,
   overall_question_score: score,
-  brute_force_risk: { type: 'string', enum: riskLevels },
-  hardcoding_risk: { type: 'string', enum: riskLevels },
-  optimization_level: {
-    type: 'string',
-    enum: ['Optimal', 'Acceptable', 'Inefficient', 'Brute Force', 'Incorrect'],
-  },
-  detected_approach: text,
-  expected_approach_match: bool,
-  likely_time_complexity: text,
-  likely_space_complexity: text,
   failed_case_analysis: stringArray,
   missed_edge_cases: stringArray,
-  compilation_behavior: text,
-  submission_behavior: text,
-  runtime_observation: text,
-  memory_observation: text,
-  key_strengths: stringArray,
-  key_weaknesses: stringArray,
-  improvement_recommendation: text,
-  placement_readiness_label: { type: 'string', enum: readinessLabels },
+  open_tests_passed: text,
+  hidden_tests_passed: scoreOrText,
+  total_tests_passed: scoreOrText,
 });
 
 export const sqlEvaluationOutputSchema = strictObject({
@@ -153,6 +166,7 @@ export const dashboardEvaluationOutputSchema = strictObject({
   student_name: text,
   overall_marks_score: score,
   capability_score: score,
+  problem_solving_score: score,
   dsa_score: score,
   sql_score: score,
   oops_score: score,
