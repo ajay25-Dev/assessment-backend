@@ -70,10 +70,12 @@ describe('evaluateDsaSubmission', () => {
     expect(output.expected_code_score).toBe(100);
     expect(output.expected_time_complexity_rank).toBe(36);
     expect(output.student_time_complexity_rank).toBe(36);
+    expect(output.student_time_complexity_label).toBe('O(n * 2^n)');
     expect(output.time_complexity_rank_gap).toBe(0);
     expect(output.time_complexity_score).toBe(100);
     expect(output.expected_space_complexity_rank).toBe(35);
     expect(output.student_space_complexity_rank).toBe(35);
+    expect(output.student_space_complexity_label).toBe('O(2^n)');
     expect(output.space_complexity_rank_gap).toBe(0);
     expect(output.space_complexity_score).toBe(100);
     expect(output.edge_case_score).toBe(100);
@@ -148,6 +150,7 @@ describe('evaluateDsaSubmission', () => {
   it('maps ranks into the requested gap-based score table', () => {
     expect(resolveComplexityRank('O(1)')).toBe(1);
     expect(resolveComplexityRank('O(n * 2^n)')).toBe(36);
+    expect(resolveComplexityRank('O(2^n * n)')).toBe(36);
     expect(resolveComplexityRank('O(totalVersions)')).toBe(9);
     expect(rankGapScore(10, 10)).toBe(100);
     expect(rankGapScore(10, 11)).toBe(90);

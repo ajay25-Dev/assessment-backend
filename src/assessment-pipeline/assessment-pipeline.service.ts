@@ -186,6 +186,31 @@ export class AssessmentPipelineService {
     const submittedAt = input.submitted_at || new Date().toISOString();
     const durationMinutes =
       input.duration_minutes || bank.assessment?.duration_minutes || 180;
+    const answer = input.answer || {};
+    const evaluationDetail = {
+      question_id: question.id,
+      question_title: question.title || question.id,
+      prompt: question.prompt,
+      topic: question.topic,
+      difficulty: question.difficulty,
+      expected_approach: question.expected_approach,
+      expected_code: question.expected_code,
+      expected_time_complexity: question.expected_time_complexity,
+      expected_space_complexity: question.expected_space_complexity,
+      evaluator_context: question.evaluator_context,
+      language: answer.language,
+      submitted_code: answer.value || '',
+      status: answer.status || 'submitted',
+      run_count: answer.runs || 0,
+      submit_count: answer.submissions || 0,
+      compiler_result_summary: answer.resultMessage || '',
+      testResults: input.test_results || answer.testResults || answer.test_results || null,
+      test_results: input.test_results || answer.testResults || answer.test_results || null,
+      open_test_cases: question.open_test_cases || [],
+      hidden_test_cases: question.hidden_test_cases || [],
+      all_doc_test_cases: question.test_cases || [],
+    };
+    const evaluation = await this.dsaEvaluation.evaluate(evaluationDetail);
     const attemptId = await this.upsertAssessmentAttempt(
       {
         student_id: input.student_id,
@@ -207,13 +232,20 @@ export class AssessmentPipelineService {
     );
 
     await this.persistQuestionAttemptSnapshot(attemptId, question, input, submittedAt);
-    await this.persistQuestionEvaluationSnapshot(attemptId, question, input, submittedAt);
+    await this.persistQuestionEvaluationSnapshot(
+      attemptId,
+      question,
+      input,
+      submittedAt,
+      evaluation,
+    );
 
     return {
       attempt_id: attemptId,
       question_id: question.id,
       section: question.section,
       status: 'saved',
+      evaluation,
     };
   }
 
@@ -820,13 +852,11 @@ export class AssessmentPipelineService {
     question: BankQuestion,
     input: DsaQuestionSubmitInput,
     submittedAt: string,
+    evaluation: EvaluationResult,
   ) {
     const answer = input.answer || {};
-    const output = this.recordValue(input.dsa_output) || {};
-    const scoreValue = this.numberOutput(
-      output.overallQuestionScore,
-      this.numberOutput(output.overall_question_score),
-    );
+    const output = this.recordValue(evaluation.output) || {};
+    const scoreValue = this.numberOutput(output.overall_question_score);
 
     const row = {
       attempt_id: attemptId,
@@ -834,11 +864,11 @@ export class AssessmentPipelineService {
       section: question.section,
       deterministic_score: scoreValue,
       ai_evaluation: {
-        source: 'local-dsa-submit-preview',
+        source: 'dsa-ai-evaluation',
         submitted_at: submittedAt,
         question_id: question.id,
         question_title: question.title || question.id,
-        output,
+        evaluation,
         answer_snapshot: {
           value: answer.value || '',
           language: answer.language || null,
@@ -846,11 +876,6 @@ export class AssessmentPipelineService {
           submissions: answer.submissions || 0,
           status: answer.status || 'submitted',
         },
-        test_results:
-          input.test_results ||
-          answer.testResults ||
-          answer.test_results ||
-          null,
       },
       final_score: scoreValue,
       question_attempt_id: null,

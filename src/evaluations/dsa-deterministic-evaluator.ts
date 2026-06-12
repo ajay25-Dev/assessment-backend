@@ -180,10 +180,10 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const missingExpectedCode = uniqueList(expectedCode).filter(
     (signal) => !matchedExpectedCode.includes(signal),
   );
-  const studentTimeComplexityRank = rankValue(record.student_time_complexity_rank);
-  const studentSpaceComplexityRank = rankValue(record.student_space_complexity_rank);
   const expectedTimeComplexityRank = resolveComplexityRank(expectedTimeComplexity);
   const expectedSpaceComplexityRank = resolveComplexityRank(expectedSpaceComplexity);
+  const studentTimeComplexityRank = rankValue(record.student_time_complexity_rank);
+  const studentSpaceComplexityRank = rankValue(record.student_space_complexity_rank);
   const timeComplexityRankGap = studentTimeComplexityRank - expectedTimeComplexityRank;
   const spaceComplexityRankGap = studentSpaceComplexityRank - expectedSpaceComplexityRank;
   const timeComplexityScore = rankGapScore(expectedTimeComplexityRank, studentTimeComplexityRank);
@@ -217,12 +217,16 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       correctness_score: correctnessScore,
       expected_time_complexity: expectedTimeComplexity,
       expected_time_complexity_rank: expectedTimeComplexityRank,
+      expected_time_complexity_label: complexityLabelFromRank(expectedTimeComplexityRank),
       student_time_complexity_rank: studentTimeComplexityRank,
+      student_time_complexity_label: complexityLabelFromRank(studentTimeComplexityRank),
       time_complexity_rank_gap: timeComplexityRankGap,
       time_complexity_score: timeComplexityScore,
       expected_space_complexity: expectedSpaceComplexity,
       expected_space_complexity_rank: expectedSpaceComplexityRank,
+      expected_space_complexity_label: complexityLabelFromRank(expectedSpaceComplexityRank),
       student_space_complexity_rank: studentSpaceComplexityRank,
+      student_space_complexity_label: complexityLabelFromRank(studentSpaceComplexityRank),
       space_complexity_rank_gap: spaceComplexityRankGap,
       space_complexity_score: spaceComplexityScore,
       edge_case_score: edgeCaseEvaluation.score,
@@ -319,6 +323,10 @@ export function rankGapScore(expectedRank: number, studentRank: number) {
   const gap = studentRank - expectedRank;
   if (gap <= 0) return 100;
   return Math.max(0, 100 - gap * 10);
+}
+
+function complexityLabelFromRank(rank: number) {
+  return loadComplexityRanks().find((entry) => entry.rank === rank)?.label || 'O(unknown)';
 }
 
 function uniqueList(value: string[]) {

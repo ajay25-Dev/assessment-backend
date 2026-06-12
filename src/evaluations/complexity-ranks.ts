@@ -12,20 +12,28 @@ let cachedRankEntries: ComplexityRankEntry[] | null = null;
 export function loadComplexityRanks() {
   if (cachedRankEntries) return cachedRankEntries;
 
-  try {
-    const file = readFileSync(
-      join(__dirname, 'data', 'complexity-rankings.json'),
-      'utf8',
-    );
-    const parsed = JSON.parse(file) as { rankings?: ComplexityRankEntry[] };
-    cachedRankEntries = Array.isArray(parsed.rankings) && parsed.rankings.length
-      ? parsed.rankings
-      : [];
-    return cachedRankEntries;
-  } catch {
-    cachedRankEntries = [];
-    return cachedRankEntries;
+  const candidates = [
+    join(__dirname, 'data', 'complexity-rankings.json'),
+    join(process.cwd(), 'src', 'evaluations', 'data', 'complexity-rankings.json'),
+    join(process.cwd(), 'dist', 'evaluations', 'data', 'complexity-rankings.json'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const file = readFileSync(candidate, 'utf8');
+      const parsed = JSON.parse(file) as { rankings?: ComplexityRankEntry[] };
+      if (Array.isArray(parsed.rankings) && parsed.rankings.length) {
+        cachedRankEntries = parsed.rankings;
+        return cachedRankEntries;
+      }
+    } catch {
+      // Try the next runtime path.
+    }
   }
+
+  throw new Error(
+    `Complexity rankings file could not be loaded from: ${candidates.join(', ')}`,
+  );
 }
 
 export function allowedComplexityRanks() {

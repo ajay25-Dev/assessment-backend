@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import {
   DSA_COMPLEXITY_PROMPT,
   DSA_COMPLEXITY_PROMPT_VERSION,
@@ -21,22 +21,39 @@ type DsaComplexityOutput = {
 
 @Injectable()
 export class DsaEvaluationService extends BaseEvaluatorService {
+  private readonly logger = new Logger(DsaEvaluationService.name);
+
   constructor(aiClient: OpenAiClientService) {
     super(aiClient);
   }
 
   async evaluate(input: unknown) {
-    const complexityRanks = await this.extractComplexityRanks(input);
+    this.logger.log('Starting DSA evaluation');
+    const complexitySelection = await this.extractComplexitySelection(input);
+    this.logger.log(
+      `DSA complexity selected: timeRank=${complexitySelection.student_time_complexity_rank}, spaceRank=${complexitySelection.student_space_complexity_rank}`,
+    );
     return evaluateDsaSubmission({
       ...(this.asRecord(input) || {}),
-      student_time_complexity_rank: complexityRanks.student_time_complexity_rank,
+      student_time_complexity_rank: complexitySelection.student_time_complexity_rank,
       student_space_complexity_rank:
-        complexityRanks.student_space_complexity_rank,
+        complexitySelection.student_space_complexity_rank,
     });
   }
 
-  private async extractComplexityRanks(input: unknown): Promise<DsaComplexityOutput> {
+  private async extractComplexitySelection(input: unknown): Promise<DsaComplexityOutput> {
     const record = this.asRecord(input);
+    this.logger.log(
+      `Preparing DSA complexity prompt with question length=${String([record.question_title, record.prompt].filter(Boolean).join('\n\n')).length} and submitted_code length=${String(record.submitted_code || '').length}`,
+    );
+    const rankTable = loadComplexityRanks().map((entry) => ({
+      rank: entry.rank,
+      label: entry.label,
+      aliases: entry.aliases,
+    }));
+    this.logger.log(
+      `DSA complexity rank input: count=${rankTable.length}, first=${rankTable[0]?.rank}:${rankTable[0]?.label}, last=${rankTable[rankTable.length - 1]?.rank}:${rankTable[rankTable.length - 1]?.label}`,
+    );
     const output = await this.evaluateWithPrompt({
       section: 'DSA',
       promptVersion: DSA_COMPLEXITY_PROMPT_VERSION,
@@ -44,27 +61,25 @@ export class DsaEvaluationService extends BaseEvaluatorService {
       schema: dsaComplexityOutputSchema,
       systemPrompt: DSA_COMPLEXITY_PROMPT,
       input: {
-        question_id: record.question_id,
-        question_title: record.question_title,
-        prompt: record.prompt,
-        expected_approach: record.expected_approach,
-        expected_code: record.expected_code,
-        expected_time_complexity: record.expected_time_complexity,
-        expected_space_complexity: record.expected_space_complexity,
+        complexity_rankings: rankTable,
+        question: [record.question_title, record.prompt].filter(Boolean).join('\n\n'),
         submitted_code: record.submitted_code,
-        complexity_rankings: loadComplexityRanks(),
       },
     });
+    this.logger.log(`Raw DSA complexity output: ${JSON.stringify(output.output)}`);
 
     const parsed = this.asComplexityOutput(output.output);
+    this.logger.log(
+      `Validated DSA complexity output: timeRank=${parsed.student_time_complexity_rank}, spaceRank=${parsed.student_space_complexity_rank}`,
+    );
     if (!isKnownComplexityRank(parsed.student_time_complexity_rank)) {
       throw new InternalServerErrorException(
-        'Invalid DSA time complexity rank returned by the model',
+        'Invalid DSA time complexity returned by the model',
       );
     }
     if (!isKnownComplexityRank(parsed.student_space_complexity_rank)) {
       throw new InternalServerErrorException(
-        'Invalid DSA space complexity rank returned by the model',
+        'Invalid DSA space complexity returned by the model',
       );
     }
 
