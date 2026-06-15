@@ -1,24 +1,33 @@
-INSERT INTO customers VALUES
-(1, 'Asha Rao', 'Pune', 'Prime', '2025-01-10'),
-(2, 'Rahul Mehta', 'Mumbai', 'Standard', '2025-02-12');
+INSERT INTO dark_stores VALUES
+(1, 'Koramangala Dark Store', 'Bengaluru', 'ACTIVE'),
+(2, 'Indiranagar Dark Store', 'Bengaluru', 'ACTIVE'),
+(3, 'Old Airport Store', 'Bengaluru', 'INACTIVE');
 
-INSERT INTO orders VALUES
-(101, 1, '2025-05-22', 'DELIVERED', '2025-05-26 00:00:00'::TIMESTAMP, 1200),
-(102, 1, '2025-05-12', 'DELIVERED', '2025-05-16 00:00:00'::TIMESTAMP, 900),
-(103, 2, '2025-05-17', 'DELIVERED', '2025-05-20 00:00:00'::TIMESTAMP, 700);
+INSERT INTO skus VALUES
+(101, 'Organic Milk 1L', 'Dairy', 20, FALSE),
+(102, 'Brown Bread', 'Bakery', 15, FALSE),
+(103, 'Imported Cheese', 'Dairy', 5, TRUE);
 
-INSERT INTO order_items VALUES
-(101, 1, 501, 'DELIVERED', 700),
-(101, 2, 502, 'DELIVERED', 500),
-(102, 1, 503, 'DELIVERED', 900),
-(103, 1, 504, 'DELIVERED', 700);
+INSERT INTO inventory_snapshots VALUES
+(1, 1, 101, '2026-06-10', 18),
+(2, 1, 101, '2026-06-14', 12),
+(3, 1, 102, '2026-06-14', 40),
+(4, 2, 101, '2026-06-14', 30),
+(5, 2, 102, '2026-06-14', 8),
+(6, 3, 101, '2026-06-14', 2),
+(7, 1, 103, '2026-06-14', 1);
 
-INSERT INTO fulfilment_centers VALUES
-(1, 'Pune', 'West'),
-(2, 'Mumbai', 'West');
+INSERT INTO sales_orders VALUES
+(1001, 1, '2026-06-09', 'COMPLETED'),
+(1002, 1, '2026-06-11', 'COMPLETED'),
+(1003, 1, '2026-06-13', 'COMPLETED'),
+(1004, 2, '2026-06-10', 'COMPLETED'),
+(1005, 2, '2026-06-13', 'CANCELLED');
 
-INSERT INTO shipments VALUES
-(1001, 101, '2025-05-23 00:00:00'::TIMESTAMP, '2025-05-27 00:00:00'::TIMESTAMP, 'DELIVERED', 1),
-(1002, 101, '2025-05-24 00:00:00'::TIMESTAMP, '2025-05-28 00:00:00'::TIMESTAMP, 'DELIVERED', 2),
-(1003, 102, '2025-05-13 00:00:00'::TIMESTAMP, '2025-05-18 00:00:00'::TIMESTAMP, 'DELIVERED', 1),
-(1004, 103, '2025-05-18 00:00:00'::TIMESTAMP, '2025-05-20 00:00:00'::TIMESTAMP, 'DELIVERED', 2);
+INSERT INTO sales_order_items VALUES
+(1, 1001, 101, 10),
+(2, 1002, 101, 8),
+(3, 1003, 101, 12),
+(4, 1001, 102, 3),
+(5, 1004, 101, 7),
+(6, 1005, 102, 50);

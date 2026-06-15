@@ -1091,14 +1091,14 @@
       ]
     },
     {
-      "id": "sql_amazon_delivery_promise",
+      "id": "sql_blinkit_replenishment_risk",
       "section": "SQL",
       "engine": "sql",
       "type": "sql",
-      "title": "Delivery Promise Breach Analysis",
+      "title": "Blinkit Dark Store Replenishment Risk",
       "difficulty": "medium_hard",
       "marks": 100,
-      "prompt": "Business Scenario\nAn online retailer promises a delivery timestamp for every customer order. One order may be shipped in multiple packages. For customer experience reporting, an order should be treated as late only when the final delivered package arrives after the promised timestamp.\n\nTask / Business Rules\nWrite a SQL query to flag High-Risk Customer Experience Cases. A customer should be flagged if: (1) they have at least 3 delivered, non-cancelled orders in the last 90 days, and (2) at least 40% of those orders were delivered late. Use the final delivered package timestamp at order level. Return only flagged customers.\n\nRequired Output\nReturn customer_id, customer_name, customer_segment, delivered_orders, late_orders, late_order_percentage, total_delivered_order_value, and last_late_order_date.",
+      "prompt": "Business Scenario\nBlinkit operates dark stores that hold fast-moving grocery SKUs. Store managers need to identify active products that may go out of stock soon based on current inventory, reorder rules, and recent demand.\n\nTask / Business Rules\nWrite a SQL query to return active store-SKU combinations that need replenishment. Assume the current date is 2026-06-15. Use the latest inventory snapshot for each store and SKU. Calculate average daily units sold from completed sales in the last 7 days. A SKU should be flagged if current on-hand units are below the SKU reorder point or if days of cover is less than 3. Exclude inactive stores and discontinued SKUs. Treat SKUs with no recent sales as 0 average daily sales and do not flag them only because days of cover is null.\n\nRequired Output\nReturn store_id, store_name, sku_id, sku_name, on_hand_units, avg_daily_units_sold, days_of_cover, and reorder_point.",
       "dialect": "postgres",
       "schema_files": {
         "schema": "sql/q1_schema.sql",
@@ -1106,32 +1106,32 @@
         "hidden_seed": "sql/q1_hidden_seed.sql"
       },
       "expected_columns": [
-        "customer_id",
-        "customer_name",
-        "customer_segment",
-        "delivered_orders",
-        "late_orders",
-        "late_order_percentage",
-        "total_delivered_order_value",
-        "last_late_order_date"
+        "store_id",
+        "store_name",
+        "sku_id",
+        "sku_name",
+        "on_hand_units",
+        "avg_daily_units_sold",
+        "days_of_cover",
+        "reorder_point"
       ],
       "expected_approach": [
-        "Create order-level CTE",
-        "Use MAX(delivered_at) as final delivery time",
-        "Exclude cancelled orders",
-        "Aggregate at customer level",
-        "Apply HAVING filters for minimum orders and late percentage"
+        "Find the latest inventory snapshot per store and SKU",
+        "Filter active stores and non-discontinued SKUs",
+        "Aggregate completed sales from the last 7 days",
+        "Calculate average daily units sold and days of cover",
+        "Flag rows below reorder point or below 3 days of cover"
       ]
     },
     {
-      "id": "sql_commvault_failure_streak",
+      "id": "sql_payu_settlement_reconciliation",
       "section": "SQL",
       "engine": "sql",
       "type": "sql",
-      "title": "Backup Failure Streak Risk Analysis",
+      "title": "PayU Settlement Reconciliation Mismatch",
       "difficulty": "hard",
       "marks": 100,
-      "prompt": "Business Scenario\nA backup platform runs scheduled backup jobs for many client servers. The operations team wants to identify active servers whose latest backup health is risky. A server is risky when the most recent backup attempts are failing repeatedly.\n\nTask / Business Rules\nWrite a SQL query to return active servers where the latest 3 completed backup jobs are all FAILED. Ignore inactive servers and inactive policies. For each risky server, return the first failure date among those latest 3 failed jobs, the latest failure date, failure count, latest status, and latest error code.\n\nRequired Output\nReturn client_id, client_name, server_id, server_name, policy_name, latest_failure_streak_start_date, latest_failure_streak_end_date, consecutive_failure_runs, latest_backup_status, and latest_error_code.",
+      "prompt": "Business Scenario\nPayU settles captured payments to merchants after deducting gateway fees and tax. Finance needs to identify successful transactions whose settlement amount does not reconcile with what should have been paid to the merchant.\n\nTask / Business Rules\nWrite a SQL query to return captured transactions whose settlement due date has passed as of 2026-06-15 and whose settlement is missing or mismatched. Expected settlement amount is transaction amount minus gateway fee minus tax. Sum all settlement payouts made for the transaction. Flag a transaction if no settlement exists or if the absolute difference between expected and settled amount is greater than 1. Exclude inactive merchants and non-captured transactions.\n\nRequired Output\nReturn merchant_id, merchant_name, txn_id, txn_amount, expected_settlement_amount, settled_amount, settlement_gap, and settlement_status.",
       "dialect": "postgres",
       "schema_files": {
         "schema": "sql/q2_schema.sql",
@@ -1139,34 +1139,32 @@
         "hidden_seed": "sql/q2_hidden_seed.sql"
       },
       "expected_columns": [
-        "client_id",
-        "client_name",
-        "server_id",
-        "server_name",
-        "policy_name",
-        "latest_failure_streak_start_date",
-        "latest_failure_streak_end_date",
-        "consecutive_failure_runs",
-        "latest_backup_status",
-        "latest_error_code"
+        "merchant_id",
+        "merchant_name",
+        "txn_id",
+        "txn_amount",
+        "expected_settlement_amount",
+        "settled_amount",
+        "settlement_gap",
+        "settlement_status"
       ],
       "expected_approach": [
-        "Filter active servers and active policies",
-        "Rank completed backup jobs by server using ROW_NUMBER",
-        "Keep latest 3 jobs per server",
-        "Group by server and require all 3 jobs to be FAILED",
-        "Return latest error code from the most recent failed job"
+        "Filter active merchants and captured transactions past settlement due date",
+        "Calculate expected settlement as amount minus fee minus tax",
+        "LEFT JOIN and aggregate settlement payouts by transaction",
+        "Calculate settlement gap between expected and actual settled amount",
+        "Flag missing settlements or mismatches greater than 1"
       ]
     },
     {
-      "id": "sql_autodesk_license_usage",
+      "id": "sql_salesforce_renewal_expansion",
       "section": "SQL",
       "engine": "sql",
       "type": "sql",
-      "title": "License Utilization Review",
+      "title": "Salesforce Renewal Expansion Opportunity",
       "difficulty": "medium_hard",
       "marks": 100,
-      "prompt": "Business Scenario\nA software subscription business sells seat-based licenses to customers. Some customers buy many seats but only a few assigned users actively use the product. Customer success wants to identify accounts that may need license optimization support before renewal.\n\nTask / Business Rules\nWrite a SQL query to flag customers for License Utilization Review if: (1) they have an active paid contract with at least 10 purchased seats, and (2) fewer than 50% of purchased seats had valid product usage in the last 30 days. Exclude trial contracts and internal/test users. Count usage only for users who had an assigned license on the usage date. Customers with zero valid usage in the last 30 days should also be flagged.\n\nRequired Output\nReturn customer_id, customer_name, industry, plan_type, purchased_seats, assigned_users, active_licensed_users, seat_utilization_percentage, and review_reason.",
+      "prompt": "Business Scenario\nSalesforce customer success wants to find accounts that are good renewal expansion candidates. These accounts have contracts ending soon, strong product adoption, and no unresolved critical support issues.\n\nTask / Business Rules\nWrite a SQL query to return active accounts with an active non-trial contract ending in the next 60 days from 2026-06-15. Count distinct non-internal licensed users who used the product in the last 30 days from 2026-06-15. A customer is an expansion candidate if utilization is at least 80% of purchased seats and the account has no open critical support tickets. Exclude internal users from usage counts.\n\nRequired Output\nReturn account_id, account_name, plan_type, seats_purchased, active_users_30d, utilization_percentage, and contract_end_date.",
       "dialect": "postgres",
       "schema_files": {
         "schema": "sql/q3_schema.sql",
@@ -1174,34 +1172,32 @@
         "hidden_seed": "sql/q3_hidden_seed.sql"
       },
       "expected_columns": [
-        "customer_id",
-        "customer_name",
-        "industry",
+        "account_id",
+        "account_name",
         "plan_type",
-        "purchased_seats",
-        "assigned_users",
-        "active_licensed_users",
-        "seat_utilization_percentage",
-        "review_reason"
+        "seats_purchased",
+        "active_users_30d",
+        "utilization_percentage",
+        "contract_end_date"
       ],
       "expected_approach": [
-        "Filter active paid contracts with at least 10 seats",
-        "Count assigned non-test users",
-        "LEFT JOIN valid usage from last 30 days",
-        "Count distinct active licensed users",
-        "Flag customers where active licensed users are less than 50% of purchased seats or zero"
+        "Filter active non-trial contracts ending in the next 60 days",
+        "Exclude internal users from usage counts",
+        "Count distinct licensed users active in the last 30 days",
+        "Exclude accounts with open critical support tickets",
+        "Flag accounts with utilization at least 80% of purchased seats"
       ]
     },
     {
-      "id": "oops_servicenow_workflow",
+      "id": "oops_atlassian_jira_workflow",
       "section": "OOPs",
       "engine": "code",
       "type": "oops",
-      "title": "ServiceNow Incident Workflow Engine",
+      "title": "Atlassian Jira Issue Workflow Engine",
       "difficulty": "medium-hard",
       "marks": 100,
-      "prompt": "Business Scenario\nServiceNow handles different types of IT service tickets such as Incident, Service Request, Change Request and Problem Ticket. Each ticket type has a different workflow. The company wants to build a workflow engine where new ticket types can be added in the future without changing the existing workflow execution logic.\n\nProblem Statement\nThe system should support creating different ticket types, moving each ticket to its next valid state, preventing invalid transitions, returning the current state of a ticket, and adding a new ticket type without changing existing core engine code.",
-      "function_signature": "TicketWorkflow / WorkflowEngine design",
+      "prompt": "Business Scenario\nAtlassian Jira is used by software teams to track work items such as Bugs, Tasks and Feature Requests. Each issue type can follow a different workflow. For example, a Bug may go from Open to In Progress to Fixed to Verified to Closed, while a Task may simply go from To Do to In Progress to Done. The platform needs a flexible workflow engine where new issue types can be added later without changing the core engine.\n\nProblem Statement\nDesign the core classes/interfaces for creating issues, moving an issue to its next valid state, rejecting invalid transitions, and returning the current state. Provide concise pseudocode or class code for at least two issue workflows. Do not include database, UI, networking, or authentication code.",
+      "function_signature": "IssueWorkflow / WorkflowEngine design",
       "expected_approach": [
         "Abstraction",
         "Encapsulation",
@@ -1211,32 +1207,29 @@
       ],
       "evaluator_context": {
         "domain_rules": [
-          "Incident tickets follow New -> In Progress -> Resolved -> Closed.",
-          "Service Requests follow Draft -> Submitted -> Approved -> Fulfilled -> Closed.",
-          "Change Requests require Approval before Implementation and Review before Closed.",
-          "Problem Tickets support Investigation -> Root Cause Identified -> Workaround Provided -> Closed.",
+          "Bug issues follow Open -> In Progress -> Fixed -> Verified -> Closed.",
+          "Tasks follow To Do -> In Progress -> Done.",
+          "Feature Requests follow Draft -> Review -> Approved -> In Development -> Released.",
           "Invalid transitions must be rejected with a clear error or failed result."
         ],
         "required_components": [
-          "A common Ticket abstraction or interface",
-          "Separate workflow/state behavior per ticket type",
+          "A common Issue abstraction or interface",
+          "Separate workflow behavior for at least two issue types",
           "A WorkflowEngine or service that delegates transition rules",
-          "A way to query current ticket state",
-          "A response object or exception strategy for invalid transitions"
+          "A way to query current issue state"
         ],
         "design_constraints": [
-          "Adding a new ticket type should not require editing existing engine transition code.",
-          "Avoid large if/else or switch blocks on ticket type inside the core engine.",
-          "Keep ticket data encapsulated; external code should not mutate state directly."
+          "Adding a new issue type should not require editing existing engine transition code.",
+          "Avoid large if/else or switch blocks on issue type inside the core engine.",
+          "Keep issue data encapsulated; external code should not mutate state directly."
         ],
         "acceptance_signals": [
           "Uses State, Strategy, or equivalent polymorphic design.",
-          "Demonstrates at least two ticket workflows with different transitions.",
-          "Shows how a new workflow can be registered or introduced with minimal change.",
-          "Separates workflow rules from ticket identity and storage."
+          "Demonstrates at least two issue workflows with different transitions.",
+          "Shows how a new workflow can be registered or introduced with minimal change."
         ],
         "red_flags": [
-          "Single procedural function with hard-coded ticket type checks",
+          "Single procedural function with hard-coded issue type checks",
           "Public mutable state with no transition validation",
           "No invalid-transition handling",
           "Design cannot add a new workflow without modifying existing workflow engine logic"
@@ -1256,14 +1249,14 @@
       }
     },
     {
-      "id": "oops_amazon_payments",
+      "id": "oops_razorpay_payments",
       "section": "OOPs",
       "engine": "code",
       "type": "oops",
-      "title": "Amazon Multi-Mode Payment Processing System",
+      "title": "Razorpay Multi-Mode Payment Processing System",
       "difficulty": "medium-hard",
       "marks": 100,
-      "prompt": "Business Scenario\nAmazon supports different payment modes such as Credit Card, Debit Card, UPI, Wallet, Gift Card and Cash on Delivery. Each payment mode has different rules. The system should allow new modes like BNPL, EMI or International Card without changing the core checkout flow.\n\nProblem Statement\nThe system should support processing payment using different payment modes, validating payment before processing, returning payment success or failure, applying payment-specific rules, and adding new payment modes without modifying checkout logic.",
+      "prompt": "Business Scenario\nRazorpay allows merchants to accept payments through different modes such as Card, UPI and Wallet. Each payment mode has its own validation and processing rules. For example, Card payments need card detail validation, UPI payments need UPI ID validation, and Wallet payments need sufficient balance. The checkout flow should remain simple and should not change whenever a new payment mode is added.\n\nProblem Statement\nDesign the core classes/interfaces for validating a payment, processing it, returning success/failure, and adding new modes without modifying checkout logic. Provide concise pseudocode or class code for at least three payment modes. Do not include external gateways, persistence, UI, or authentication code.",
       "function_signature": "PaymentMethod / CheckoutService design",
       "expected_approach": [
         "Interface",
@@ -1273,21 +1266,18 @@
       ],
       "evaluator_context": {
         "domain_rules": [
-          "Credit Card and Debit Card require card validation and bank authorization.",
-          "UPI requires VPA validation and payment confirmation.",
-          "Wallet requires sufficient wallet balance before debit.",
-          "Gift Card applies available gift balance before remaining payment.",
-          "Cash on Delivery can be accepted only for eligible orders and serviceable locations."
+          "Card payments require card detail validation before processing.",
+          "UPI payments require VPA validation before processing.",
+          "Wallet payments require sufficient balance before debit."
         ],
         "required_components": [
           "A PaymentMethod interface or abstract base",
           "Concrete payment implementations for at least three modes",
           "CheckoutService depending on the abstraction rather than concrete classes",
-          "Validation and processing methods with success/failure result",
-          "A factory, registry, or dependency injection approach to choose payment mode"
+          "Validation and processing methods with success/failure result"
         ],
         "design_constraints": [
-          "Adding BNPL, EMI, or International Card should not require modifying CheckoutService.",
+          "Adding a new payment mode should not require modifying CheckoutService.",
           "Do not place all payment rules inside one if/else chain.",
           "Payment-specific validation should live with the payment strategy.",
           "Checkout flow should orchestrate payment without knowing internal mode rules."
@@ -1319,14 +1309,14 @@
       }
     },
     {
-      "id": "oops_autodesk_export",
+      "id": "oops_canva_export",
       "section": "OOPs",
       "engine": "code",
       "type": "oops",
-      "title": "Autodesk Design Export System",
+      "title": "Canva Design Export System",
       "difficulty": "medium-hard",
       "marks": 100,
-      "prompt": "Business Scenario\nAutodesk tools allow users to export design files into PDF, DWG, DXF, STL, OBJ and PNG. Each format has different export behaviour. In the future, Autodesk may add SVG, IFC, STEP or GLTF. The system should allow adding new export formats without modifying the core design file class.\n\nProblem Statement\nThe system should support exporting a design file into different formats, each format having its own logic, returning success/failure response, handling unsupported formats and adding new export formats without changing existing design file logic.",
+      "prompt": "Business Scenario\nCanva allows users to create designs such as posters, presentations, documents and social media creatives. After creating a design, users can export it in different formats such as PDF, PNG and 3D preview. Each format has different export rules. For example, PDF export may need document metadata, PNG export may need image resolution, and 3D preview export may need model-specific settings. The core design file should not contain all export logic because new formats may be added in the future.\n\nProblem Statement\nDesign the core classes/interfaces for exporting a design file into different formats, returning success/failure, handling unsupported formats, and adding new exporters without changing the design file class. Provide concise pseudocode or class code for at least three exporters. Do not include file storage, rendering engines, UI, or authentication code.",
       "function_signature": "DesignFile / Exporter design",
       "expected_approach": [
         "Exporter abstraction",
@@ -1337,10 +1327,9 @@
       ],
       "evaluator_context": {
         "domain_rules": [
-          "PDF export should support document metadata and page setup.",
-          "DWG and DXF exports should preserve CAD layers and units.",
-          "STL and OBJ exports should handle 3D mesh data.",
-          "PNG export should support raster resolution settings.",
+          "PDF export should use document metadata.",
+          "PNG export should use raster resolution settings.",
+          "3D preview export should use model-specific or mesh-specific settings.",
           "Unsupported formats must return a controlled failure instead of crashing."
         ],
         "required_components": [
@@ -1351,7 +1340,7 @@
           "A standard export result with status, format, and message or output path"
         ],
         "design_constraints": [
-          "Adding SVG, IFC, STEP, or GLTF should require adding a new exporter, not modifying DesignFile.",
+          "Adding a new format should require adding a new exporter, not modifying DesignFile.",
           "Avoid format-specific if/else chains in the DesignFile class.",
           "Keep export settings explicit rather than hidden global state.",
           "Separate validation of unsupported formats from export execution."
@@ -1383,366 +1372,521 @@
       }
     },
     {
-      "id": "mcq_01_payment_design",
+      "id": "mcq_01_html_semantic_form",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "OOPs",
-      "topic": "OOPs",
-      "prompt": "A checkout platform supports card, wallet, BNPL and gift-card payments. Each payment mode has different validation, authorization, capture, refund and retry behavior. New modes are added every quarter by different teams. Which design best minimizes modification to checkout orchestration while still supporting mode-specific behavior?",
+      "title": "HTML",
+      "topic": "HTML",
+      "prompt": "A team is building a checkout form. Screen-reader users must understand each input, validation messages should be associated with the right field, and the browser should provide useful mobile keyboards. Which implementation is the best baseline?",
       "options": [
         {
           "label": "A",
-          "text": "A PaymentStrategy interface per mode, selected through a factory/registry, with checkout depending only on the abstraction"
+          "text": "Use semantic form controls with label elements, suitable input types, required attributes, and aria-describedby for help/error text"
         },
         {
           "label": "B",
-          "text": "A single PaymentService with one if-else block for validation, another for refund and another for retry"
+          "text": "Use div elements for all fields and rely on placeholder text as the only field description"
         },
         {
           "label": "C",
-          "text": "A PaymentDTO with optional fields for every possible payment mode and validation inside the controller"
+          "text": "Use contenteditable spans for every input so the layout is easier to style"
         },
         {
           "label": "D",
-          "text": "A database table storing payment_mode and a shared generic method that assumes all modes behave identically"
+          "text": "Put all labels in a separate paragraph above the form without connecting them to inputs"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Strategy plus registry keeps the orchestration closed for modification while allowing each payment mode to own validation, refund and retry behavior."
+      "explanation": "Semantic controls, explicit labels, input types and described-by relationships improve accessibility, validation and mobile input behavior."
     },
     {
-      "id": "mcq_02_state_pattern",
+      "id": "mcq_02_html_image_performance",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "OOPs",
-      "topic": "OOPs",
-      "prompt": "A service ticket has states New, Assigned, InProgress, WaitingForCustomer, Resolved and Closed. Each state allows different actions and some transitions require audit logs. The team currently has transition checks scattered across controllers, cron jobs and APIs. Which redesign is strongest?",
+      "title": "HTML",
+      "topic": "HTML",
+      "prompt": "A product listing page renders many below-the-fold product images. The first viewport should load quickly, but image dimensions must still be reserved to avoid layout shift. Which HTML approach is most appropriate?",
       "options": [
         {
           "label": "A",
-          "text": "Keep status as a string and document valid transitions in a wiki"
+          "text": "Remove all alt attributes so the browser downloads less text"
         },
         {
           "label": "B",
-          "text": "Use State pattern or a transition table/service that centralizes valid transitions and side effects"
+          "text": "Add width and height attributes and use loading=\"lazy\" for below-the-fold images"
         },
         {
           "label": "C",
-          "text": "Allow every service to update status directly and detect invalid transitions in reports"
+          "text": "Set every image as a CSS background even when the image is meaningful content"
         },
         {
           "label": "D",
-          "text": "Move all transition logic to frontend button visibility only"
+          "text": "Use only high-resolution images and let the browser guess their rendered size"
         }
       ],
       "correct_options": [
         "B"
       ],
-      "explanation": "The core issue is scattered transition logic. Centralizing transitions through State pattern or a transition service reduces invalid transitions and duplicated rules."
+      "explanation": "Explicit dimensions reduce layout shift, and lazy loading defers non-critical image downloads."
     },
     {
-      "id": "mcq_03_open_closed",
+      "id": "mcq_03_html_navigation_landmarks",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "OOPs",
-      "topic": "OOPs",
-      "prompt": "A reporting service exports PDF today and will soon support XLSX, JSON and XML. The orchestration also handles authorization, data fetching and audit logging. Which design best applies Open/Closed Principle without duplicating common orchestration steps?",
+      "title": "HTML",
+      "topic": "HTML",
+      "prompt": "A documentation site has a header, primary navigation, article content, related links and footer. Keyboard and screen-reader users need to jump between major page regions reliably. Which markup strategy best supports this?",
       "options": [
         {
           "label": "A",
-          "text": "Create an Exporter interface for format-specific rendering and inject/select implementations inside a stable orchestration flow"
+          "text": "Use only div elements and style them visually to look like regions"
         },
         {
           "label": "B",
-          "text": "Copy the entire export method once per format so each format is fully independent"
+          "text": "Put the entire page inside one table because it creates clear rows and columns"
         },
         {
           "label": "C",
-          "text": "Add format-specific if-else blocks inside the orchestration whenever a new format is requested"
+          "text": "Use multiple h1 elements as the only navigation mechanism"
         },
         {
           "label": "D",
-          "text": "Expose raw database rows and let every caller implement its own export logic"
+          "text": "Use header, nav, main, aside and footer elements for their matching page regions"
+        }
+      ],
+      "correct_options": [
+        "D"
+      ],
+      "explanation": "HTML landmark elements expose meaningful regions to assistive technologies and improve document structure."
+    },
+    {
+      "id": "mcq_04_html_script_loading",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "HTML",
+      "topic": "HTML",
+      "prompt": "A landing page includes a non-critical analytics script and an interactive menu script that needs the DOM to be parsed before it runs. The team wants to avoid blocking initial HTML parsing. Which script attribute is safest for the menu script?",
+      "options": [
+        {
+          "label": "A",
+          "text": "async, because it always preserves execution order and waits for the DOM"
+        },
+        {
+          "label": "B",
+          "text": "nomodule, because it forces modern browsers to execute the script earlier"
+        },
+        {
+          "label": "C",
+          "text": "No attribute, because parser-blocking scripts always improve first render"
+        },
+        {
+          "label": "D",
+          "text": "defer, because it downloads during parsing and executes after the document is parsed in order"
+        }
+      ],
+      "correct_options": [
+        "D"
+      ],
+      "explanation": "defer avoids parser blocking and runs after parsing, which is appropriate for DOM-dependent scripts that should keep order."
+    },
+    {
+      "id": "mcq_05_html_accessible_buttons",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "HTML",
+      "topic": "HTML",
+      "prompt": "A modal close control is implemented as a clickable icon. It must be keyboard accessible, announce its purpose, and work consistently with form behavior. Which markup is best?",
+      "options": [
+        {
+          "label": "A",
+          "text": "Use a button element with type=\"button\" and an accessible label such as aria-label=\"Close dialog\""
+        },
+        {
+          "label": "B",
+          "text": "Use a span with an onclick handler and no keyboard event handling"
+        },
+        {
+          "label": "C",
+          "text": "Use an anchor without href because it looks like a clickable element"
+        },
+        {
+          "label": "D",
+          "text": "Use an img tag and rely on the file name to describe the action"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Common orchestration should remain stable while format-specific rendering varies behind an interface."
+      "explanation": "button provides native keyboard and accessibility behavior; type=\"button\" prevents accidental form submission."
     },
     {
-      "id": "mcq_04_bad_checkout",
+      "id": "mcq_06_css_responsive_layout",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "OOPs",
-      "topic": "OOPs",
-      "prompt": "A CheckoutManager validates coupons, computes tax, reserves inventory, charges payment, sends invoice email and writes analytics events. Any small change causes unrelated bugs. Which principle is most directly violated and what is the best correction?",
+      "title": "CSS",
+      "topic": "CSS",
+      "prompt": "A card grid should show one column on phones, two on tablets, and as many 280px cards as fit on desktop without hardcoding every breakpoint. Which CSS Grid pattern best fits this requirement?",
       "options": [
         {
           "label": "A",
-          "text": "Single Responsibility Principle; split responsibilities into cohesive collaborators coordinated by checkout workflow"
+          "text": "float every card left and set a fixed pixel width for the container"
         },
         {
           "label": "B",
-          "text": "Encapsulation; make all fields public so services can update them directly"
+          "text": "position every card absolutely with left and top values"
         },
         {
           "label": "C",
-          "text": "Inheritance; create one subclass for every city and payment mode combination"
+          "text": "grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))"
         },
         {
           "label": "D",
-          "text": "Polymorphism; replace all interfaces with static utility methods"
+          "text": "Use display: table and manually add empty cells for spacing"
+        }
+      ],
+      "correct_options": [
+        "C"
+      ],
+      "explanation": "auto-fit with minmax creates a responsive grid that adapts to available space without many explicit breakpoints."
+    },
+    {
+      "id": "mcq_07_css_specificity",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "CSS",
+      "topic": "CSS",
+      "prompt": "A component style `.card .title { color: black; }` is unexpectedly overriding a theme utility `.text-primary { color: blue; }` on the same title element. What is the most likely reason?",
+      "options": [
+        {
+          "label": "A",
+          "text": "CSS ignores class selectors when they are used for color"
+        },
+        {
+          "label": "B",
+          "text": "The browser applies styles alphabetically by property name"
+        },
+        {
+          "label": "C",
+          "text": "The title element cannot receive inherited color"
+        },
+        {
+          "label": "D",
+          "text": "The descendant selector has higher specificity than a single class selector"
+        }
+      ],
+      "correct_options": [
+        "D"
+      ],
+      "explanation": "`.card .title` has two class selectors, so it has higher specificity than `.text-primary`."
+    },
+    {
+      "id": "mcq_08_css_stacking_context",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "CSS",
+      "topic": "CSS",
+      "prompt": "A dropdown has z-index: 9999 but still appears behind a sibling panel. Its parent has transform applied for animation. What is the most likely cause?",
+      "options": [
+        {
+          "label": "A",
+          "text": "z-index only works on table elements"
+        },
+        {
+          "label": "B",
+          "text": "Dropdowns cannot be layered over sibling panels in CSS"
+        },
+        {
+          "label": "C",
+          "text": "The transformed parent creates a stacking context, limiting how the child stacks against outside elements"
+        },
+        {
+          "label": "D",
+          "text": "The browser ignores all z-index values above 100"
+        }
+      ],
+      "correct_options": [
+        "C"
+      ],
+      "explanation": "Properties like transform can create a new stacking context, so the child cannot escape the parent context by using a large z-index."
+    },
+    {
+      "id": "mcq_09_css_flex_alignment",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "CSS",
+      "topic": "CSS",
+      "prompt": "A toolbar uses flex-direction: row. The team wants buttons spread horizontally with equal free space between them and all buttons vertically centered. Which properties match the requirement?",
+      "options": [
+        {
+          "label": "A",
+          "text": "align-content: space-between and justify-items: center"
+        },
+        {
+          "label": "B",
+          "text": "justify-content: space-between and align-items: center"
+        },
+        {
+          "label": "C",
+          "text": "text-align: justify and vertical-align: middle"
+        },
+        {
+          "label": "D",
+          "text": "float: left and line-height: 0"
+        }
+      ],
+      "correct_options": [
+        "B"
+      ],
+      "explanation": "In a row flex container, justify-content controls the main horizontal axis and align-items controls the cross vertical axis."
+    },
+    {
+      "id": "mcq_10_css_layout_shift",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "CSS",
+      "topic": "CSS",
+      "prompt": "A page loads a custom font late, causing visible text movement and layout shift. Which CSS strategy best reduces the user-visible impact while keeping text readable?",
+      "options": [
+        {
+          "label": "A",
+          "text": "Use font-display: swap or optional and choose a fallback font with similar metrics"
+        },
+        {
+          "label": "B",
+          "text": "Hide all text until every font file has downloaded"
+        },
+        {
+          "label": "C",
+          "text": "Use z-index on the body element to prevent font changes"
+        },
+        {
+          "label": "D",
+          "text": "Convert all text to images so fonts are never loaded"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "The class has many reasons to change. SRP suggests separating tax, inventory, payment, notification and analytics responsibilities."
+      "explanation": "font-display and metric-compatible fallbacks reduce invisible text and minimize reflow when the web font arrives."
     },
     {
-      "id": "mcq_05_dns",
+      "id": "mcq_11_javascript_event_loop",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Computer Networks",
-      "topic": "Computer Networks",
-      "prompt": "Users can open a service using its IP address, but the domain intermittently resolves to an old IP for some users after a migration. HTTP health checks pass on the new server. Which diagnosis is most likely?",
+      "title": "JavaScript",
+      "topic": "JavaScript",
+      "prompt": "A click handler starts a long CPU-heavy loop and the page becomes unresponsive until the loop finishes. Network requests are not the bottleneck. What is the best explanation?",
       "options": [
         {
           "label": "A",
-          "text": "TCP congestion control is dropping packets after the TLS handshake"
+          "text": "The loop blocks the main thread, preventing rendering and event handling until it completes"
         },
         {
           "label": "B",
-          "text": "DNS caching/TTL or stale authoritative/recursive resolver records are still returning the old address"
+          "text": "JavaScript always runs each function on a separate CPU thread automatically"
         },
         {
           "label": "C",
-          "text": "The application server cannot parse HTTP headers"
+          "text": "CSS specificity is preventing the click event from bubbling"
         },
         {
           "label": "D",
-          "text": "The browser cannot render HTML returned from the server"
-        }
-      ],
-      "correct_options": [
-        "B"
-      ],
-      "explanation": "Successful access by IP but inconsistent domain resolution points to DNS propagation, caching or stale records rather than HTTP or rendering."
-    },
-    {
-      "id": "mcq_06_udp",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Computer Networks",
-      "topic": "Computer Networks",
-      "prompt": "A multiplayer game sends player positions 30 times per second. Old position packets are useless once newer packets arrive. The system prefers low latency over guaranteed delivery. Which transport choice and reason are most appropriate?",
-      "options": [
-        {
-          "label": "A",
-          "text": "TCP, because retransmission of every lost packet improves real-time freshness"
-        },
-        {
-          "label": "B",
-          "text": "UDP, because the app can tolerate loss and avoid head-of-line blocking from retransmissions"
-        },
-        {
-          "label": "C",
-          "text": "HTTP/1.1, because request-response semantics are required for every position update"
-        },
-        {
-          "label": "D",
-          "text": "SMTP, because it guarantees eventual message delivery"
-        }
-      ],
-      "correct_options": [
-        "B"
-      ],
-      "explanation": "For real-time updates where freshness matters more than completeness, UDP avoids retransmission delays and head-of-line blocking."
-    },
-    {
-      "id": "mcq_07_load_balancer",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Computer Networks",
-      "topic": "Computer Networks",
-      "prompt": "A load balancer marks an instance healthy because the process responds to /ping, but users routed to that instance fail checkout because it cannot connect to the database. What is the best improvement?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Increase DNS TTL so users remain attached to one instance longer"
-        },
-        {
-          "label": "B",
-          "text": "Use a deeper health check that validates critical dependencies or expose a readiness check separate from liveness"
-        },
-        {
-          "label": "C",
-          "text": "Disable health checks and rely only on CPU metrics"
-        },
-        {
-          "label": "D",
-          "text": "Route all traffic to the instance with the lowest process uptime"
-        }
-      ],
-      "correct_options": [
-        "B"
-      ],
-      "explanation": "A liveness check only proves the process is up. A readiness/dependency check better indicates whether the instance can serve real user traffic."
-    },
-    {
-      "id": "mcq_08_deadlock",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Operating System",
-      "topic": "Operating System",
-      "prompt": "Three services acquire locks on Account, Wallet and Ledger in different orders. Production occasionally freezes with each thread waiting for a lock held by another. Which change most directly prevents this class of deadlock?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Use a global lock ordering rule and require all code paths to acquire locks in that order"
-        },
-        {
-          "label": "B",
-          "text": "Increase thread priority for the oldest request"
-        },
-        {
-          "label": "C",
-          "text": "Increase heap memory so locks can be stored faster"
-        },
-        {
-          "label": "D",
-          "text": "Move logs to a different disk partition"
+          "text": "HTTP caching is forcing the browser to skip user input"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Circular wait is a necessary deadlock condition. A consistent global lock ordering breaks circular wait."
+      "explanation": "Long synchronous JavaScript blocks the main thread, so the browser cannot paint or process other events."
     },
     {
-      "id": "mcq_09_virtual_memory",
+      "id": "mcq_12_javascript_closure",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Operating System",
-      "topic": "Operating System",
-      "prompt": "A batch job becomes extremely slow when its working set exceeds physical RAM. CPU utilization drops, disk I/O spikes and page faults increase sharply. What is the most accurate explanation?",
+      "title": "JavaScript",
+      "topic": "JavaScript",
+      "prompt": "A function creates a private counter variable and returns increment and reset functions that keep using that variable after the outer function has returned. What JavaScript concept enables this?",
       "options": [
         {
           "label": "A",
-          "text": "CPU cache associativity improved but reduced instruction-level parallelism"
+          "text": "Hoisting, because all variables are converted into global variables"
         },
         {
           "label": "B",
-          "text": "Thrashing: the process spends excessive time paging data between RAM and disk"
+          "text": "Event bubbling, because functions move upward through the DOM"
         },
         {
           "label": "C",
-          "text": "Deadlock: all threads are waiting on each other forever"
+          "text": "CSS inheritance, because styles are inherited by child elements"
         },
         {
           "label": "D",
-          "text": "DNS resolution failure between the process and database"
+          "text": "Closure, because the returned functions retain access to their lexical environment"
         }
       ],
       "correct_options": [
-        "B"
+        "D"
       ],
-      "explanation": "High page faults, low CPU and high disk I/O when memory is exceeded is classic thrashing."
+      "explanation": "A closure lets inner functions remember and access variables from the outer lexical scope after the outer function finishes."
     },
     {
-      "id": "mcq_10_threads",
+      "id": "mcq_13_javascript_async_error",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
-      "title": "Operating System",
-      "topic": "Operating System",
-      "prompt": "Two threads execute count = count + 1 on a shared integer one million times each. The final value is sometimes less than two million. Which explanation is correct?",
+      "title": "JavaScript",
+      "topic": "JavaScript",
+      "prompt": "An async function awaits a fetch call. When the server returns HTTP 500, the code still enters the success path because fetch resolved. What should the code do?",
       "options": [
         {
           "label": "A",
-          "text": "The operation is not atomic; read-modify-write interleavings cause lost updates without synchronization"
+          "text": "Assume fetch rejects for every HTTP error status and remove all status checks"
         },
         {
           "label": "B",
-          "text": "The compiler always executes both loops sequentially, so the result must be exact"
+          "text": "Wrap only JSON.parse in try/catch and ignore the HTTP status"
         },
         {
           "label": "C",
-          "text": "The OS intentionally removes increments to improve performance"
+          "text": "Check response.ok or status after await fetch and throw or handle an application error for non-2xx responses"
         },
         {
           "label": "D",
-          "text": "Integer addition is impossible in multi-threaded programs"
+          "text": "Use setTimeout before fetch so all server errors disappear"
+        }
+      ],
+      "correct_options": [
+        "C"
+      ],
+      "explanation": "fetch rejects mainly for network failures; HTTP error statuses still resolve and must be checked explicitly."
+    },
+    {
+      "id": "mcq_14_javascript_mutation",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "JavaScript",
+      "topic": "JavaScript",
+      "prompt": "A UI state array is sorted in place using state.items.sort(). A later comparison fails to detect a change correctly because the original array reference was mutated. What is the safer approach?",
+      "options": [
+        {
+          "label": "A",
+          "text": "Use sort twice so the original reference becomes new"
+        },
+        {
+          "label": "B",
+          "text": "Convert the array to a string and mutate the string instead"
+        },
+        {
+          "label": "C",
+          "text": "Create a copy first, such as [...state.items].sort(), and store the new array"
+        },
+        {
+          "label": "D",
+          "text": "Ignore reference equality because mutation never affects rendering"
+        }
+      ],
+      "correct_options": [
+        "C"
+      ],
+      "explanation": "Many UI patterns rely on immutable updates and reference changes; copying before sorting avoids mutating existing state."
+    },
+    {
+      "id": "mcq_15_javascript_debounce",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "JavaScript",
+      "topic": "JavaScript",
+      "prompt": "A search box calls the API on every keypress. Fast typing sends many requests and causes flickering results. The product wants to wait until the user pauses typing before searching. Which technique fits best?",
+      "options": [
+        {
+          "label": "A",
+          "text": "Debounce the search call so it runs after a short period without new input"
+        },
+        {
+          "label": "B",
+          "text": "Throttle the call to run exactly once every animation frame forever"
+        },
+        {
+          "label": "C",
+          "text": "Make the input readonly so no requests are sent"
+        },
+        {
+          "label": "D",
+          "text": "Send all keypresses and sort responses alphabetically"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Increment involves read, add and write. Without a lock/atomic operation, interleavings can overwrite updates."
+      "explanation": "Debouncing waits for a pause in input, which is ideal for typeahead/search requests."
     },
     {
-      "id": "mcq_11_autoscaling",
+      "id": "mcq_16_cloud_autoscaling_metric",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
       "title": "Cloud Computing",
       "topic": "Cloud Computing",
-      "prompt": "A service has low average CPU but high p95 latency because requests are blocked on database calls. Autoscaling only on CPU does not help. Which scaling signal is more appropriate?",
+      "prompt": "A web API has low CPU but high p95 latency because requests wait in a queue for database connections. CPU-based autoscaling does not add enough instances. Which scaling signal is more appropriate?",
       "options": [
         {
           "label": "A",
-          "text": "Average CPU only, because latency cannot be used for scaling decisions"
+          "text": "Average CPU only, because latency should never be used for autoscaling"
         },
         {
           "label": "B",
-          "text": "Request queue length, concurrency, p95 latency or custom application metrics tied to saturation"
+          "text": "The number of files in the application repository"
         },
         {
           "label": "C",
-          "text": "Number of source-code files in the repository"
+          "text": "The amount of unused disk space on developer laptops"
         },
         {
           "label": "D",
-          "text": "Amount of unused disk space on developer laptops"
+          "text": "Request queue length, active request concurrency, p95 latency or a custom saturation metric"
         }
       ],
       "correct_options": [
-        "B"
+        "D"
       ],
-      "explanation": "When the bottleneck is waiting/queueing rather than CPU, scaling signals should reflect request saturation or latency."
+      "explanation": "When saturation is caused by waiting and queueing, autoscaling should use request and latency signals instead of CPU alone."
     },
     {
-      "id": "mcq_12_high_availability",
+      "id": "mcq_17_cloud_high_availability",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
       "title": "Cloud Computing",
       "topic": "Cloud Computing",
-      "prompt": "A critical app runs on one VM in one availability zone and has nightly backups. Which risk remains even if backups are successful?",
+      "prompt": "A production application runs on a single virtual machine in one availability zone. It has nightly backups. What risk remains?",
       "options": [
         {
           "label": "A",
-          "text": "Backups remove all single points of failure"
+          "text": "A VM or zone failure can still cause downtime because backups support recovery, not active high availability"
         },
         {
           "label": "B",
-          "text": "An AZ or VM failure can still cause downtime because backups help recovery but do not provide active high availability"
+          "text": "Backups remove every single point of failure automatically"
         },
         {
           "label": "C",
-          "text": "High availability is guaranteed as long as the VM has enough disk"
+          "text": "High availability is guaranteed if the VM has enough storage"
         },
         {
           "label": "D",
@@ -1750,257 +1894,102 @@
         }
       ],
       "correct_options": [
-        "B"
+        "A"
       ],
-      "explanation": "Backups support recovery after failure; they do not prevent downtime from a single active instance or single-zone deployment."
+      "explanation": "Backups help restore after failure; high availability requires redundant active capacity across failure domains."
     },
     {
-      "id": "mcq_13_object_storage",
+      "id": "mcq_18_cloud_object_storage",
       "section": "MCQ",
       "engine": "mcq",
       "type": "mcq",
       "title": "Cloud Computing",
       "topic": "Cloud Computing",
-      "prompt": "A data platform stores millions of product images and event logs. Access is mostly by key/object name, cost matters, and POSIX file semantics are not required. Which storage type is the best fit?",
+      "prompt": "A media service stores millions of user-uploaded images and videos. Files are accessed by object key, need high durability, and do not require mounting a POSIX filesystem. Which storage type is the best fit?",
       "options": [
         {
           "label": "A",
-          "text": "Object storage, because it is scalable, durable and optimized for key-based blob access"
+          "text": "A single local disk on one application server"
         },
         {
           "label": "B",
-          "text": "Block storage attached to one VM, because it automatically scales globally without limits"
+          "text": "CPU cache"
         },
         {
           "label": "C",
-          "text": "CPU cache, because it is durable across restarts"
+          "text": "Object storage"
         },
         {
           "label": "D",
-          "text": "A single local folder on one application server"
+          "text": "Browser localStorage as the source of truth"
+        }
+      ],
+      "correct_options": [
+        "C"
+      ],
+      "explanation": "Object storage is designed for durable, scalable key-based storage of blobs such as images, videos and logs."
+    },
+    {
+      "id": "mcq_19_cloud_least_privilege",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "Cloud Computing",
+      "topic": "Cloud Computing",
+      "prompt": "A reporting service only needs read access to one analytics bucket, but its cloud role can delete buckets, create users and modify network rules. Which principle is violated and what should be done?",
+      "options": [
+        {
+          "label": "A",
+          "text": "High availability; add a second dashboard color theme"
+        },
+        {
+          "label": "B",
+          "text": "Vertical scaling; give the service a larger VM"
+        },
+        {
+          "label": "C",
+          "text": "Eventual consistency; wait longer before reading reports"
+        },
+        {
+          "label": "D",
+          "text": "Least privilege; reduce the role to only the permissions required for the reporting job"
+        }
+      ],
+      "correct_options": [
+        "D"
+      ],
+      "explanation": "Least privilege means granting only the permissions needed for the workload and nothing more."
+    },
+    {
+      "id": "mcq_20_cloud_serverless_tradeoff",
+      "section": "MCQ",
+      "engine": "mcq",
+      "type": "mcq",
+      "title": "Cloud Computing",
+      "topic": "Cloud Computing",
+      "prompt": "A team wants to run short image-thumbnail jobs only when uploads happen. Traffic is bursty, operations overhead should be low, and each job finishes quickly. Which compute model is usually the best starting point?",
+      "options": [
+        {
+          "label": "A",
+          "text": "Serverless functions triggered by object upload events"
+        },
+        {
+          "label": "B",
+          "text": "A permanently running large VM that polls every second even when there are no uploads"
+        },
+        {
+          "label": "C",
+          "text": "Manual execution from a developer laptop for every upload"
+        },
+        {
+          "label": "D",
+          "text": "A relational database trigger that performs CPU-heavy image processing inside the database engine"
         }
       ],
       "correct_options": [
         "A"
       ],
-      "explanation": "Object storage is designed for large-scale durable storage of blobs accessed by object keys."
-    },
-    {
-      "id": "mcq_14_phishing",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Network Security",
-      "topic": "Network Security",
-      "prompt": "Employees receive convincing fake vendor-invoice emails linking to a login page that captures passwords. Which combined control is strongest for reducing both delivery and account-takeover risk?",
-      "options": [
-        {
-          "label": "A",
-          "text": "User training only, because technical controls cannot reduce phishing risk"
-        },
-        {
-          "label": "B",
-          "text": "Email authentication/filtering, safe-link scanning, MFA and user reporting/training"
-        },
-        {
-          "label": "C",
-          "text": "Disable password complexity rules and reuse one shared password"
-        },
-        {
-          "label": "D",
-          "text": "Allow login only from browsers with dark mode enabled"
-        }
-      ],
-      "correct_options": [
-        "B"
-      ],
-      "explanation": "Phishing defense is layered: reduce malicious delivery, block/inspect links, make stolen passwords less useful through MFA and train/report."
-    },
-    {
-      "id": "mcq_15_sql_injection",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Network Security",
-      "topic": "Network Security",
-      "prompt": "An API builds SQL by concatenating user input into a WHERE clause. Attackers can change query logic through crafted input. What is the best primary fix?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Use parameterized queries/prepared statements so user input is bound as data, not executable SQL"
-        },
-        {
-          "label": "B",
-          "text": "Hide error messages but keep concatenating strings"
-        },
-        {
-          "label": "C",
-          "text": "Ask users not to type special characters"
-        },
-        {
-          "label": "D",
-          "text": "Move the SQL string to a different source-code file"
-        }
-      ],
-      "correct_options": [
-        "A"
-      ],
-      "explanation": "Parameterized queries separate SQL structure from user values and are the primary defense against SQL injection."
-    },
-    {
-      "id": "mcq_16_least_privilege",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Network Security",
-      "topic": "Network Security",
-      "prompt": "A dashboard service account only needs to read monthly sales tables, but it currently has permissions to drop tables and create users in production. Which security principle is violated?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Least privilege, because the account has more permissions than required for its job"
-        },
-        {
-          "label": "B",
-          "text": "Eventual consistency, because reads may be delayed"
-        },
-        {
-          "label": "C",
-          "text": "Polymorphism, because the account has multiple behaviors"
-        },
-        {
-          "label": "D",
-          "text": "Caching, because the dashboard may store results"
-        }
-      ],
-      "correct_options": [
-        "A"
-      ],
-      "explanation": "Least privilege means granting only the permissions necessary for the specific task."
-    },
-    {
-      "id": "mcq_17_cache",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Computer Architecture",
-      "topic": "Computer Architecture",
-      "prompt": "A product-price service caches prices for 24 hours. The database updates prices hourly, and users sometimes see outdated prices after a promotion change. Which trade-off is being mishandled?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Cache freshness versus latency/load reduction; invalidation or shorter TTL may be needed"
-        },
-        {
-          "label": "B",
-          "text": "CPU instruction pipelining versus branch prediction"
-        },
-        {
-          "label": "C",
-          "text": "DNS recursion versus TCP retransmission"
-        },
-        {
-          "label": "D",
-          "text": "Disk formatting versus monitor refresh rate"
-        }
-      ],
-      "correct_options": [
-        "A"
-      ],
-      "explanation": "Caching improves latency and reduces load but risks stale data. Price data often needs invalidation or shorter TTL."
-    },
-    {
-      "id": "mcq_18_pipelining",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "Computer Architecture",
-      "topic": "Computer Architecture",
-      "prompt": "In a CPU pipeline, instruction I2 needs a value produced by immediately preceding instruction I1. Without forwarding, I2 may read the old value unless it waits. What type of hazard is this?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Data hazard, specifically a read-after-write dependency"
-        },
-        {
-          "label": "B",
-          "text": "Structural hazard caused by two monitors sharing one cable"
-        },
-        {
-          "label": "C",
-          "text": "Control hazard caused only by DNS redirects"
-        },
-        {
-          "label": "D",
-          "text": "Cache eviction policy violation"
-        }
-      ],
-      "correct_options": [
-        "A"
-      ],
-      "explanation": "I2 depends on the result written by I1, so this is a RAW data hazard."
-    },
-    {
-      "id": "mcq_19_vlookup",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "MS Excel",
-      "topic": "MS Excel",
-      "prompt": "A VLOOKUP formula returns wrong values after a new column is inserted into the lookup table because the formula used a fixed column index. What is the most robust correction?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Use XLOOKUP or INDEX-MATCH with explicit lookup/return ranges instead of a fragile hard-coded column index"
-        },
-        {
-          "label": "B",
-          "text": "Change the worksheet zoom level"
-        },
-        {
-          "label": "C",
-          "text": "Sort the sheet by font color"
-        },
-        {
-          "label": "D",
-          "text": "Convert all numbers to text without changing the formula"
-        }
-      ],
-      "correct_options": [
-        "A"
-      ],
-      "explanation": "XLOOKUP or INDEX-MATCH can reference the return column directly, reducing breakage from inserted columns."
-    },
-    {
-      "id": "mcq_20_pivot",
-      "section": "MCQ",
-      "engine": "mcq",
-      "type": "mcq",
-      "title": "MS Excel",
-      "topic": "MS Excel",
-      "prompt": "A pivot table shows inflated revenue after orders are joined to order_items. Each order-level revenue value is repeated once per item row. What is the best analytical fix before creating the pivot?",
-      "options": [
-        {
-          "label": "A",
-          "text": "Aggregate or deduplicate to the correct grain, such as one row per order, before summing order-level revenue"
-        },
-        {
-          "label": "B",
-          "text": "Change the pivot chart color to make duplicates less visible"
-        },
-        {
-          "label": "C",
-          "text": "Use COUNT instead of SUM for all financial metrics"
-        },
-        {
-          "label": "D",
-          "text": "Hide the duplicated rows manually without checking grain"
-        }
-      ],
-      "correct_options": [
-        "A"
-      ],
-      "explanation": "The issue is grain mismatch. Order-level metrics must be aggregated at order grain before joining or summing in a pivot."
+      "explanation": "Serverless functions fit short event-driven bursty workloads and reduce always-on infrastructure management."
     }
   ]
 }

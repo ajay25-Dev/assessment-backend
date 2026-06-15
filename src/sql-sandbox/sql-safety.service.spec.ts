@@ -18,9 +18,27 @@ describe('SqlSafetyService', () => {
     ).toContain('WITH rows');
   });
 
-  it('rejects mutation keywords', () => {
+  it('allows sandbox mutation and alter statements', () => {
+    expect(service.assertSafeSelect("INSERT INTO users(id) VALUES (1);")).toBe(
+      "INSERT INTO users(id) VALUES (1)",
+    );
+    expect(service.assertSafeSelect("UPDATE users SET name = 'A';")).toBe(
+      "UPDATE users SET name = 'A'",
+    );
+    expect(service.assertSafeSelect('DELETE FROM users;')).toBe(
+      'DELETE FROM users',
+    );
+    expect(
+      service.assertSafeSelect('ALTER TABLE users ADD COLUMN age int;'),
+    ).toBe('ALTER TABLE users ADD COLUMN age int');
+  });
+
+  it('rejects dangerous database operations', () => {
     expect(() =>
       service.assertSafeSelect('SELECT * FROM users; DROP TABLE users'),
+    ).toThrow(BadRequestException);
+    expect(() =>
+      service.assertSafeSelect('ALTER DATABASE app OWNER TO other_user'),
     ).toThrow(BadRequestException);
   });
 

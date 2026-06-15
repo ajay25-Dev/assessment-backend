@@ -43,7 +43,7 @@ type FinalizeAnswer = {
   } | null;
 };
 
-type DsaQuestionSubmitInput = {
+type QuestionSubmitInput = {
   student_id?: string;
   student_email?: string;
   assessment_id?: string;
@@ -176,7 +176,7 @@ export class AssessmentPipelineService {
   }
 
   async persistDsaQuestionSubmission(rawInput: unknown) {
-    const input = this.parseDsaQuestionSubmitInput(rawInput);
+    const input = this.parseQuestionSubmitInput(rawInput);
     const bank = (await this.questionBank.getBank()) as Bank;
     const questions = bank.questions || [];
     const question = questions.find((item) => item.id === input.question_id);
@@ -220,6 +220,68 @@ export class AssessmentPipelineService {
       all_doc_test_cases: question.test_cases || [],
     };
     const evaluation = await this.dsaEvaluation.evaluate(evaluationDetail);
+    const attemptId = await this.upsertAssessmentAttempt(
+      {
+        student_id: input.student_id,
+        student_email: input.student_email,
+        assessment_id: input.assessment_id,
+        started_at: input.started_at,
+        submitted_at: submittedAt,
+        duration_minutes: durationMinutes,
+        submission_mode: input.submission_mode || 'manual',
+        integrity_status: null,
+        integrity_source: null,
+        integrity_message: null,
+        integrity_event_count: null,
+      },
+      bank,
+      submittedAt,
+      durationMinutes,
+      'in_progress',
+    );
+
+    await this.persistQuestionAttemptSnapshot(attemptId, question, input, submittedAt);
+    await this.persistQuestionEvaluationSnapshot(
+      attemptId,
+      question,
+      input,
+      submittedAt,
+      evaluation,
+    );
+
+    return {
+      attempt_id: attemptId,
+      question_id: question.id,
+      section: question.section,
+      status: 'saved',
+      evaluation,
+    };
+  }
+
+  async persistSectionQuestionSubmission(section: Section, rawInput: unknown) {
+    const input = this.parseQuestionSubmitInput(rawInput);
+    const bank = (await this.questionBank.getBank()) as Bank;
+    const questions = bank.questions || [];
+    const question = questions.find((item) => item.id === input.question_id);
+
+    if (!question) {
+      throw new BadRequestException(`Unknown question_id ${input.question_id}`);
+    }
+    if (question.section !== section) {
+      throw new BadRequestException(`${question.id} is not a ${section} question`);
+    }
+    if (section === 'DSA') {
+      return this.persistDsaQuestionSubmission(rawInput);
+    }
+
+    const submittedAt = input.submitted_at || new Date().toISOString();
+    const durationMinutes =
+      input.duration_minutes || bank.assessment?.duration_minutes || 180;
+    const evaluation = await this.evaluateSingleSubmittedQuestion(
+      section,
+      question,
+      input,
+    );
     const attemptId = await this.upsertAssessmentAttempt(
       {
         student_id: input.student_id,
@@ -629,6 +691,116 @@ export class AssessmentPipelineService {
     }
   }
 
+  private async tryEvaluateQuestionSubmit(
+    section: string,
+    evaluate: () => Promise<EvaluationResult>,
+    fallback: EvaluationResult,
+  ) {
+    try {
+      return await evaluate();
+    } catch (error) {
+      return {
+        ...fallback,
+        output: {
+          ...fallback.output,
+          evaluation_error:
+            error instanceof Error
+              ? error.message
+              : `${section} evaluation failed`,
+        },
+      };
+    }
+  }
+
+  private async evaluateSingleSubmittedQuestion(
+    section: Section,
+    question: BankQuestion,
+    input: QuestionSubmitInput,
+  ): Promise<EvaluationResult> {
+    const answer = input.answer || {};
+    if (section === 'SQL') {
+      const detail = {
+        question_id: question.id,
+        question_title: question.title || question.id,
+        prompt: question.prompt,
+        topic: question.topic,
+        expected_approach: question.expected_approach,
+        expected_code: question.expected_code,
+        evaluator_context: question.evaluator_context,
+        schema_ref: question.schema_ref,
+        submitted_query: answer.value || '',
+        status: answer.status || 'submitted',
+        run_count: answer.runs || 0,
+        submit_count: answer.submissions || 0,
+        execution_ms: this.nullableNumber(answer.sqlExecutionMs),
+        sql_result_summary: answer.resultMessage || '',
+      };
+      return this.tryEvaluateQuestionSubmit(
+        'SQL',
+        () => this.sqlEvaluation.evaluate(detail),
+        this.fallbackQuestionEvaluation('SQL', detail),
+      );
+    }
+
+    if (section === 'OOPs') {
+      const detail = {
+        question_id: question.id,
+        question_title: question.title || question.id,
+        prompt: question.prompt,
+        topic: question.topic,
+        difficulty: question.difficulty,
+        expected_approach: question.expected_approach,
+        expected_code: question.expected_code,
+        evaluator_context: question.evaluator_context,
+        language: answer.language,
+        submitted_code: answer.value || '',
+        status: answer.status || 'submitted',
+        run_count: answer.runs || 0,
+        submit_count: answer.submissions || 0,
+        compiler_result_summary: answer.resultMessage || '',
+        execution_time_ms: this.parseExecutionTimeMs(answer.executionTime),
+        execution_memory_kb: this.nullableNumber(answer.executionMemory),
+        testResults: input.test_results || answer.testResults || answer.test_results || null,
+        test_results: input.test_results || answer.testResults || answer.test_results || null,
+        open_test_cases: [],
+        hidden_test_cases: [],
+        all_doc_test_cases: question.test_cases || [],
+      };
+      return this.tryEvaluateQuestionSubmit(
+        'OOPs',
+        () => this.oopsEvaluation.evaluate(detail),
+        this.fallbackQuestionEvaluation('OOPs', detail),
+      );
+    }
+
+    if (section === 'MCQ') {
+      const selected = answer.selectedOptions || [];
+      const correct = question.correct_options || [];
+      const score = this.sameStringSet(selected, correct) ? 100 : 0;
+      return {
+        section: 'MCQ',
+        prompt_version: 'mcq-question-deterministic.v1',
+        model: 'deterministic',
+        output: {
+          section: 'MCQ',
+          question_id: question.id,
+          question_title: question.title || question.id,
+          topic: question.topic || 'general',
+          selected_options: selected,
+          correct_options: correct,
+          explanation: question.explanation || '',
+          is_correct: this.sameStringSet(selected, correct),
+          overall_question_score: score,
+          overall_mcq_score: score,
+          score_basis: 'selected_options_match',
+          placement_readiness_label: score === 100 ? 'Strong Ready' : 'Needs Revision',
+        },
+      };
+    }
+
+    throw new BadRequestException(`${section} question submission is not supported`);
+  }
+
   private isFinalizeAiEvaluationEnabled() {
     const value = String(
       this.config.get<string>('ASSESSMENT_FINALIZE_AI_EVALUATION') || '',
@@ -829,7 +1001,7 @@ export class AssessmentPipelineService {
   private async persistQuestionAttemptSnapshot(
     attemptId: string,
     question: BankQuestion,
-    input: DsaQuestionSubmitInput,
+    input: QuestionSubmitInput,
     submittedAt: string,
   ) {
     const answer = input.answer || {};
@@ -864,7 +1036,7 @@ export class AssessmentPipelineService {
   private async persistQuestionEvaluationSnapshot(
     attemptId: string,
     question: BankQuestion,
-    input: DsaQuestionSubmitInput,
+    input: QuestionSubmitInput,
     submittedAt: string,
     evaluation: EvaluationResult,
   ) {
@@ -878,7 +1050,7 @@ export class AssessmentPipelineService {
       section: question.section,
       deterministic_score: scoreValue,
       ai_evaluation: {
-        source: 'dsa-ai-evaluation',
+        source: `${String(question.section || '').toLowerCase()}-question-submit`,
         submitted_at: submittedAt,
         question_id: question.id,
         question_title: question.title || question.id,
@@ -942,12 +1114,12 @@ export class AssessmentPipelineService {
     }
   }
 
-  private parseDsaQuestionSubmitInput(rawInput: unknown): DsaQuestionSubmitInput {
+  private parseQuestionSubmitInput(rawInput: unknown): QuestionSubmitInput {
     if (!rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) {
       throw new BadRequestException('Submission payload must be a JSON object');
     }
 
-    const input = rawInput as DsaQuestionSubmitInput;
+    const input = rawInput as QuestionSubmitInput;
     const studentId = String(input.student_id || '').trim();
     if (!studentId) throw new BadRequestException('student_id is required');
     input.student_id = studentId;
@@ -1332,14 +1504,22 @@ export class AssessmentPipelineService {
     dashboardInput: Record<string, unknown>;
   }) {
     const output = params.dashboardEvaluation.output as Record<string, unknown>;
+    const persistedSectionScores = await this.loadPersistedSectionScores(
+      params.attemptId,
+    );
     const sectionScores = {
-      DSA: this.numberOutput(output.dsa_score, params.deterministicScores.DSA),
-      SQL: this.numberOutput(output.sql_score, params.deterministicScores.SQL),
-      OOPs: this.numberOutput(
-        output.oops_score,
-        params.deterministicScores.OOPs,
-      ),
-      MCQ: this.numberOutput(output.mcq_score, params.deterministicScores.MCQ),
+      DSA:
+        persistedSectionScores.DSA ??
+        this.numberOutput(output.dsa_score, params.deterministicScores.DSA),
+      SQL:
+        persistedSectionScores.SQL ??
+        this.numberOutput(output.sql_score, params.deterministicScores.SQL),
+      OOPs:
+        persistedSectionScores.OOPs ??
+        this.numberOutput(output.oops_score, params.deterministicScores.OOPs),
+      MCQ:
+        persistedSectionScores.MCQ ??
+        this.numberOutput(output.mcq_score, params.deterministicScores.MCQ),
     };
     const marksScore = this.numberOutput(output.overall_marks_score);
     const capabilityScore = this.numberOutput(
@@ -1471,6 +1651,85 @@ export class AssessmentPipelineService {
     throw new InternalServerErrorException(
       `Could not write dashboard report: ${result.error.message}`,
     );
+  }
+
+  private async loadPersistedSectionScores(attemptId: string) {
+    const { data, error } = await this.getSupabase()
+      .from('student_question_evaluations')
+      .select(
+        'question_id,section,deterministic_score,final_score,ai_evaluation,created_at',
+      )
+      .eq('attempt_id', attemptId);
+
+    if (error || !Array.isArray(data)) return {};
+
+    const latestByQuestion = new Map<
+      string,
+      {
+        question_id?: unknown;
+        section?: unknown;
+        deterministic_score?: unknown;
+        final_score?: unknown;
+        ai_evaluation?: unknown;
+        created_at?: unknown;
+      }
+    >();
+
+    const createdAtTime = (value: unknown) => {
+      const time = new Date(String(value || '')).getTime();
+      return Number.isFinite(time) ? time : 0;
+    };
+
+    [...data]
+      .sort(
+        (left, right) =>
+          createdAtTime(left.created_at) - createdAtTime(right.created_at),
+      )
+      .forEach((row) => {
+        const questionId = this.textOutput(row.question_id);
+        if (!questionId) return;
+        latestByQuestion.set(questionId, row);
+      });
+
+    const grouped: Partial<Record<Section, number[]>> = {};
+    latestByQuestion.forEach((row) => {
+      const section = this.normalizeSection(row.section);
+      if (!section) return;
+      const output =
+        this.recordValue(this.recordValue(row.ai_evaluation)?.output) || {};
+      const score = this.numberOutput(
+        row.final_score,
+        this.numberOutput(
+          row.deterministic_score,
+          this.numberOutput(
+            output.overall_question_score,
+            this.numberOutput(output.overall_mcq_score),
+          ),
+        ),
+      );
+      grouped[section] = grouped[section] || [];
+      grouped[section]?.push(score);
+    });
+
+    return Object.fromEntries(
+      Object.entries(grouped).map(([section, scores]) => [
+        section,
+        scores.length
+          ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+          : 0,
+      ]),
+    ) as Partial<Record<Section, number>>;
+  }
+
+  private normalizeSection(value: unknown): Section | null {
+    const normalized = String(value || '')
+      .trim()
+      .toLowerCase();
+    if (normalized === 'dsa') return 'DSA';
+    if (normalized === 'sql') return 'SQL';
+    if (normalized === 'oops') return 'OOPs';
+    if (normalized === 'mcq') return 'MCQ';
+    return null;
   }
 
   private fallbackQuestionEvaluation(

@@ -1,1 +1,21 @@
--- Hidden dataset loaded by the sandbox during final validation.
+INSERT INTO merchants VALUES
+(1, 'Ridge Commerce', 'ACTIVE'),
+(2, 'Nova Travels', 'ACTIVE'),
+(3, 'Legacy Bazaar', 'INACTIVE'),
+(4, 'Zen Market', 'ACTIVE');
+
+INSERT INTO payment_transactions VALUES
+(1001, 1, 1000.00, 20.00, 3.60, 'CAPTURED', '2026-06-01', '2026-06-03'),
+(1002, 1, 2000.00, 40.00, 7.20, 'CAPTURED', '2026-06-02', '2026-06-04'),
+(1003, 2, 1500.00, 30.00, 5.40, 'CAPTURED', '2026-06-05', '2026-06-07'),
+(1004, 2, 800.00, 16.00, 2.88, 'FAILED', '2026-06-05', '2026-06-07'),
+(1005, 3, 1200.00, 24.00, 4.32, 'CAPTURED', '2026-06-01', '2026-06-03'),
+(1006, 4, 5000.00, 100.00, 18.00, 'CAPTURED', '2026-06-02', '2026-06-04'),
+(1007, 4, 2500.00, 50.00, 9.00, 'CAPTURED', '2026-06-12', '2026-06-20');
+
+INSERT INTO settlement_payouts VALUES
+(1, 1001, '2026-06-03', 976.40, 'PAID'),
+(2, 1002, '2026-06-04', 1900.00, 'PAID'),
+(3, 1005, '2026-06-03', 1171.68, 'PAID'),
+(4, 1006, '2026-06-04', 2400.00, 'PAID'),
+(5, 1006, '2026-06-05', 2400.00, 'PAID');

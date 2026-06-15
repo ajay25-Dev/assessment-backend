@@ -99,7 +99,9 @@ export class TestHarnessService {
     testCases: TestCase[],
     questionId: string,
   ): string {
-    if (testCases.length === 0) return sourceCode;
+    if (testCases.length === 0) {
+      return this.wrapCompileOnlySource(language, sourceCode);
+    }
 
     switch (language) {
       case 'python':
@@ -123,6 +125,29 @@ export class TestHarnessService {
       expected: tc.expected_output || tc.expected || '',
       purpose: tc.purpose || '',
     }));
+  }
+
+  private wrapCompileOnlySource(language: string, sourceCode: string) {
+    switch (language) {
+      case 'cpp':
+        return /\bmain\s*\(/.test(sourceCode)
+          ? sourceCode
+          : `${sourceCode}\n\nint main() { return 0; }\n`;
+      case 'c':
+        return /\bmain\s*\(/.test(sourceCode)
+          ? sourceCode
+          : `${sourceCode}\n\nint main(void) { return 0; }\n`;
+      case 'java':
+        return /\bclass\s+Main\b/.test(sourceCode)
+          ? sourceCode
+          : `${this.removeJavaPublicTypeModifiers(sourceCode)}\n\nclass Main { public static void main(String[] args) {} }\n`;
+      default:
+        return sourceCode;
+    }
+  }
+
+  private removeJavaPublicTypeModifiers(sourceCode: string) {
+    return sourceCode.replace(/\bpublic\s+(?=(class|interface|enum)\s+(?!Main\b))/g, '');
   }
 
   private escapedJsonForJava(value: unknown) {

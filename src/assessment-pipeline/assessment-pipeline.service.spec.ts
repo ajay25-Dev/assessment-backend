@@ -27,13 +27,13 @@ describe('AssessmentPipelineService', () => {
 
     return {
       service: new AssessmentPipelineService(
-        config,
-        questionBank,
-        dsaEvaluation,
-        sqlEvaluation,
-        oopsEvaluation,
-        mcqEvaluation,
-        dashboardEvaluation,
+        config as never,
+        questionBank as never,
+        dsaEvaluation as never,
+        sqlEvaluation as never,
+        oopsEvaluation as never,
+        mcqEvaluation as never,
+        dashboardEvaluation as never,
       ),
       questionBank,
     };
