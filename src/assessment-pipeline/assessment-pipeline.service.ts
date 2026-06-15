@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -264,6 +265,7 @@ export class AssessmentPipelineService {
   ) {
     const stage = this.parseFinalizeStage(rawStage);
     const input = this.parseInput(rawInput);
+    await this.ensureAttemptOwnership(attemptId, input.student_id || '', input.assessment_id);
     const bank = (await this.questionBank.getBank()) as Bank;
     const questions = bank.questions || [];
     const questionsById = new Map(
@@ -1036,6 +1038,46 @@ export class AssessmentPipelineService {
       throw new InternalServerErrorException(
         `Could not replace assessment report: ${error.message}`,
       );
+    }
+  }
+
+  private async ensureAttemptOwnership(
+    attemptId: string,
+    studentId: string,
+    assessmentId?: string,
+  ) {
+    if (!studentId) {
+      throw new BadRequestException('student_id is required');
+    }
+
+    const { data: attempt, error } = await this.getSupabase()
+      .from('student_assessment_attempts')
+      .select('id,assessment_id,client_metadata')
+      .eq('id', attemptId)
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not verify assessment attempt ownership: ${error.message}`,
+      );
+    }
+
+    if (!attempt?.id) {
+      throw new NotFoundException('Assessment attempt not found');
+    }
+
+    const attemptAssessmentId = this.textOutput(
+      (attempt as {
+        assessment_id?: unknown;
+        client_metadata?: { source_assessment_id?: unknown } | null;
+      }).client_metadata?.source_assessment_id ||
+        (attempt as { assessment_id?: unknown }).assessment_id ||
+        '',
+    );
+
+    if (assessmentId && attemptAssessmentId && attemptAssessmentId !== assessmentId) {
+      throw new NotFoundException('Assessment attempt not found');
     }
   }
 
