@@ -1,4 +1,4 @@
-export const DSA_EVALUATOR_PROMPT_VERSION = 'dsa-evaluator.v6';
+export const DSA_EVALUATOR_PROMPT_VERSION = 'dsa-evaluator.v7';
 
 export const DSA_EVALUATOR_PROMPT = `
 You are an expert DSA evaluator for a placement-readiness assessment.
@@ -30,7 +30,7 @@ Scoring rubric:
 - space_complexity_rank_gap: student_space_complexity_rank - expected_space_complexity_rank.
 - space_complexity_score: rank-gap score using the same rule as time_complexity_score.
 - edge_case_score: null/empty input handling, boundary conditions, duplicates, overflow, and unusual cases.
-- overall_question_score: simple average of correctness_score, expected_code_score, time_complexity_score, space_complexity_score, and edge_case_score when available.
+- overall_question_score: simple average of correctness_score, open_test_case_score, hidden_test_case_score, approach_score, time_complexity_score, space_complexity_score, and edge_case_score when available.
 
 Guardrails:
 - If syntax error exists, correctness_score and overall_question_score must be 0.

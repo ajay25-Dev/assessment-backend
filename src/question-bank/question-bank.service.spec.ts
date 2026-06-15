@@ -63,12 +63,22 @@ describe('QuestionBankService', () => {
     const bank = (await service.getBank()) as {
       questions: Array<{
         section: string;
+        expected_approach?: string[];
         open_test_cases?: Array<{ input?: string; expected?: string }>;
         hidden_test_cases?: Array<{ input?: string; expected?: string }>;
       }>;
     };
     const vaguePattern =
       /\b(any|valid|before|within\s+time|correct\s+.*\s+(count|list|operations))\b|\.{3}/i;
+
+    bank.questions
+      .filter((question) => question.section === 'DSA')
+      .forEach((question) => {
+        expect(question.expected_approach?.length).toBeGreaterThan(0);
+        question.expected_approach?.forEach((tag) => {
+          expect(tag).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+        });
+      });
 
     bank.questions
       .filter((question) => question.section === 'DSA')

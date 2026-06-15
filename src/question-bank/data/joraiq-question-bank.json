@@ -99,12 +99,11 @@
       ],
       "function_signature": "maxOnTimeIncidents(n, dependencies, durations, deadlines)",
       "expected_approach": [
-        "Build prerequisite bitmasks for every incident",
-        "Detect cycles using DFS/topological check",
-        "Use bitmask DP over completed incident subsets",
-        "For each subset, try unresolved incidents whose prerequisites are already completed",
-        "Track best on-time count for each subset using total duration of the subset as completion time",
-        "O(n * 2^n)"
+        "prerequisite-bitmask",
+        "cycle-detection",
+        "bitmask-dp",
+        "subset-transition",
+        "deadline-aware-selection"
       ],
       "expected_time_complexity": "O(n * 2^n)",
       "expected_space_complexity": "O(2^n)",
@@ -352,14 +351,11 @@
       ],
       "function_signature": "maxOnTimeDeliveries(n, roads, packages)",
       "expected_approach": [
-        "Graph representation",
-        "Modified Dijkstra with waiting time",
-        "Shortest path with time-dependent edges",
-        "Bitmask dynamic programming",
-        "State optimization",
-        "Greedy failure recognition",
-        "Complexity analysis",
-        "Edge case handling"
+        "graph-representation",
+        "time-dependent-dijkstra",
+        "bitmask-dp",
+        "pickup-delivery-ordering",
+        "state-optimization"
       ],
       "expected_time_complexity": "O(k * (n + m) log n + k^2 * 2^k)",
       "expected_space_complexity": "O(n + m + k * 2^k)",
@@ -605,12 +601,11 @@
       ],
       "function_signature": "uniqueChunksInRanges(files, queries)",
       "expected_approach": [
-        "Remove duplicate chunks inside each file",
-        "Sort queries by right endpoint",
-        "Scan files from left to right",
-        "For each chunk, remove its previous active position and add its latest position in a Fenwick Tree",
-        "Answer each query using range sum on the Fenwick Tree",
-        "O((totalChunks + queries) log files.length)"
+        "intra-file-deduplication",
+        "offline-query-sorting",
+        "sweep-line",
+        "fenwick-tree",
+        "range-sum-query"
       ],
       "expected_time_complexity": "O((totalChunks + queries) log files.length)",
       "expected_space_complexity": "O(files.length + totalChunks)",
@@ -856,12 +851,11 @@
       ],
       "function_signature": "VersionedStore.set(baseVersion,key,value), VersionedStore.get(version,key)",
       "expected_approach": [
-        "For every version, store parentVersion, changedKey and changedValue",
-        "set creates a new node/version that points to baseVersion",
-        "get walks from the requested version to its ancestors until the key is found",
-        "Return NULL if the chain reaches version 0 without finding the key",
-        "Optional memoization can speed up repeated get calls",
-        "O(depth) per get, O(1) per set for the accepted 30-minute version"
+        "parent-pointer-chain",
+        "ancestor-traversal",
+        "versioned-state",
+        "branch-isolation",
+        "memoization"
       ],
       "expected_time_complexity": "O(depth) per get, O(1) per set",
       "expected_space_complexity": "O(totalVersions)",

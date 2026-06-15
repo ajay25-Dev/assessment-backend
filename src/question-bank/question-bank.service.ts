@@ -200,6 +200,7 @@ export class QuestionBankService {
             `${question.id} must include 15 doc test cases, 5 open cases and 10 hidden cases`,
           );
         }
+        this.assertDsaApproachTags(question);
         this.assertAuthenticDsaCases(question);
       }
 
@@ -251,6 +252,31 @@ export class QuestionBankService {
       }
       this.assertDsaCaseParseable(String(question.id), input, expected, label);
     });
+  }
+
+  private assertDsaApproachTags(question: BankQuestion) {
+    const tags = question.expected_approach || [];
+    if (!tags.length) {
+      throw new InternalServerErrorException(
+        `${question.id} must include expected_approach tags`,
+      );
+    }
+
+    const invalid = tags.filter(
+      (tag) => typeof tag !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag),
+    );
+
+    if (invalid.length) {
+      throw new InternalServerErrorException(
+        `${question.id} has non-slug expected_approach entries`,
+      );
+    }
+
+    if (new Set(tags).size !== tags.length) {
+      throw new InternalServerErrorException(
+        `${question.id} has duplicate expected_approach tags`,
+      );
+    }
   }
 
   private assertDsaCaseParseable(

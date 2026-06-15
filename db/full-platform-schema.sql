@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE,
   full_name TEXT,
+  roll_number TEXT,
   role TEXT NOT NULL DEFAULT 'student'
     CHECK (role IN ('student', 'admin')),
   phone TEXT,

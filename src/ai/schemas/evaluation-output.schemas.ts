@@ -38,6 +38,14 @@ export const dsaComplexityOutputSchema = strictObject({
   },
 });
 
+export const dsaApproachOutputSchema = strictObject({
+  detected_tags: stringArray,
+});
+
+export const dsaExpectedCodeOutputSchema = strictObject({
+  expected_code_score: score,
+});
+
 export const dsaEvaluationOutputSchema = strictObject({
   section: { type: 'string', enum: ['DSA'] },
   question_id: text,
@@ -49,6 +57,14 @@ export const dsaEvaluationOutputSchema = strictObject({
   expected_code_score: score,
   matched_expected_code: stringArray,
   missing_expected_code: stringArray,
+  approach_match_percentage: score,
+  expected_approach_used: {
+    type: 'string',
+    enum: ['Yes', 'Partial', 'No'],
+  },
+  approach_score: score,
+  expected_approach_tags: stringArray,
+  ai_returned_approach_tags: stringArray,
   expected_time_complexity: text,
   expected_time_complexity_rank: score,
   expected_time_complexity_label: text,

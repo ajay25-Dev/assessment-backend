@@ -5,6 +5,8 @@ type SignupBody = {
   email?: string;
   password?: string;
   fullName?: string;
+  rollNumber?: string;
+  roll_number?: string;
 };
 
 @Controller('auth')
