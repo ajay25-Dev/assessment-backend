@@ -29,11 +29,38 @@ describe('TestHarnessService', () => {
       runType: 'run',
     });
 
-    expect(source).toContain('compareTopologicalOrder');
+    expect(source).toContain('compareOutputs');
     expect(source).toContain(
       'invokeUserFunc("dsa_servicenow_incident_dependency"',
     );
     expect(source).not.toContain('lower.startsWith("any")');
     expect(source).not.toContain('includes("before")');
+  });
+
+  it('adds a no-op C++ main for code-design questions without test cases', async () => {
+    const source = await service.buildSource({
+      language: 'cpp',
+      sourceCode: 'class WorkflowEngine { public: void next() {} };',
+      questionId: 'oops_atlassian_jira_workflow',
+      runType: 'run',
+    });
+
+    expect(source).toContain('class WorkflowEngine');
+    expect(source).toContain('int main() { return 0; }');
+  });
+
+  it('adds a Java Main class for code-design questions without test cases', async () => {
+    const source = await service.buildSource({
+      language: 'java',
+      sourceCode: 'public interface PaymentMethod { boolean pay(); }',
+      questionId: 'oops_razorpay_payments',
+      runType: 'run',
+    });
+
+    expect(source).toContain('interface PaymentMethod');
+    expect(source).not.toContain('public interface PaymentMethod');
+    expect(source).toContain(
+      'class Main { public static void main(String[] args) {} }',
+    );
   });
 });

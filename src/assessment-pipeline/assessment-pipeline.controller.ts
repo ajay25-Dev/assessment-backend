@@ -15,6 +15,21 @@ export class AssessmentPipelineController {
     return this.pipeline.persistDsaQuestionSubmission(body);
   }
 
+  @Post('sql/submit')
+  persistSqlQuestionSubmission(@Body() body: unknown) {
+    return this.pipeline.persistSectionQuestionSubmission('SQL', body);
+  }
+
+  @Post('oops/submit')
+  persistOopsQuestionSubmission(@Body() body: unknown) {
+    return this.pipeline.persistSectionQuestionSubmission('OOPs', body);
+  }
+
+  @Post('mcq/submit')
+  persistMcqQuestionSubmission(@Body() body: unknown) {
+    return this.pipeline.persistSectionQuestionSubmission('MCQ', body);
+  }
+
   @Post('finalize/:attemptId/:stage')
   processFinalizeStage(
     @Param('attemptId') attemptId: string,

@@ -1,11 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const blockedPatterns = [
-  /\binsert\b/i,
-  /\bupdate\b/i,
-  /\bdelete\b/i,
   /\bdrop\b/i,
-  /\balter\b/i,
+  /\balter\s+(database|role|user|system|extension|schema)\b/i,
   /\bcreate\b/i,
   /\btruncate\b/i,
   /\bcopy\b/i,
@@ -15,7 +12,6 @@ const blockedPatterns = [
   /\bcall\b/i,
   /\bdo\b/i,
   /\bmerge\b/i,
-  /\bset\b/i,
   /\breset\b/i,
   /\bprepare\b/i,
   /\bdeallocate\b/i,
@@ -39,8 +35,10 @@ export class SqlSafetyService {
 
     const sanitized = this.stripCommentsAndStrings(normalized);
 
-    if (!/^(select|with)\b/i.test(sanitized.trim())) {
-      throw new BadRequestException('Only SELECT/WITH queries are allowed');
+    if (!/^(select|with|insert|update|delete|alter)\b/i.test(sanitized.trim())) {
+      throw new BadRequestException(
+        'Only SELECT/WITH/INSERT/UPDATE/DELETE/ALTER queries are allowed',
+      );
     }
 
     if (this.hasMultipleStatements(sanitized)) {
@@ -49,10 +47,15 @@ export class SqlSafetyService {
 
     const blocked = blockedPatterns.find((pattern) => pattern.test(sanitized));
     if (blocked) {
-      throw new BadRequestException('Only read-only SQL is allowed');
+      throw new BadRequestException('This SQL operation is not allowed');
     }
 
     return normalized.replace(/;+\s*$/g, '');
+  }
+
+  shouldApplyRowLimit(query: string) {
+    const sanitized = this.stripCommentsAndStrings(query).trim();
+    return /^select\b/i.test(sanitized);
   }
 
   private hasMultipleStatements(query: string) {

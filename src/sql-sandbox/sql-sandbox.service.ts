@@ -20,17 +20,17 @@ const schemaFiles: Record<
   string,
   { schema: string; visible: string; hidden: string }
 > = {
-  sql_amazon_delivery_promise: {
+  sql_blinkit_replenishment_risk: {
     schema: 'q1_schema.sql',
     visible: 'q1_visible_seed.sql',
     hidden: 'q1_hidden_seed.sql',
   },
-  sql_commvault_failure_streak: {
+  sql_payu_settlement_reconciliation: {
     schema: 'q2_schema.sql',
     visible: 'q2_visible_seed.sql',
     hidden: 'q2_hidden_seed.sql',
   },
-  sql_autodesk_license_usage: {
+  sql_salesforce_renewal_expansion: {
     schema: 'q3_schema.sql',
     visible: 'q3_visible_seed.sql',
     hidden: 'q3_hidden_seed.sql',
@@ -80,7 +80,10 @@ export class SqlSandboxService {
       await client.query(
         await this.readSql(submit ? files.hidden : files.visible),
       );
-      const result = await client.query(`${query} LIMIT 500`);
+      const executableQuery = this.safety.shouldApplyRowLimit(query)
+        ? `SELECT * FROM (${query}) AS sandbox_result LIMIT 500`
+        : query;
+      const result = await client.query(executableQuery);
       await client.query('ROLLBACK');
 
       return {

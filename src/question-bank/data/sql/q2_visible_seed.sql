@@ -1,27 +1,16 @@
-INSERT INTO clients VALUES
-(1, 'Northwind Finance', 'ACTIVE'),
-(2, 'Legacy Retail', 'ACTIVE');
+INSERT INTO merchants VALUES
+(1, 'Ridge Commerce', 'ACTIVE'),
+(2, 'Nova Travels', 'ACTIVE'),
+(3, 'Legacy Bazaar', 'INACTIVE');
 
-INSERT INTO servers VALUES
-(10, 1, 'fin-prod-db-1', 'PROD', TRUE),
-(11, 1, 'fin-stage-app-1', 'STAGE', TRUE),
-(20, 2, 'retail-prod-db-1', 'PROD', TRUE);
+INSERT INTO payment_transactions VALUES
+(1001, 1, 1000.00, 20.00, 3.60, 'CAPTURED', '2026-06-01', '2026-06-03'),
+(1002, 1, 2000.00, 40.00, 7.20, 'CAPTURED', '2026-06-02', '2026-06-04'),
+(1003, 2, 1500.00, 30.00, 5.40, 'CAPTURED', '2026-06-05', '2026-06-07'),
+(1004, 2, 800.00, 16.00, 2.88, 'FAILED', '2026-06-05', '2026-06-07'),
+(1005, 3, 1200.00, 24.00, 4.32, 'CAPTURED', '2026-06-01', '2026-06-03');
 
-INSERT INTO backup_policies VALUES
-(100, 'Daily Critical Backup', 'DAILY', TRUE),
-(200, 'Weekly Archive', 'WEEKLY', TRUE);
-
-INSERT INTO server_policy_map VALUES
-(10, 100, '2025-03-03', NULL),
-(11, 100, '2025-03-03', NULL),
-(20, 200, '2025-03-03', NULL);
-
-INSERT INTO backup_jobs VALUES
-(1001, 10, 100, '2025-05-28 00:00:00'::TIMESTAMP, '2025-05-28 01:00:00'::TIMESTAMP, 'FAILED', 20),
-(1002, 10, 100, '2025-05-29 00:00:00'::TIMESTAMP, '2025-05-29 01:00:00'::TIMESTAMP, 'FAILED', 21),
-(1003, 10, 100, '2025-05-30 00:00:00'::TIMESTAMP, '2025-05-30 01:00:00'::TIMESTAMP, 'FAILED', 21),
-(1004, 11, 100, '2025-05-29 00:00:00'::TIMESTAMP, '2025-05-29 01:00:00'::TIMESTAMP, 'FAILED', 10),
-(1005, 11, 100, '2025-05-30 00:00:00'::TIMESTAMP, '2025-05-30 01:00:00'::TIMESTAMP, 'SUCCESS', 10);
-
-INSERT INTO backup_error_logs VALUES
-(1003, 'E_CONN', 'Repository connection failed');
+INSERT INTO settlement_payouts VALUES
+(1, 1001, '2026-06-03', 976.40, 'PAID'),
+(2, 1002, '2026-06-04', 1900.00, 'PAID'),
+(3, 1005, '2026-06-03', 1171.68, 'PAID');

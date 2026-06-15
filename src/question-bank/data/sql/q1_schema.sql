@@ -1,40 +1,36 @@
-CREATE TABLE customers (
-  customer_id INT PRIMARY KEY,
-  customer_name VARCHAR(120),
+CREATE TABLE dark_stores (
+  store_id INT PRIMARY KEY,
+  store_name VARCHAR(120),
   city VARCHAR(80),
-  customer_segment VARCHAR(50),
-  signup_date DATE
+  store_status VARCHAR(40)
 );
 
-CREATE TABLE orders (
+CREATE TABLE skus (
+  sku_id INT PRIMARY KEY,
+  sku_name VARCHAR(120),
+  category VARCHAR(80),
+  reorder_point INT,
+  is_discontinued BOOLEAN
+);
+
+CREATE TABLE inventory_snapshots (
+  snapshot_id INT PRIMARY KEY,
+  store_id INT REFERENCES dark_stores(store_id),
+  sku_id INT REFERENCES skus(sku_id),
+  snapshot_date DATE,
+  on_hand_units INT
+);
+
+CREATE TABLE sales_orders (
   order_id INT PRIMARY KEY,
-  customer_id INT REFERENCES customers(customer_id),
+  store_id INT REFERENCES dark_stores(store_id),
   order_date DATE,
-  order_status VARCHAR(40),
-  promised_delivery_ts TIMESTAMP,
-  order_value DECIMAL(12,2)
+  order_status VARCHAR(40)
 );
 
-CREATE TABLE order_items (
-  order_id INT REFERENCES orders(order_id),
-  item_id INT,
-  product_id INT,
-  item_status VARCHAR(40),
-  item_value DECIMAL(12,2),
-  PRIMARY KEY (order_id, item_id)
-);
-
-CREATE TABLE shipments (
-  shipment_id INT PRIMARY KEY,
-  order_id INT REFERENCES orders(order_id),
-  shipped_ts TIMESTAMP,
-  delivered_ts TIMESTAMP,
-  shipment_status VARCHAR(40),
-  fulfilment_center_id INT
-);
-
-CREATE TABLE fulfilment_centers (
-  fulfilment_center_id INT PRIMARY KEY,
-  city VARCHAR(80),
-  region VARCHAR(80)
+CREATE TABLE sales_order_items (
+  order_item_id INT PRIMARY KEY,
+  order_id INT REFERENCES sales_orders(order_id),
+  sku_id INT REFERENCES skus(sku_id),
+  quantity INT
 );
