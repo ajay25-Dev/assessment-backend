@@ -107,6 +107,8 @@
       ],
       "expected_time_complexity": "O(n * 2^n)",
       "expected_space_complexity": "O(2^n)",
+      "ideal_time": 1000,
+      "ideal_space": 65536,
       "expected_code": [
         "bitmask",
         "dp",
@@ -359,6 +361,8 @@
       ],
       "expected_time_complexity": "O(k * (n + m) log n + k^2 * 2^k)",
       "expected_space_complexity": "O(n + m + k * 2^k)",
+      "ideal_time": 1800,
+      "ideal_space": 131072,
       "expected_code": [
         "graph",
         "dijkstra",
@@ -609,6 +613,8 @@
       ],
       "expected_time_complexity": "O((totalChunks + queries) log files.length)",
       "expected_space_complexity": "O(files.length + totalChunks)",
+      "ideal_time": 1500,
+      "ideal_space": 98304,
       "expected_code": [
         "fenwick",
         "tree",
@@ -859,6 +865,8 @@
       ],
       "expected_time_complexity": "O(depth) per get, O(1) per set",
       "expected_space_complexity": "O(totalVersions)",
+      "ideal_time": 700,
+      "ideal_space": 65536,
       "expected_code": [
         "version",
         "parent",

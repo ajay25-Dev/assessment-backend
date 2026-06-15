@@ -17,6 +17,8 @@ type BankQuestion = {
   expected_code?: unknown[];
   expected_time_complexity?: string;
   expected_space_complexity?: string;
+  ideal_time?: unknown;
+  ideal_space?: unknown;
   evaluator_context?: {
     domain_rules?: unknown[];
     required_components?: unknown[];
@@ -201,6 +203,7 @@ export class QuestionBankService {
           );
         }
         this.assertDsaApproachTags(question);
+        this.assertDsaPerformanceTargets(question);
         this.assertAuthenticDsaCases(question);
       }
 
@@ -275,6 +278,23 @@ export class QuestionBankService {
     if (new Set(tags).size !== tags.length) {
       throw new InternalServerErrorException(
         `${question.id} has duplicate expected_approach tags`,
+      );
+    }
+  }
+
+  private assertDsaPerformanceTargets(question: BankQuestion) {
+    const idealTime = Number(question.ideal_time);
+    const idealSpace = Number(question.ideal_space);
+
+    if (!Number.isInteger(idealTime) || idealTime <= 0) {
+      throw new InternalServerErrorException(
+        `${question.id} must include a positive integer ideal_time`,
+      );
+    }
+
+    if (!Number.isInteger(idealSpace) || idealSpace <= 0) {
+      throw new InternalServerErrorException(
+        `${question.id} must include a positive integer ideal_space`,
       );
     }
   }

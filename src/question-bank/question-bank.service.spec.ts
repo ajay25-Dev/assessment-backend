@@ -10,6 +10,9 @@ describe('QuestionBankService', () => {
         test_cases?: unknown[];
         open_test_cases?: Array<{ input?: string; expected?: string }>;
         hidden_test_cases?: Array<{ input?: string; expected?: string }>;
+        expected_approach?: string[];
+        ideal_time?: number;
+        ideal_space?: number;
         schema_files?: {
           schema?: string;
           visible_seed?: string;
@@ -64,6 +67,8 @@ describe('QuestionBankService', () => {
       questions: Array<{
         section: string;
         expected_approach?: string[];
+        ideal_time?: number;
+        ideal_space?: number;
         open_test_cases?: Array<{ input?: string; expected?: string }>;
         hidden_test_cases?: Array<{ input?: string; expected?: string }>;
       }>;
@@ -78,6 +83,10 @@ describe('QuestionBankService', () => {
         question.expected_approach?.forEach((tag) => {
           expect(tag).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
         });
+        expect(Number.isInteger(question.ideal_time)).toBe(true);
+        expect(Number.isInteger(question.ideal_space)).toBe(true);
+        expect(question.ideal_time).toBeGreaterThan(0);
+        expect(question.ideal_space).toBeGreaterThan(0);
       });
 
     bank.questions
