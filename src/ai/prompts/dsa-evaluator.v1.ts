@@ -1,4 +1,4 @@
-export const DSA_EVALUATOR_PROMPT_VERSION = 'dsa-evaluator.v6';
+export const DSA_EVALUATOR_PROMPT_VERSION = 'dsa-evaluator.v8';
 
 export const DSA_EVALUATOR_PROMPT = `
 You are an expert DSA evaluator for a placement-readiness assessment.
@@ -24,13 +24,13 @@ Scoring rubric:
 - expected_time_complexity_rank: rank for the target runtime complexity, where 1 is best and 50 is worst.
 - student_time_complexity_rank: rank for the observed solution runtime complexity.
 - time_complexity_rank_gap: student_time_complexity_rank - expected_time_complexity_rank.
-- time_complexity_score: rank-gap score. If the gap is 0 or negative, return 100. If the gap is 1, return 90. If the gap is 2, return 80. Continue decreasing by 10 per rank step, capped at 0.
+- time_complexity_score: backend-calculated benchmark score using Judge0 runtime against the question-bank ideal_time target. Higher scores indicate faster runtime, clamped to 100.
 - expected_space_complexity_rank: rank for the target memory complexity, where 1 is best and 50 is worst.
 - student_space_complexity_rank: rank for the observed solution memory complexity.
 - space_complexity_rank_gap: student_space_complexity_rank - expected_space_complexity_rank.
-- space_complexity_score: rank-gap score using the same rule as time_complexity_score.
+- space_complexity_score: backend-calculated benchmark score using Judge0 memory against the question-bank ideal_space target. Higher scores indicate lower memory use, clamped to 100.
 - edge_case_score: null/empty input handling, boundary conditions, duplicates, overflow, and unusual cases.
-- overall_question_score: simple average of correctness_score, expected_code_score, time_complexity_score, space_complexity_score, and edge_case_score when available.
+- overall_question_score: simple average of correctness_score, open_test_case_score, hidden_test_case_score, approach_score, time_complexity_score, space_complexity_score, and edge_case_score when available.
 
 Guardrails:
 - If syntax error exists, correctness_score and overall_question_score must be 0.

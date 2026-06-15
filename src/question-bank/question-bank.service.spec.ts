@@ -10,6 +10,9 @@ describe('QuestionBankService', () => {
         test_cases?: unknown[];
         open_test_cases?: Array<{ input?: string; expected?: string }>;
         hidden_test_cases?: Array<{ input?: string; expected?: string }>;
+        expected_approach?: string[];
+        ideal_time?: number;
+        ideal_space?: number;
         schema_files?: {
           schema?: string;
           visible_seed?: string;
@@ -63,12 +66,28 @@ describe('QuestionBankService', () => {
     const bank = (await service.getBank()) as {
       questions: Array<{
         section: string;
+        expected_approach?: string[];
+        ideal_time?: number;
+        ideal_space?: number;
         open_test_cases?: Array<{ input?: string; expected?: string }>;
         hidden_test_cases?: Array<{ input?: string; expected?: string }>;
       }>;
     };
     const vaguePattern =
       /\b(any|valid|before|within\s+time|correct\s+.*\s+(count|list|operations))\b|\.{3}/i;
+
+    bank.questions
+      .filter((question) => question.section === 'DSA')
+      .forEach((question) => {
+        expect(question.expected_approach?.length).toBeGreaterThan(0);
+        question.expected_approach?.forEach((tag) => {
+          expect(tag).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+        });
+        expect(Number.isInteger(question.ideal_time)).toBe(true);
+        expect(Number.isInteger(question.ideal_space)).toBe(true);
+        expect(question.ideal_time).toBeGreaterThan(0);
+        expect(question.ideal_space).toBeGreaterThan(0);
+      });
 
     bank.questions
       .filter((question) => question.section === 'DSA')

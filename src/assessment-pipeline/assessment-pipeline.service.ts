@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -27,6 +28,8 @@ type FinalizeAnswer = {
   submissions?: number;
   status?: string;
   resultMessage?: string;
+  executionTime?: string | null;
+  executionMemory?: number | null;
   sqlExecutionMs?: number | null;
   testResults?: {
     test_results?: Array<{ passed?: boolean }>;
@@ -89,6 +92,8 @@ type BankQuestion = {
   expected_code?: unknown;
   expected_time_complexity?: string;
   expected_space_complexity?: string;
+  ideal_time?: number;
+  ideal_space?: number;
   evaluator_context?: unknown;
   test_cases?: unknown[];
   open_test_cases?: unknown[];
@@ -197,6 +202,8 @@ export class AssessmentPipelineService {
       expected_code: question.expected_code,
       expected_time_complexity: question.expected_time_complexity,
       expected_space_complexity: question.expected_space_complexity,
+      ideal_time: question.ideal_time,
+      ideal_space: question.ideal_space,
       evaluator_context: question.evaluator_context,
       language: answer.language,
       submitted_code: answer.value || '',
@@ -204,6 +211,8 @@ export class AssessmentPipelineService {
       run_count: answer.runs || 0,
       submit_count: answer.submissions || 0,
       compiler_result_summary: answer.resultMessage || '',
+      execution_time_ms: this.parseExecutionTimeMs(answer.executionTime),
+      execution_memory_kb: this.nullableNumber(answer.executionMemory),
       testResults: input.test_results || answer.testResults || answer.test_results || null,
       test_results: input.test_results || answer.testResults || answer.test_results || null,
       open_test_cases: question.open_test_cases || [],
@@ -256,6 +265,7 @@ export class AssessmentPipelineService {
   ) {
     const stage = this.parseFinalizeStage(rawStage);
     const input = this.parseInput(rawInput);
+    await this.ensureAttemptOwnership(attemptId, input.student_id || '', input.assessment_id);
     const bank = (await this.questionBank.getBank()) as Bank;
     const questions = bank.questions || [];
     const questionsById = new Map(
@@ -397,6 +407,8 @@ export class AssessmentPipelineService {
         expected_code: question.expected_code,
         expected_time_complexity: question.expected_time_complexity,
         expected_space_complexity: question.expected_space_complexity,
+        ideal_time: question.ideal_time,
+        ideal_space: question.ideal_space,
         evaluator_context: question.evaluator_context,
         language: answer.language,
         submitted_code: answer.value || '',
@@ -404,6 +416,8 @@ export class AssessmentPipelineService {
         run_count: answer.runs || 0,
         submit_count: answer.submissions || 0,
         compiler_result_summary: answer.resultMessage || '',
+        execution_time_ms: this.parseExecutionTimeMs(answer.executionTime),
+        execution_memory_kb: this.nullableNumber(answer.executionMemory),
         testResults: answer.testResults || answer.test_results || null,
         test_results: answer.testResults || answer.test_results || null,
         open_test_cases: question.open_test_cases || [],
@@ -1027,6 +1041,46 @@ export class AssessmentPipelineService {
     }
   }
 
+  private async ensureAttemptOwnership(
+    attemptId: string,
+    studentId: string,
+    assessmentId?: string,
+  ) {
+    if (!studentId) {
+      throw new BadRequestException('student_id is required');
+    }
+
+    const { data: attempt, error } = await this.getSupabase()
+      .from('student_assessment_attempts')
+      .select('id,assessment_id,client_metadata')
+      .eq('id', attemptId)
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not verify assessment attempt ownership: ${error.message}`,
+      );
+    }
+
+    if (!attempt?.id) {
+      throw new NotFoundException('Assessment attempt not found');
+    }
+
+    const attemptAssessmentId = this.textOutput(
+      (attempt as {
+        assessment_id?: unknown;
+        client_metadata?: { source_assessment_id?: unknown } | null;
+      }).client_metadata?.source_assessment_id ||
+        (attempt as { assessment_id?: unknown }).assessment_id ||
+        '',
+    );
+
+    if (assessmentId && attemptAssessmentId && attemptAssessmentId !== assessmentId) {
+      throw new NotFoundException('Assessment attempt not found');
+    }
+  }
+
   private async persistFinalRuntimeSnapshots(
     attemptId: string,
     input: FinalizeInput,
@@ -1062,8 +1116,8 @@ export class AssessmentPipelineService {
           stdout: null,
           stderr: null,
           compile_output: null,
-          runtime_ms: null,
-          memory_kb: null,
+          runtime_ms: this.parseExecutionTimeMs(answer.executionTime),
+          memory_kb: this.nullableNumber(answer.executionMemory),
           open_tests_passed: testSummary.openPassed,
           open_tests_total: testSummary.openTotal,
           hidden_tests_passed: testSummary.hiddenPassed,
@@ -1790,6 +1844,13 @@ export class AssessmentPipelineService {
   private nullableNumber(value: unknown) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? Math.round(parsed) : null;
+  }
+
+  private parseExecutionTimeMs(value: unknown) {
+    if (typeof value !== 'string' && typeof value !== 'number') return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return Math.round(parsed * 1000);
   }
 
   private recordValue(value: unknown) {

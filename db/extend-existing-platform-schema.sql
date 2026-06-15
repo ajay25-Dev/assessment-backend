@@ -36,6 +36,7 @@ $$ LANGUAGE plpgsql;
 -- ---------------------------------------------------------------------------
 
 ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS roll_number TEXT,
   ADD COLUMN IF NOT EXISTS phone TEXT;
 
 ALTER TABLE public.assessments

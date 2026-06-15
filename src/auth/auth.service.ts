@@ -12,6 +12,8 @@ type SignupInput = {
   email?: string;
   password?: string;
   fullName?: string;
+  rollNumber?: string;
+  roll_number?: string;
 };
 
 @Injectable()
@@ -27,6 +29,7 @@ export class AuthService {
       .toLowerCase();
     const password = String(input.password || '');
     const fullName = String(input.fullName || '').trim();
+    const rollNumber = String(input.rollNumber || input.roll_number || '').trim();
 
     if (!email || !email.includes('@')) {
       throw new BadRequestException('A valid email is required');
@@ -68,6 +71,7 @@ export class AuthService {
         redirectTo,
         data: {
           full_name: fullName || null,
+          roll_number: rollNumber || null,
         },
       },
     });
@@ -81,6 +85,7 @@ export class AuthService {
         id: data.user.id,
         email,
         full_name: fullName || null,
+        roll_number: rollNumber || null,
         role: 'student',
       });
 

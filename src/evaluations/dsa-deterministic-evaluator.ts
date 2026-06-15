@@ -44,6 +44,8 @@ type ApproachAnalysis = {
   approachScore: number;
   alternateSolutionScore: number;
   detectedApproach: string;
+  expectedApproachTags: string[];
+  aiReturnedApproachTags: string[];
 };
 
 type EdgeCaseEvaluation = {
@@ -54,7 +56,7 @@ type EdgeCaseEvaluation = {
 };
 
 const SCORE_BASIS =
-  'Score is calculated from visible test correctness, expected code checklist coverage, complexity rank gap, and edge-case performance.';
+  'Score is calculated from visible test correctness, expected code coverage, Judge0 runtime/memory versus question-bank targets, and edge-case performance.';
 
 const STOP_WORDS = new Set([
   'a',
@@ -158,6 +160,11 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const hiddenTests = caseList(record.hidden_test_cases);
   const expectedApproach = stringList(record.expected_approach);
   const expectedCode = stringList(record.expected_code);
+  const detectedApproachTags = stringList(record.detected_approach_tags);
+  const hasDetectedApproachTags = Object.prototype.hasOwnProperty.call(
+    record,
+    'detected_approach_tags',
+  );
   const structuredResults = submittedTestResults(record);
   const summary = parseTestSummary(record.compiler_result_summary);
   const testSummary = buildTestSummary({
@@ -175,7 +182,27 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
 
   const expectedTimeComplexity = textValue(record.expected_time_complexity) || 'Not available';
   const expectedSpaceComplexity = textValue(record.expected_space_complexity) || 'Not available';
-  const expectedCodeScore = expectedCodeSignalsScore(expectedCode, submittedCode);
+  const idealTimeMs = positiveNumber(
+    record.ideal_time ?? record.idealTime ?? record.ideal_time_ms,
+  );
+  const idealSpaceKb = positiveNumber(
+    record.ideal_space ?? record.idealSpace ?? record.ideal_space_kb,
+  );
+  const executionTimeMs = positiveNumber(
+    record.execution_time_ms ??
+      record.executionTimeMs ??
+      record.execution_time ??
+      record.executionTime,
+  );
+  const executionMemoryKb = positiveNumber(
+    record.execution_memory_kb ??
+      record.executionMemoryKb ??
+      record.execution_memory ??
+      record.executionMemory,
+  );
+  const expectedCodeScore =
+    optionalPercentageValue(record.expected_code_score) ??
+    expectedCodeSignalsScore(expectedCode, submittedCode);
   const matchedExpectedCode = matchedExpectedCodeSignals(expectedCode, submittedCode);
   const missingExpectedCode = uniqueList(expectedCode).filter(
     (signal) => !matchedExpectedCode.includes(signal),
@@ -184,10 +211,21 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const expectedSpaceComplexityRank = resolveComplexityRank(expectedSpaceComplexity);
   const studentTimeComplexityRank = rankValue(record.student_time_complexity_rank);
   const studentSpaceComplexityRank = rankValue(record.student_space_complexity_rank);
+  const studentTimeComplexityLabel = complexityLabelFromRank(studentTimeComplexityRank);
+  const studentSpaceComplexityLabel = complexityLabelFromRank(studentSpaceComplexityRank);
   const timeComplexityRankGap = studentTimeComplexityRank - expectedTimeComplexityRank;
   const spaceComplexityRankGap = studentSpaceComplexityRank - expectedSpaceComplexityRank;
-  const timeComplexityScore = rankGapScore(expectedTimeComplexityRank, studentTimeComplexityRank);
-  const spaceComplexityScore = rankGapScore(expectedSpaceComplexityRank, studentSpaceComplexityRank);
+  const timeComplexityScore = benchmarkScore(executionTimeMs, idealTimeMs);
+  const spaceComplexityScore = benchmarkScore(executionMemoryKb, idealSpaceKb);
+  const approachAnalysis = evaluateApproach(
+    submittedCode,
+    expectedApproach,
+    studentTimeComplexityLabel,
+    studentSpaceComplexityLabel,
+    correctnessScore,
+    hasDetectedApproachTags ? detectedApproachTags : null,
+    optionalPercentageValue(record.approach_match_percentage),
+  );
   const edgeCaseEvaluation = evaluateEdgeCases(
     questionId,
     openTests,
@@ -195,7 +233,9 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   );
   const overallQuestionScore = averageQuestionScore([
     correctnessScore,
-    expectedCodeScore,
+    openTestCaseScore,
+    typeof hiddenTestCaseScore === 'number' ? hiddenTestCaseScore : null,
+    approachAnalysis.approachScore,
     timeComplexityScore,
     spaceComplexityScore,
     typeof edgeCaseEvaluation.score === 'number' ? edgeCaseEvaluation.score : null,
@@ -212,6 +252,11 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       expected_code_score: expectedCodeScore,
       matched_expected_code: matchedExpectedCode,
       missing_expected_code: missingExpectedCode,
+      approach_match_percentage: approachAnalysis.approachMatchPercentage,
+      expected_approach_used: approachAnalysis.expectedApproachUsed,
+      approach_score: approachAnalysis.approachScore,
+      expected_approach_tags: approachAnalysis.expectedApproachTags,
+      ai_returned_approach_tags: approachAnalysis.aiReturnedApproachTags,
       open_test_case_score: openTestCaseScore,
       hidden_test_case_score: hiddenTestCaseScore,
       correctness_score: correctnessScore,
@@ -219,14 +264,14 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       expected_time_complexity_rank: expectedTimeComplexityRank,
       expected_time_complexity_label: complexityLabelFromRank(expectedTimeComplexityRank),
       student_time_complexity_rank: studentTimeComplexityRank,
-      student_time_complexity_label: complexityLabelFromRank(studentTimeComplexityRank),
+      student_time_complexity_label: studentTimeComplexityLabel,
       time_complexity_rank_gap: timeComplexityRankGap,
       time_complexity_score: timeComplexityScore,
       expected_space_complexity: expectedSpaceComplexity,
       expected_space_complexity_rank: expectedSpaceComplexityRank,
       expected_space_complexity_label: complexityLabelFromRank(expectedSpaceComplexityRank),
       student_space_complexity_rank: studentSpaceComplexityRank,
-      student_space_complexity_label: complexityLabelFromRank(studentSpaceComplexityRank),
+      student_space_complexity_label: studentSpaceComplexityLabel,
       space_complexity_rank_gap: spaceComplexityRankGap,
       space_complexity_score: spaceComplexityScore,
       edge_case_score: edgeCaseEvaluation.score,
@@ -262,6 +307,11 @@ function textValue(value: unknown, fallback = '') {
 function numberValue(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function positiveNumber(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function safeNumber(value: unknown) {
@@ -323,6 +373,11 @@ export function rankGapScore(expectedRank: number, studentRank: number) {
   const gap = studentRank - expectedRank;
   if (gap <= 0) return 100;
   return Math.max(0, 100 - gap * 10);
+}
+
+function benchmarkScore(actual: number | null, ideal: number | null) {
+  if (!actual || !ideal || actual <= 0 || ideal <= 0) return 0;
+  return roundScore((ideal / actual) * 100);
 }
 
 function complexityLabelFromRank(rank: number) {
@@ -472,26 +527,25 @@ function evaluateApproach(
   studentTimeComplexity: string,
   studentSpaceComplexity: string,
   correctnessScore: number,
+  detectedApproachTags: string[] | null,
+  legacyApproachMatchPercentage?: number | null,
 ): ApproachAnalysis {
   const normalizedCode = normalizeText(code);
   const tokenSet = tokenSetFromText(normalizedCode);
-  const matches = expectedApproach.map((item) =>
-    scoreApproachItem(
-      item,
-      tokenSet,
-      normalizedCode,
-      studentTimeComplexity,
-      studentSpaceComplexity,
-    ),
-  );
-  const matchPercentage = roundScore(
-    (matches.reduce((sum, value) => sum + value, 0) /
-      (expectedApproach.length || 1)) *
-      100,
-  );
+  const normalizedExpectedTags = uniqueList(expectedApproach).map(normalizeApproachTag).filter(Boolean);
+  const normalizedDetectedTags = detectedApproachTags
+    ? uniqueList(detectedApproachTags).map(normalizeApproachTag).filter(Boolean)
+    : [];
+  const finalMatchPercentage = detectedApproachTags !== null
+    ? calculateApproachMatchPercentage(normalizedExpectedTags, normalizedDetectedTags)
+    : percentageValueOrThrow(legacyApproachMatchPercentage);
   const expectedApproachUsed: 'Yes' | 'Partial' | 'No' =
-    matchPercentage >= 70 ? 'Yes' : matchPercentage >= 40 ? 'Partial' : 'No';
-  const approachScore = roundScore(0.75 * matchPercentage + 0.25 * correctnessScore);
+    finalMatchPercentage >= 70
+      ? 'Yes'
+      : finalMatchPercentage >= 40
+        ? 'Partial'
+        : 'No';
+  const approachScore = roundScore(finalMatchPercentage);
   const alternateSolutionScore = alternateSolutionScoreFor(
     correctnessScore,
     studentTimeComplexity,
@@ -499,12 +553,48 @@ function evaluateApproach(
   );
 
   return {
-    approachMatchPercentage: matchPercentage,
+    approachMatchPercentage: finalMatchPercentage,
     expectedApproachUsed,
     approachScore,
     alternateSolutionScore,
     detectedApproach: detectApproach(tokenSet, normalizedCode),
+    expectedApproachTags: normalizedExpectedTags,
+    aiReturnedApproachTags: normalizedDetectedTags,
   };
+}
+
+function percentageValueOrThrow(value: unknown, label = 'DSA percentage') {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) {
+    throw new Error(`Invalid ${label} value`);
+  }
+  return parsed;
+}
+
+function optionalPercentageValue(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) {
+    return null;
+  }
+  return parsed;
+}
+
+function normalizeApproachTag(value: string) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
+}
+
+function calculateApproachMatchPercentage(expectedTags: string[], detectedTags: string[]) {
+  if (!expectedTags.length) return 0;
+  const expectedSet = new Set(uniqueList(expectedTags).map(normalizeApproachTag).filter(Boolean));
+  const detectedSet = new Set(uniqueList(detectedTags).map(normalizeApproachTag).filter(Boolean));
+  if (!expectedSet.size) return 0;
+  const matched = [...expectedSet].filter((tag) => detectedSet.has(tag)).length;
+  return roundScore((matched / expectedSet.size) * 100);
 }
 
 function scoreApproachItem(
