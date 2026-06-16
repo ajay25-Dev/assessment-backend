@@ -42,6 +42,10 @@ export const dsaApproachOutputSchema = strictObject({
   detected_tags: stringArray,
 });
 
+export const sqlConceptTagsOutputSchema = strictObject({
+  detected_tags: stringArray,
+});
+
 export const dsaExpectedCodeOutputSchema = strictObject({
   expected_code_score: score,
 });
@@ -98,6 +102,10 @@ export const sqlEvaluationOutputSchema = strictObject({
   sql_concept_score: score,
   edge_case_score: score,
   query_efficiency_score: score,
+  formatting_score: score,
+  alias_score: score,
+  structure_score: score,
+  simplicity_score: score,
   readability_score: score,
   null_duplicate_handling_score: score,
   overall_question_score: score,
@@ -106,6 +114,8 @@ export const sqlEvaluationOutputSchema = strictObject({
     type: 'string',
     enum: ['Excellent', 'Good', 'Average', 'Weak', 'Incorrect'],
   },
+  ai_returned_concept_tags: stringArray,
+  expected_sql_concept_tags: stringArray,
   expected_concepts_used: stringArray,
   missing_concepts: stringArray,
   detected_mistakes: stringArray,
@@ -183,6 +193,7 @@ export const dashboardEvaluationOutputSchema = strictObject({
   overall_marks_score: score,
   capability_score: score,
   problem_solving_score: score,
+  readiness_score: score,
   dsa_score: score,
   sql_score: score,
   oops_score: score,

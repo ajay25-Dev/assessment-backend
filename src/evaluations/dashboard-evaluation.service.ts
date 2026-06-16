@@ -108,6 +108,17 @@ export class DashboardEvaluationService {
       bruteForceRisk,
       hardcodingRisk,
     );
+    const readinessScore = this.readinessScore({
+      overallMarksScore,
+      capabilityScore: problemSolvingScore,
+      approachScore,
+      complexityScore,
+      codeQualityScore,
+      bruteForceRisk,
+      hardcodingRisk,
+      compilationBehaviour,
+      independenceScore,
+    });
     const trainingPriority = this.trainingPriority(weakestArea, sectionScores);
 
     return Promise.resolve({
@@ -134,6 +145,7 @@ export class DashboardEvaluationService {
         brute_force_risk: bruteForceRisk,
         hardcoding_risk: hardcodingRisk,
         compilation_behaviour: compilationBehaviour,
+        readiness_score: readinessScore,
         runtime_percentile: this.runtimePercentile(
           overallMarksScore,
           problemSolvingScore,
@@ -470,6 +482,34 @@ export class DashboardEvaluationService {
       return 'Trainable but Not Ready';
     }
     return 'Not Ready';
+  }
+
+  private readinessScore(params: {
+    overallMarksScore: number;
+    capabilityScore: number;
+    approachScore: number;
+    complexityScore: number;
+    codeQualityScore: number;
+    bruteForceRisk: RiskLevel;
+    hardcodingRisk: RiskLevel;
+    compilationBehaviour: CompilationBehaviour;
+    independenceScore: number;
+  }) {
+    const baseline =
+      params.overallMarksScore * 0.28 +
+      params.capabilityScore * 0.28 +
+      params.approachScore * 0.16 +
+      params.complexityScore * 0.14 +
+      params.codeQualityScore * 0.14;
+
+    const riskPenalty =
+      (params.bruteForceRisk === 'High' ? 12 : params.bruteForceRisk === 'Medium' ? 6 : 0) +
+      (params.hardcodingRisk === 'High' ? 12 : params.hardcodingRisk === 'Medium' ? 6 : 0) +
+      (params.compilationBehaviour === 'Failed' ? 8 : params.compilationBehaviour === 'Warnings' ? 3 : 0);
+
+    const independenceBonus = Math.round(params.independenceScore * 0.08);
+
+    return this.clampScore(baseline - riskPenalty + independenceBonus);
   }
 
   private companyRecommendation(label: ReadinessLabel) {

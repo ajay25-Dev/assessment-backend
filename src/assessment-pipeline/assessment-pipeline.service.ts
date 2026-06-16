@@ -15,6 +15,7 @@ import { McqEvaluationService } from '../evaluations/mcq-evaluation.service';
 import { OopsEvaluationService } from '../evaluations/oops-evaluation.service';
 import { SqlEvaluationService } from '../evaluations/sql-evaluation.service';
 import { QuestionBankService } from '../question-bank/question-bank.service';
+import { SqlSandboxService } from '../sql-sandbox/sql-sandbox.service';
 
 type Section = 'DSA' | 'SQL' | 'OOPs' | 'MCQ';
 type FinalizeStage = Section | 'DASHBOARD';
@@ -99,6 +100,18 @@ type BankQuestion = {
   open_test_cases?: unknown[];
   hidden_test_cases?: unknown[];
   schema_ref?: unknown;
+  expected_columns?: unknown[];
+  visible_expected_rows?: unknown[];
+  result_match?: {
+    order_matters?: boolean;
+    numeric_tolerance?: number;
+  };
+  required_business_rules?: unknown[];
+  expected_sql_concepts?: unknown[];
+  expected_sql_concept_tags?: unknown[];
+  edge_cases?: unknown[];
+  null_rules?: unknown[];
+  duplicate_rules?: unknown[];
 };
 
 type CodeTestSummary = {
@@ -146,6 +159,7 @@ export class AssessmentPipelineService {
     private readonly questionBank: QuestionBankService,
     private readonly dsaEvaluation: DsaEvaluationService,
     private readonly sqlEvaluation: SqlEvaluationService,
+    private readonly sqlSandbox: SqlSandboxService,
     private readonly oopsEvaluation: OopsEvaluationService,
     private readonly mcqEvaluation: McqEvaluationService,
     private readonly dashboardEvaluation: DashboardEvaluationService,
@@ -367,6 +381,7 @@ export class AssessmentPipelineService {
           ),
         );
 
+      await this.persistFinalRuntimeSnapshots(attemptId, input, questions);
       await this.replaceReportForAttempt(attemptId);
       const report = await this.persistReport({
         attemptId,
@@ -404,6 +419,7 @@ export class AssessmentPipelineService {
       questionsById,
       summary.evaluations,
     );
+    await this.persistFinalRuntimeSnapshots(attemptId, input, questions);
 
     return {
       attempt_id: attemptId,
@@ -517,6 +533,91 @@ export class AssessmentPipelineService {
     };
   }
 
+  private async runSqlVisibleQuery(
+    questionId: string,
+    query: string,
+    attemptId?: string,
+  ) {
+    if (!String(query || '').trim()) {
+      return {
+        columns: [] as string[],
+        rows: [] as Record<string, unknown>[],
+        row_count: 0,
+        execution_ms: null as number | null,
+        error: '',
+      };
+    }
+
+    try {
+      return await this.sqlSandbox.run(
+        {
+          attempt_id: attemptId,
+          question_id: questionId,
+          query,
+          mode: 'visible',
+        },
+        false,
+      );
+    } catch (error) {
+      return {
+        columns: [] as string[],
+        rows: [] as Record<string, unknown>[],
+        row_count: 0,
+        execution_ms: null as number | null,
+        error: error instanceof Error ? error.message : 'SQL execution failed',
+      };
+    }
+  }
+
+  private buildSqlEvaluationDetail(
+    question: BankQuestion,
+    answer: FinalizeAnswer | QuestionSubmitInput['answer'],
+    sqlRun: {
+      columns?: unknown;
+      rows?: unknown;
+      row_count?: unknown;
+      execution_ms?: unknown;
+      error?: unknown;
+    },
+  ) {
+    return {
+      question_id: question.id,
+      question_title: question.title || question.id,
+      prompt: question.prompt,
+      topic: question.topic,
+      expected_approach: question.expected_approach,
+      expected_code: question.expected_code,
+      evaluator_context: question.evaluator_context,
+      schema_ref: question.schema_ref,
+      expected_columns: question.expected_columns || [],
+      visible_expected_rows: question.visible_expected_rows || [],
+      result_match: question.result_match || { order_matters: false, numeric_tolerance: 0.01 },
+      required_business_rules: question.required_business_rules || [],
+      expected_sql_concepts: question.expected_sql_concepts || [],
+      expected_sql_concept_tags:
+        question.expected_sql_concept_tags || question.expected_sql_concepts || [],
+      edge_cases: question.edge_cases || [],
+      null_rules: question.null_rules || [],
+      duplicate_rules: question.duplicate_rules || [],
+      submitted_query: answer?.value || '',
+      status: answer?.status || 'unvisited',
+      run_count: answer?.runs || 0,
+      submit_count: answer?.submissions || 0,
+      execution_ms: this.nullableNumber(sqlRun.execution_ms ?? answer?.sqlExecutionMs),
+      sql_result_summary:
+        this.textOutput(answer?.resultMessage || '') ||
+        this.textOutput(sqlRun.error || '') ||
+        `Returned ${this.nullableNumber(sqlRun.row_count) || 0} row(s)`,
+      sql_result_columns: Array.isArray(sqlRun.columns) ? sqlRun.columns : [],
+      sql_result_rows: Array.isArray(sqlRun.rows) ? sqlRun.rows : [],
+      sql_result_row_count: this.nullableNumber(sqlRun.row_count),
+      sql_result_error: this.textOutput(sqlRun.error || ''),
+      runtime_observation:
+        this.textOutput(answer?.resultMessage || '') ||
+        this.textOutput(sqlRun.error || ''),
+    };
+  }
+
   private async evaluateSqlSection(
     questions: BankQuestion[],
     input: FinalizeInput,
@@ -526,35 +627,28 @@ export class AssessmentPipelineService {
       (question) => question.section === 'SQL',
     );
     const evaluations: EvaluationResult[] = [];
-    const details = sectionQuestions.map((question) => {
-      const answer = input.answers?.[question.id] || {};
-      return {
-        question_id: question.id,
-        question_title: question.title || question.id,
-        prompt: question.prompt,
-        topic: question.topic,
-        expected_approach: question.expected_approach,
-        expected_code: question.expected_code,
-        evaluator_context: question.evaluator_context,
-        schema_ref: question.schema_ref,
-        submitted_query: answer.value || '',
-        status: answer.status || 'unvisited',
-        run_count: answer.runs || 0,
-        submit_count: answer.submissions || 0,
-        execution_ms: this.nullableNumber(answer.sqlExecutionMs),
-        sql_result_summary: answer.resultMessage || '',
-      };
-    });
+    const details: Record<string, unknown>[] = [];
 
-    for (const detail of details) {
-      evaluations.push(
-        await this.tryEvaluate(
-          'SQL',
-          () => this.sqlEvaluation.evaluate(detail),
-          this.fallbackQuestionEvaluation('SQL', detail),
-          useAi,
-        ),
-      );
+    for (const question of sectionQuestions) {
+      const answer = input.answers?.[question.id] || {};
+      const sqlRun = await this.runSqlVisibleQuery(question.id, answer.value || '');
+      const detail = this.buildSqlEvaluationDetail(question, answer, sqlRun);
+      details.push(detail);
+      const fallback = this.fallbackQuestionEvaluation('SQL', detail);
+      try {
+        evaluations.push(await this.sqlEvaluation.evaluate(detail));
+      } catch (error) {
+        evaluations.push({
+          ...fallback,
+          output: {
+            ...fallback.output,
+            evaluation_error:
+              error instanceof Error
+                ? error.message
+                : 'SQL evaluation failed',
+          },
+        });
+      }
     }
 
     return {
@@ -719,22 +813,12 @@ export class AssessmentPipelineService {
   ): Promise<EvaluationResult> {
     const answer = input.answer || {};
     if (section === 'SQL') {
-      const detail = {
-        question_id: question.id,
-        question_title: question.title || question.id,
-        prompt: question.prompt,
-        topic: question.topic,
-        expected_approach: question.expected_approach,
-        expected_code: question.expected_code,
-        evaluator_context: question.evaluator_context,
-        schema_ref: question.schema_ref,
-        submitted_query: answer.value || '',
-        status: answer.status || 'submitted',
-        run_count: answer.runs || 0,
-        submit_count: answer.submissions || 0,
-        execution_ms: this.nullableNumber(answer.sqlExecutionMs),
-        sql_result_summary: answer.resultMessage || '',
-      };
+      const sqlRun = await this.runSqlVisibleQuery(
+        question.id,
+        answer.value || '',
+        input.attempt_id,
+      );
+      const detail = this.buildSqlEvaluationDetail(question, answer, sqlRun);
       return this.tryEvaluateQuestionSubmit(
         'SQL',
         () => this.sqlEvaluation.evaluate(detail),
@@ -1322,32 +1406,35 @@ export class AssessmentPipelineService {
     input: FinalizeInput,
     questions: BankQuestion[],
   ) {
-    const rows = questions
-      .filter((question) => question.engine === 'sql')
-      .map((question) => {
-        const answer = input.answers?.[question.id] || {};
-        return {
-          attempt_id: attemptId,
-          question_id: question.id,
-          assessment_question_id: null,
-          question_attempt_id: null,
-          run_type: answer.submissions ? 'submit' : 'run',
-          query_text: answer.value || '',
-          columns: [],
-          rows: [],
-          row_count: 0,
-          execution_ms: this.nullableNumber(answer.sqlExecutionMs),
-          error_text: answer.resultMessage || null,
-          comparison_result: {
-            final_snapshot: true,
-            run_count: answer.runs || 0,
-            submit_count: answer.submissions || 0,
-            result_message: answer.resultMessage || '',
-            execution_ms: this.nullableNumber(answer.sqlExecutionMs),
-          },
-        };
-      })
-      .filter((row) => row.query_text.trim().length > 0);
+    const rows = [];
+    for (const question of questions.filter((item) => item.engine === 'sql')) {
+      const answer = input.answers?.[question.id] || {};
+      const query = String(answer.value || '').trim();
+      if (!query.length) continue;
+      const sqlRun = await this.runSqlVisibleQuery(question.id, query, attemptId);
+      rows.push({
+        attempt_id: attemptId,
+        question_id: question.id,
+        assessment_question_id: null,
+        question_attempt_id: null,
+        run_type: answer.submissions ? 'submit' : 'run',
+        query_text: query,
+        columns: Array.isArray(sqlRun.columns) ? sqlRun.columns : [],
+        rows: Array.isArray(sqlRun.rows) ? sqlRun.rows : [],
+        row_count: this.nullableNumber(sqlRun.row_count) || 0,
+        execution_ms: this.nullableNumber(sqlRun.execution_ms ?? answer.sqlExecutionMs),
+        error_text:
+          this.textOutput(sqlRun.error || '') || this.textOutput(answer.resultMessage || ''),
+        comparison_result: {
+          final_snapshot: true,
+          run_count: answer.runs || 0,
+          submit_count: answer.submissions || 0,
+          result_message:
+            this.textOutput(sqlRun.error || '') || this.textOutput(answer.resultMessage || ''),
+          execution_ms: this.nullableNumber(sqlRun.execution_ms ?? answer.sqlExecutionMs),
+        },
+      });
+    }
 
     if (!rows.length) return;
 
@@ -1760,16 +1847,22 @@ export class AssessmentPipelineService {
       model: 'deterministic',
       output:
         section === 'SQL'
-            ? {
+        ? {
                 ...base,
                 result_correctness_score: score,
                 business_logic_score: score,
                 sql_concept_score: score,
                 edge_case_score: score,
                 query_efficiency_score: score,
+                formatting_score: score,
+                alias_score: score,
+                structure_score: score,
+                simplicity_score: score,
                 readability_score: score,
                 null_duplicate_handling_score: score,
                 query_quality_label: hasAnswer ? 'Average' : 'Incorrect',
+                ai_returned_concept_tags: [],
+                expected_sql_concept_tags: [],
                 expected_concepts_used: [],
                 missing_concepts: [],
                 detected_mistakes: [],

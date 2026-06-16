@@ -19,6 +19,13 @@ describe('QuestionBankService', () => {
           hidden_seed?: string;
         };
         expected_columns?: string[];
+        visible_expected_rows?: unknown[];
+        required_business_rules?: string[];
+        expected_sql_concepts?: string[];
+        expected_sql_concept_tags?: string[];
+        edge_cases?: string[];
+        null_rules?: string[];
+        duplicate_rules?: string[];
         options?: Array<{ label?: string }>;
         correct_options?: string[];
         evaluator_context?: {
@@ -108,12 +115,20 @@ describe('QuestionBankService', () => {
     const bank = (await service.getBank()) as {
       questions: Array<{
         section: string;
+        id: string;
         schema_files?: {
           schema?: string;
           visible_seed?: string;
           hidden_seed?: string;
         };
         expected_columns?: string[];
+        visible_expected_rows?: unknown[];
+        required_business_rules?: string[];
+        expected_sql_concepts?: string[];
+        expected_sql_concept_tags?: string[];
+        edge_cases?: string[];
+        null_rules?: string[];
+        duplicate_rules?: string[];
         options?: Array<{ label?: string }>;
         correct_options?: string[];
       }>;
@@ -126,7 +141,22 @@ describe('QuestionBankService', () => {
         expect(question.schema_files?.visible_seed).toBeTruthy();
         expect(question.schema_files?.hidden_seed).toBeTruthy();
         expect(question.expected_columns?.length).toBeGreaterThan(0);
+        expect(question.visible_expected_rows?.length).toBeGreaterThan(0);
+        expect(question.required_business_rules?.length).toBeGreaterThan(0);
+        expect(
+          question.expected_sql_concept_tags?.length ||
+            question.expected_sql_concepts?.length,
+        ).toBeGreaterThan(0);
+        expect(question.edge_cases?.length).toBeGreaterThan(0);
+        expect(question.null_rules?.length).toBeGreaterThan(0);
+        expect(question.duplicate_rules?.length).toBeGreaterThan(0);
       });
+
+    expect(
+      bank.questions.find(
+        (question) => question.section === 'SQL' && question.id === 'sql_salesforce_renewal_expansion',
+      )?.visible_expected_rows?.length,
+    ).toBe(2);
 
     bank.questions
       .filter((question) => question.section === 'MCQ')

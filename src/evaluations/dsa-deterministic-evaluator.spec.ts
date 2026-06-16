@@ -182,6 +182,48 @@ describe('evaluateDsaSubmission', () => {
     expect(output.space_complexity_score).toBe(100);
   });
 
+  it('scores time and space complexity from rank gaps rather than execution metrics', () => {
+    const result = evaluateDsaSubmission({
+      question_id: 'dsa_servicenow_incident_dependency',
+      question_title: 'Incident SLA Scheduling with Dependencies',
+      prompt: 'Use the provided question-bank complexity values.',
+      expected_approach: ['bitmask-dp', 'cycle-detection'],
+      expected_time_complexity: 'O(n * 2^n)',
+      expected_space_complexity: 'O(2^n)',
+      student_time_complexity_rank: 38,
+      student_space_complexity_rank: 37,
+      execution_time_ms: 1,
+      execution_memory_kb: 1,
+      expected_code: ['bitmask', 'dp'],
+      detected_approach_tags: ['bitmask-dp'],
+      submitted_code: 'function maxOnTimeIncidents() { for (let i = 0; i < 1; i += 1) {} return 0; }',
+      status: 'submitted',
+      run_count: 1,
+      submit_count: 0,
+      compiler_result_summary: 'Test results: 0/5 passed (0%)',
+      open_test_cases: Array.from({ length: 5 }, (_, index) => ({
+        id: `open_${index + 1}`,
+        purpose: index === 2 ? 'Cycle detection' : `Open case ${index + 1}`,
+      })),
+      hidden_test_cases: Array.from({ length: 10 }, (_, index) => ({
+        id: `hidden_${index + 6}`,
+        purpose: index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
+      })),
+      testResults: makeResults(0, 0),
+    });
+
+    const output = result.output as Record<string, unknown>;
+
+    expect(output.expected_time_complexity_rank).toBe(36);
+    expect(output.student_time_complexity_rank).toBe(38);
+    expect(output.time_complexity_rank_gap).toBe(2);
+    expect(output.time_complexity_score).toBe(80);
+    expect(output.expected_space_complexity_rank).toBe(35);
+    expect(output.student_space_complexity_rank).toBe(37);
+    expect(output.space_complexity_rank_gap).toBe(2);
+    expect(output.space_complexity_score).toBe(80);
+  });
+
   it('maps ranks into the requested gap-based score table', () => {
     expect(resolveComplexityRank('O(1)')).toBe(1);
     expect(resolveComplexityRank('O(n * 2^n)')).toBe(36);
