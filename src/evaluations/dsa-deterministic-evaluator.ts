@@ -56,7 +56,7 @@ type EdgeCaseEvaluation = {
 };
 
 const SCORE_BASIS =
-  'Score is calculated from visible test correctness, expected code coverage, AI-selected complexity ranks versus question-bank targets, and edge-case performance.';
+  'Score is calculated from visible test correctness, expected code coverage, code-derived complexity ranks versus question-bank targets, and edge-case performance.';
 
 const STOP_WORDS = new Set([
   'a',

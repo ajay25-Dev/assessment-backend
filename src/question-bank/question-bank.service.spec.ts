@@ -70,9 +70,9 @@ describe('QuestionBankService', () => {
         .filter((question) => question.section === 'DSA')
         .every(
           (question) =>
-            question.test_cases?.length === 15 &&
+            question.test_cases?.length === 20 &&
             question.open_test_cases?.length === 5 &&
-            question.hidden_test_cases?.length === 10,
+            question.hidden_test_cases?.length === 15,
         ),
     ).toBe(true);
     expect(

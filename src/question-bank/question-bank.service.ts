@@ -215,12 +215,12 @@ export class QuestionBankService {
 
       if (question.section === 'DSA') {
         if (
-          question.test_cases?.length !== 15 ||
+          question.test_cases?.length !== 20 ||
           question.open_test_cases?.length !== 5 ||
-          question.hidden_test_cases?.length !== 10
+          question.hidden_test_cases?.length !== 15
         ) {
           throw new InternalServerErrorException(
-            `${question.id} must include 15 doc test cases, 5 open cases and 10 hidden cases`,
+            `${question.id} must include 20 test cases, 5 open cases and 15 hidden cases`,
           );
         }
         this.assertDsaApproachTags(question);

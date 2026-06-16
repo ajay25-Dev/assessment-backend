@@ -276,6 +276,56 @@
             "ordering",
             "greedy-trap"
           ]
+        },
+        {
+          "id": "hidden_16",
+          "input": "n=4, dependencies=[[1,0],[3,2]], durations=[1,2,1,2], deadlines=[1,3,4,6]",
+          "expected": "4",
+          "purpose": "Two independent chains can all meet SLA",
+          "tags": [
+            "independent-chains",
+            "deadline-boundary"
+          ]
+        },
+        {
+          "id": "hidden_17",
+          "input": "n=4, dependencies=[[2,0],[2,1]], durations=[2,2,2,1], deadlines=[2,4,5,6]",
+          "expected": "3",
+          "purpose": "A costly dependent job should be skipped",
+          "tags": [
+            "skip-costly-job",
+            "greedy-trap"
+          ]
+        },
+        {
+          "id": "hidden_18",
+          "input": "n=3, dependencies=[[1,0]], durations=[3,1,1], deadlines=[2,4,5]",
+          "expected": "2",
+          "purpose": "Missing a prerequisite can still leave other incidents on time",
+          "tags": [
+            "dependency-chain",
+            "ordering"
+          ]
+        },
+        {
+          "id": "hidden_19",
+          "input": "n=5, dependencies=[[2,0],[2,1],[4,3]], durations=[1,1,3,2,1], deadlines=[1,2,5,3,6]",
+          "expected": "4",
+          "purpose": "Mixed dependency and deadline pressure",
+          "tags": [
+            "mixed-dependency",
+            "deadline-boundary"
+          ]
+        },
+        {
+          "id": "hidden_20",
+          "input": "n=5, dependencies=[], durations=[1,2,3,4,5], deadlines=[1,3,6,10,15]",
+          "expected": "5",
+          "purpose": "Sequential deadlines can all be met exactly",
+          "tags": [
+            "ordering",
+            "exact-deadline"
+          ]
         }
       ],
       "test_cases": [
@@ -368,6 +418,36 @@
           "input": "n=5, dependencies=[], durations=[10,1,1,1,1], deadlines=[10,1,2,3,4]",
           "expected_output": "4",
           "purpose": "Small jobs before long job can still be optimal"
+        },
+        {
+          "number": 16,
+          "input": "n=4, dependencies=[[1,0],[3,2]], durations=[1,2,1,2], deadlines=[1,3,4,6]",
+          "expected_output": "4",
+          "purpose": "Two independent chains can all meet SLA"
+        },
+        {
+          "number": 17,
+          "input": "n=4, dependencies=[[2,0],[2,1]], durations=[2,2,2,1], deadlines=[2,4,5,6]",
+          "expected_output": "3",
+          "purpose": "A costly dependent job should be skipped"
+        },
+        {
+          "number": 18,
+          "input": "n=3, dependencies=[[1,0]], durations=[3,1,1], deadlines=[2,4,5]",
+          "expected_output": "2",
+          "purpose": "Missing a prerequisite can still leave other incidents on time"
+        },
+        {
+          "number": 19,
+          "input": "n=5, dependencies=[[2,0],[2,1],[4,3]], durations=[1,1,3,2,1], deadlines=[1,2,5,3,6]",
+          "expected_output": "4",
+          "purpose": "Mixed dependency and deadline pressure"
+        },
+        {
+          "number": 20,
+          "input": "n=5, dependencies=[], durations=[1,2,3,4,5], deadlines=[1,3,6,10,15]",
+          "expected_output": "5",
+          "purpose": "Sequential deadlines can all be met exactly"
         }
       ]
     },
@@ -569,6 +649,56 @@
             "bitmask-dp",
             "stress"
           ]
+        },
+        {
+          "id": "hidden_16",
+          "input": "n=2, roads=[[0,1,3,0]], packages=[[0,1,3]]",
+          "expected": "1",
+          "purpose": "Single package delivered exactly at the deadline",
+          "tags": [
+            "exact-deadline",
+            "single-package"
+          ]
+        },
+        {
+          "id": "hidden_17",
+          "input": "n=4, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,1,1,0]], packages=[[1,2,2],[2,3,4]]",
+          "expected": "2",
+          "purpose": "Two packages can be chained through the same route",
+          "tags": [
+            "ordering",
+            "route-reuse"
+          ]
+        },
+        {
+          "id": "hidden_18",
+          "input": "n=4, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,0,1,0]], packages=[[1,2,2],[2,3,4],[3,1,6]]",
+          "expected": "3",
+          "purpose": "Cycle route allows all packages to be delivered",
+          "tags": [
+            "cycle",
+            "bitmask-dp"
+          ]
+        },
+        {
+          "id": "hidden_19",
+          "input": "n=3, roads=[[0,1,2,0],[1,2,2,5],[2,0,2,0]], packages=[[1,2,7],[2,1,12]]",
+          "expected": "2",
+          "purpose": "Waiting for a road to open changes the optimal route",
+          "tags": [
+            "time-window",
+            "waiting"
+          ]
+        },
+        {
+          "id": "hidden_20",
+          "input": "n=5, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,4,1,0],[4,0,1,0]], packages=[[1,2,2],[2,3,4],[3,4,6],[4,1,8],[1,3,10]]",
+          "expected": "5",
+          "purpose": "Five packages can all be completed on a simple cycle",
+          "tags": [
+            "cycle",
+            "stress"
+          ]
         }
       ],
       "test_cases": [
@@ -661,6 +791,36 @@
           "input": "n=7, roads=[[0,1,1,0],[1,2,2,0],[2,3,2,0],[3,4,2,0],[4,5,2,0],[5,6,2,0],[6,1,2,0],[0,4,10,0]], packages=[[1,2,4],[3,4,9],[5,6,15],[1,3,20],[4,6,24]]",
           "expected_output": "5",
           "purpose": "Five-package bitmask DP case"
+        },
+        {
+          "number": 16,
+          "input": "n=2, roads=[[0,1,3,0]], packages=[[0,1,3]]",
+          "expected_output": "1",
+          "purpose": "Single package delivered exactly at the deadline"
+        },
+        {
+          "number": 17,
+          "input": "n=4, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,1,1,0]], packages=[[1,2,2],[2,3,4]]",
+          "expected_output": "2",
+          "purpose": "Two packages can be chained through the same route"
+        },
+        {
+          "number": 18,
+          "input": "n=4, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,0,1,0]], packages=[[1,2,2],[2,3,4],[3,1,6]]",
+          "expected_output": "3",
+          "purpose": "Cycle route allows all packages to be delivered"
+        },
+        {
+          "number": 19,
+          "input": "n=3, roads=[[0,1,2,0],[1,2,2,5],[2,0,2,0]], packages=[[1,2,7],[2,1,12]]",
+          "expected_output": "2",
+          "purpose": "Waiting for a road to open changes the optimal route"
+        },
+        {
+          "number": 20,
+          "input": "n=5, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,4,1,0],[4,0,1,0]], packages=[[1,2,2],[2,3,4],[3,4,6],[4,1,8],[1,3,10]]",
+          "expected_output": "5",
+          "purpose": "Five packages can all be completed on a simple cycle"
         }
       ]
     },
@@ -860,6 +1020,56 @@
             "stress",
             "range-overlap"
           ]
+        },
+        {
+          "id": "hidden_16",
+          "input": "files=[[\"a\",\"b\"],[\"c\"],[\"a\",\"d\"]], queries=[[0,2]]",
+          "expected": "[4]",
+          "purpose": "Range covering three files with a repeated chunk",
+          "tags": [
+            "range-overlap",
+            "mixed-duplicates"
+          ]
+        },
+        {
+          "id": "hidden_17",
+          "input": "files=[[\"x\",\"x\"],[],[\"x\",\"y\"]], queries=[[0,1],[1,2],[0,2]]",
+          "expected": "[1,2,2]",
+          "purpose": "Empty middle file with repeated chunk reuse",
+          "tags": [
+            "empty-file",
+            "repeated-chunk"
+          ]
+        },
+        {
+          "id": "hidden_18",
+          "input": "files=[[\"A\",\"a\"],[\"a\",\"A\"],[\"A\"]], queries=[[0,1],[1,2]]",
+          "expected": "[2,2]",
+          "purpose": "Case-sensitive hashes remain distinct",
+          "tags": [
+            "case-sensitive",
+            "hash-format"
+          ]
+        },
+        {
+          "id": "hidden_19",
+          "input": "files=[[\"h1\"],[\"h2\",\"h1\"],[],[\"h3\"],[\"h2\",\"h4\"]], queries=[[0,4],[2,4],[1,3]]",
+          "expected": "[4,3,3]",
+          "purpose": "Chunk values reappear after gaps",
+          "tags": [
+            "range-overlap",
+            "reappearing-chunks"
+          ]
+        },
+        {
+          "id": "hidden_20",
+          "input": "files=[[\"p\",\"p\",\"q\",\"r\",\"q\"]], queries=[[0,0]]",
+          "expected": "[3]",
+          "purpose": "Single file deduplicates repeated chunks within the file",
+          "tags": [
+            "intra-file-duplicate",
+            "single-file"
+          ]
         }
       ],
       "test_cases": [
@@ -952,6 +1162,36 @@
           "input": "files=[[\"p\",\"q\"],[\"q\",\"r\"],[\"r\",\"s\"],[\"s\",\"t\"],[\"p\",\"t\"]], queries=[[0,4],[1,3],[2,4]]",
           "expected_output": "[5,4,4]",
           "purpose": "Stress-like overlap"
+        },
+        {
+          "number": 16,
+          "input": "files=[[\"a\",\"b\"],[\"c\"],[\"a\",\"d\"]], queries=[[0,2]]",
+          "expected_output": "[4]",
+          "purpose": "Range covering three files with a repeated chunk"
+        },
+        {
+          "number": 17,
+          "input": "files=[[\"x\",\"x\"],[],[\"x\",\"y\"]], queries=[[0,1],[1,2],[0,2]]",
+          "expected_output": "[1,2,2]",
+          "purpose": "Empty middle file with repeated chunk reuse"
+        },
+        {
+          "number": 18,
+          "input": "files=[[\"A\",\"a\"],[\"a\",\"A\"],[\"A\"]], queries=[[0,1],[1,2]]",
+          "expected_output": "[2,2]",
+          "purpose": "Case-sensitive hashes remain distinct"
+        },
+        {
+          "number": 19,
+          "input": "files=[[\"h1\"],[\"h2\",\"h1\"],[],[\"h3\"],[\"h2\",\"h4\"]], queries=[[0,4],[2,4],[1,3]]",
+          "expected_output": "[4,3,3]",
+          "purpose": "Chunk values reappear after gaps"
+        },
+        {
+          "number": 20,
+          "input": "files=[[\"p\",\"p\",\"q\",\"r\",\"q\"]], queries=[[0,0]]",
+          "expected_output": "[3]",
+          "purpose": "Single file deduplicates repeated chunks within the file"
         }
       ]
     },
@@ -1151,6 +1391,56 @@
             "stress",
             "branching"
           ]
+        },
+        {
+          "id": "hidden_16",
+          "input": "v1=set(0,\"x\",1); v2=set(v1,\"y\",2); get(v1,\"y\"); get(v2,\"x\"); get(v2,\"y\")",
+          "expected": "NULL, 1, 2",
+          "purpose": "Child branch should inherit parent values only",
+          "tags": [
+            "branch-isolation",
+            "inheritance"
+          ]
+        },
+        {
+          "id": "hidden_17",
+          "input": "v1=set(0,\"a\",1); v2=set(v1,\"a\",2); v3=set(v2,\"a\",3); get(v1,\"a\"); get(v2,\"a\"); get(v3,\"a\")",
+          "expected": "1, 2, 3",
+          "purpose": "Repeated overwrites should remain version specific",
+          "tags": [
+            "overwrite",
+            "version-chain"
+          ]
+        },
+        {
+          "id": "hidden_18",
+          "input": "v1=set(0,\"a\",1); v2=set(0,\"b\",2); v3=set(v1,\"b\",3); get(v2,\"a\"); get(v3,\"a\"); get(v3,\"b\")",
+          "expected": "NULL, 1, 3",
+          "purpose": "Separate branches should not leak sibling values",
+          "tags": [
+            "branch-isolation",
+            "sibling-branches"
+          ]
+        },
+        {
+          "id": "hidden_19",
+          "input": "v1=set(0,\"root\",1); v2=set(v1,\"left\",2); v3=set(v2,\"leaf\",3); v4=set(v1,\"right\",4); get(v3,\"root\"); get(v3,\"right\"); get(v4,\"root\"); get(v4,\"left\")",
+          "expected": "1, NULL, 1, NULL",
+          "purpose": "Deep branch lookup and sibling isolation",
+          "tags": [
+            "deep-chain",
+            "branch-isolation"
+          ]
+        },
+        {
+          "id": "hidden_20",
+          "input": "v1=set(0,\"mode\",1); v2=set(v1,\"mode\",2); v3=set(v1,\"extra\",3); get(v1,\"mode\"); get(v2,\"mode\"); get(v3,\"mode\"); get(v3,\"extra\")",
+          "expected": "1, 2, 1, 3",
+          "purpose": "Multiple branches should preserve independent values",
+          "tags": [
+            "branch-conflict",
+            "inheritance"
+          ]
         }
       ],
       "test_cases": [
@@ -1243,6 +1533,36 @@
           "input": "v1=set(0,\"a\",1); v2=set(v1,\"b\",2); v3=set(v2,\"a\",4); v4=set(v1,\"c\",5); get(v3,\"b\"); get(v4,\"b\"); get(v4,\"c\")",
           "expected_output": "2, NULL, 5",
           "purpose": "Mixed branch stress case"
+        },
+        {
+          "number": 16,
+          "input": "v1=set(0,\"x\",1); v2=set(v1,\"y\",2); get(v1,\"y\"); get(v2,\"x\"); get(v2,\"y\")",
+          "expected_output": "NULL, 1, 2",
+          "purpose": "Child branch should inherit parent values only"
+        },
+        {
+          "number": 17,
+          "input": "v1=set(0,\"a\",1); v2=set(v1,\"a\",2); v3=set(v2,\"a\",3); get(v1,\"a\"); get(v2,\"a\"); get(v3,\"a\")",
+          "expected_output": "1, 2, 3",
+          "purpose": "Repeated overwrites should remain version specific"
+        },
+        {
+          "number": 18,
+          "input": "v1=set(0,\"a\",1); v2=set(0,\"b\",2); v3=set(v1,\"b\",3); get(v2,\"a\"); get(v3,\"a\"); get(v3,\"b\")",
+          "expected_output": "NULL, 1, 3",
+          "purpose": "Separate branches should not leak sibling values"
+        },
+        {
+          "number": 19,
+          "input": "v1=set(0,\"root\",1); v2=set(v1,\"left\",2); v3=set(v2,\"leaf\",3); v4=set(v1,\"right\",4); get(v3,\"root\"); get(v3,\"right\"); get(v4,\"root\"); get(v4,\"left\")",
+          "expected_output": "1, NULL, 1, NULL",
+          "purpose": "Deep branch lookup and sibling isolation"
+        },
+        {
+          "number": 20,
+          "input": "v1=set(0,\"mode\",1); v2=set(v1,\"mode\",2); v3=set(v1,\"extra\",3); get(v1,\"mode\"); get(v2,\"mode\"); get(v3,\"mode\"); get(v3,\"extra\")",
+          "expected_output": "1, 2, 1, 3",
+          "purpose": "Multiple branches should preserve independent values"
         }
       ]
     },
