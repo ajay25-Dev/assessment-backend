@@ -1121,6 +1121,78 @@
         "Aggregate completed sales from the last 7 days",
         "Calculate average daily units sold and days of cover",
         "Flag rows below reorder point or below 3 days of cover"
+      ],
+      "visible_expected_rows": [
+        {
+          "store_id": 1,
+          "store_name": "Koramangala Dark Store",
+          "sku_id": 101,
+          "sku_name": "Organic Milk 1L",
+          "on_hand_units": 12,
+          "avg_daily_units_sold": 4.29,
+          "days_of_cover": 2.8,
+          "reorder_point": 20
+        },
+        {
+          "store_id": 2,
+          "store_name": "Indiranagar Dark Store",
+          "sku_id": 102,
+          "sku_name": "Brown Bread",
+          "on_hand_units": 8,
+          "avg_daily_units_sold": 0,
+          "days_of_cover": null,
+          "reorder_point": 15
+        }
+      ],
+      "result_match": {
+        "order_matters": false,
+        "numeric_tolerance": 0.01
+      },
+      "required_business_rules": [
+        "latest-inventory-snapshot",
+        "active-store-filter",
+        "non-discontinued-sku-filter",
+        "completed-sales-last-7-days",
+        "average-daily-sales-over-seven-days",
+        "days-of-cover-calculation",
+        "reorder-point-or-days-cover-threshold",
+        "zero-sales-not-flagged-by-null-cover"
+      ],
+      "expected_sql_concepts": [
+        "cte-or-subquery",
+        "join",
+        "left-join",
+        "aggregation",
+        "group-by",
+        "date-filter",
+        "case-expression",
+        "coalesce-or-null-handling"
+      ],
+      "expected_sql_concept_tags": [
+        "cte-or-subquery",
+        "join",
+        "left-join",
+        "aggregation",
+        "group-by",
+        "date-filter",
+        "case-expression",
+        "coalesce-or-null-handling"
+      ],
+      "edge_cases": [
+        "latest-snapshot-selection",
+        "inactive-store-exclusion",
+        "discontinued-sku-exclusion",
+        "cancelled-sales-exclusion",
+        "no-recent-sales-null-cover",
+        "threshold-reorder-point"
+      ],
+      "null_rules": [
+        "coalesce-missing-sales-to-zero",
+        "avoid-null-days-cover-flag"
+      ],
+      "duplicate_rules": [
+        "aggregate-sales-before-final-join",
+        "preserve-one-row-per-store-sku"
       ]
     },
     {
@@ -1154,6 +1226,78 @@
         "LEFT JOIN and aggregate settlement payouts by transaction",
         "Calculate settlement gap between expected and actual settled amount",
         "Flag missing settlements or mismatches greater than 1"
+      ],
+      "visible_expected_rows": [
+        {
+          "merchant_id": 1,
+          "merchant_name": "Ridge Commerce",
+          "txn_id": 1002,
+          "txn_amount": 2000,
+          "expected_settlement_amount": 1952.8,
+          "settled_amount": 1900,
+          "settlement_gap": 52.8,
+          "settlement_status": "MISMATCH"
+        },
+        {
+          "merchant_id": 2,
+          "merchant_name": "Nova Travels",
+          "txn_id": 1003,
+          "txn_amount": 1500,
+          "expected_settlement_amount": 1464.6,
+          "settled_amount": 0,
+          "settlement_gap": 1464.6,
+          "settlement_status": "MISSING"
+        }
+      ],
+      "result_match": {
+        "order_matters": false,
+        "numeric_tolerance": 0.01
+      },
+      "required_business_rules": [
+        "active-merchant-filter",
+        "captured-transaction-filter",
+        "past-settlement-due-date-filter",
+        "expected-settlement-calculation",
+        "settlement-payout-aggregation-by-transaction",
+        "missing-settlement-detection",
+        "mismatch-threshold-greater-than-one",
+        "settlement-gap-calculation"
+      ],
+      "expected_sql_concepts": [
+        "cte-or-subquery",
+        "join",
+        "left-join",
+        "aggregation",
+        "group-by",
+        "date-filter",
+        "case-expression",
+        "coalesce-or-null-handling"
+      ],
+      "expected_sql_concept_tags": [
+        "cte-or-subquery",
+        "join",
+        "left-join",
+        "aggregation",
+        "group-by",
+        "date-filter",
+        "case-expression",
+        "coalesce-or-null-handling"
+      ],
+      "edge_cases": [
+        "inactive-merchant-exclusion",
+        "non-captured-transaction-exclusion",
+        "missing-settlement-row",
+        "multiple-payout-aggregation",
+        "exact-match-not-flagged",
+        "mismatch-threshold-boundary"
+      ],
+      "null_rules": [
+        "left-join-preserves-missing-settlements",
+        "coalesce-missing-settled-amount-to-zero"
+      ],
+      "duplicate_rules": [
+        "aggregate-payouts-before-final-filter",
+        "preserve-one-row-per-transaction"
       ]
     },
     {
@@ -1186,6 +1330,76 @@
         "Count distinct licensed users active in the last 30 days",
         "Exclude accounts with open critical support tickets",
         "Flag accounts with utilization at least 80% of purchased seats"
+      ],
+      "visible_expected_rows": [
+        {
+          "account_id": 1,
+          "account_name": "BuildRight Infra",
+          "plan_type": "Enterprise",
+          "seats_purchased": 10,
+          "active_users_30d": 8,
+          "utilization_percentage": 80,
+          "contract_end_date": "2026-07-20"
+        },
+        {
+          "account_id": 4,
+          "account_name": "MediaFlow Ltd",
+          "plan_type": "Enterprise",
+          "seats_purchased": 5,
+          "active_users_30d": 4,
+          "utilization_percentage": 80,
+          "contract_end_date": "2026-08-01"
+        }
+      ],
+      "result_match": {
+        "order_matters": false,
+        "numeric_tolerance": 0.01
+      },
+      "required_business_rules": [
+        "active-account-filter",
+        "active-non-trial-contract-filter",
+        "contract-ending-next-sixty-days",
+        "exclude-internal-users",
+        "count-distinct-active-licensed-users",
+        "last-thirty-days-usage-window",
+        "exclude-open-critical-support-tickets",
+        "utilization-at-least-eighty-percent"
+      ],
+      "expected_sql_concepts": [
+        "cte-or-subquery",
+        "join",
+        "left-join-or-anti-join",
+        "aggregation",
+        "group-by",
+        "date-filter",
+        "count-distinct",
+        "having-or-final-filter"
+      ],
+      "expected_sql_concept_tags": [
+        "cte-or-subquery",
+        "join",
+        "left-join-or-anti-join",
+        "aggregation",
+        "group-by",
+        "date-filter",
+        "count-distinct",
+        "having-or-final-filter"
+      ],
+      "edge_cases": [
+        "trial-contract-exclusion",
+        "inactive-account-exclusion",
+        "internal-user-exclusion",
+        "duplicate-usage-event-deduplication",
+        "open-critical-ticket-exclusion",
+        "utilization-threshold-boundary"
+      ],
+      "null_rules": [
+        "active-license-assignment-null-end-date",
+        "anti-join-handles-missing-critical-ticket"
+      ],
+      "duplicate_rules": [
+        "count-distinct-users",
+        "preserve-one-row-per-account-contract"
       ]
     },
     {

@@ -56,7 +56,7 @@ type EdgeCaseEvaluation = {
 };
 
 const SCORE_BASIS =
-  'Score is calculated from visible test correctness, expected code coverage, Judge0 runtime/memory versus question-bank targets, and edge-case performance.';
+  'Score is calculated from visible test correctness, expected code coverage, AI-selected complexity ranks versus question-bank targets, and edge-case performance.';
 
 const STOP_WORDS = new Set([
   'a',
@@ -182,24 +182,6 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
 
   const expectedTimeComplexity = textValue(record.expected_time_complexity) || 'Not available';
   const expectedSpaceComplexity = textValue(record.expected_space_complexity) || 'Not available';
-  const idealTimeMs = positiveNumber(
-    record.ideal_time ?? record.idealTime ?? record.ideal_time_ms,
-  );
-  const idealSpaceKb = positiveNumber(
-    record.ideal_space ?? record.idealSpace ?? record.ideal_space_kb,
-  );
-  const executionTimeMs = positiveNumber(
-    record.execution_time_ms ??
-      record.executionTimeMs ??
-      record.execution_time ??
-      record.executionTime,
-  );
-  const executionMemoryKb = positiveNumber(
-    record.execution_memory_kb ??
-      record.executionMemoryKb ??
-      record.execution_memory ??
-      record.executionMemory,
-  );
   const expectedCodeScore =
     optionalPercentageValue(record.expected_code_score) ??
     expectedCodeSignalsScore(expectedCode, submittedCode);
@@ -215,8 +197,14 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const studentSpaceComplexityLabel = complexityLabelFromRank(studentSpaceComplexityRank);
   const timeComplexityRankGap = studentTimeComplexityRank - expectedTimeComplexityRank;
   const spaceComplexityRankGap = studentSpaceComplexityRank - expectedSpaceComplexityRank;
-  const timeComplexityScore = benchmarkScore(executionTimeMs, idealTimeMs);
-  const spaceComplexityScore = benchmarkScore(executionMemoryKb, idealSpaceKb);
+  const timeComplexityScore = rankGapScore(
+    expectedTimeComplexityRank,
+    studentTimeComplexityRank,
+  );
+  const spaceComplexityScore = rankGapScore(
+    expectedSpaceComplexityRank,
+    studentSpaceComplexityRank,
+  );
   const approachAnalysis = evaluateApproach(
     submittedCode,
     expectedApproach,
@@ -373,11 +361,6 @@ export function rankGapScore(expectedRank: number, studentRank: number) {
   const gap = studentRank - expectedRank;
   if (gap <= 0) return 100;
   return Math.max(0, 100 - gap * 10);
-}
-
-function benchmarkScore(actual: number | null, ideal: number | null) {
-  if (!actual || !ideal || actual <= 0 || ideal <= 0) return 0;
-  return roundScore((ideal / actual) * 100);
 }
 
 function complexityLabelFromRank(rank: number) {

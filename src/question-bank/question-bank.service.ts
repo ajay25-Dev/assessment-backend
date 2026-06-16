@@ -19,6 +19,17 @@ type BankQuestion = {
   expected_space_complexity?: string;
   ideal_time?: unknown;
   ideal_space?: unknown;
+  visible_expected_rows?: unknown[];
+  result_match?: {
+    order_matters?: boolean;
+    numeric_tolerance?: number;
+  };
+  required_business_rules?: unknown[];
+  expected_sql_concepts?: unknown[];
+  expected_sql_concept_tags?: unknown[];
+  edge_cases?: unknown[];
+  null_rules?: unknown[];
+  duplicate_rules?: unknown[];
   evaluator_context?: {
     domain_rules?: unknown[];
     required_components?: unknown[];
@@ -555,6 +566,44 @@ export class QuestionBankService {
     if (!question.expected_columns?.length) {
       throw new InternalServerErrorException(
         `${question.id} must define expected_columns`,
+      );
+    }
+    if (!question.visible_expected_rows?.length) {
+      throw new InternalServerErrorException(
+        `${question.id} must define visible_expected_rows`,
+      );
+    }
+    if (!question.result_match || typeof question.result_match !== 'object') {
+      throw new InternalServerErrorException(
+        `${question.id} must define result_match`,
+      );
+    }
+    if (!question.required_business_rules?.length) {
+      throw new InternalServerErrorException(
+        `${question.id} must define required_business_rules`,
+      );
+    }
+    if (
+      !question.expected_sql_concept_tags?.length &&
+      !question.expected_sql_concepts?.length
+    ) {
+      throw new InternalServerErrorException(
+        `${question.id} must define expected_sql_concept_tags or expected_sql_concepts`,
+      );
+    }
+    if (!question.edge_cases?.length) {
+      throw new InternalServerErrorException(
+        `${question.id} must define edge_cases`,
+      );
+    }
+    if (!question.null_rules?.length) {
+      throw new InternalServerErrorException(
+        `${question.id} must define null_rules`,
+      );
+    }
+    if (!question.duplicate_rules?.length) {
+      throw new InternalServerErrorException(
+        `${question.id} must define duplicate_rules`,
       );
     }
   }

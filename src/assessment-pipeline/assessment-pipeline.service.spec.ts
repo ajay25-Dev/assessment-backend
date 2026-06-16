@@ -15,6 +15,9 @@ describe('AssessmentPipelineService', () => {
     const sqlEvaluation = {
       evaluate: jest.fn(),
     };
+    const sqlSandbox = {
+      run: jest.fn(),
+    };
     const oopsEvaluation = {
       evaluate: jest.fn(),
     };
@@ -31,6 +34,7 @@ describe('AssessmentPipelineService', () => {
         questionBank as never,
         dsaEvaluation as never,
         sqlEvaluation as never,
+        sqlSandbox as never,
         oopsEvaluation as never,
         mcqEvaluation as never,
         dashboardEvaluation as never,
