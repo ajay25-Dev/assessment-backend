@@ -30,6 +30,15 @@ type BankQuestion = {
   edge_cases?: unknown[];
   null_rules?: unknown[];
   duplicate_rules?: unknown[];
+  expected_oops_tags?: unknown[];
+  required_classes?: unknown[];
+  required_abstractions?: unknown[];
+  required_patterns?: unknown[];
+  required_solid_principles?: unknown[];
+  required_error_cases?: unknown[];
+  required_design_rules?: unknown[];
+  optional_oops_tags?: unknown[];
+  red_flag_tags?: unknown[];
   evaluator_context?: {
     domain_rules?: unknown[];
     required_components?: unknown[];
@@ -45,6 +54,7 @@ type TestCase = {
   input?: string;
   expected?: string;
   expected_output?: string;
+  purpose?: string;
   tags?: string[];
 };
 
@@ -205,12 +215,12 @@ export class QuestionBankService {
 
       if (question.section === 'DSA') {
         if (
-          question.test_cases?.length !== 15 ||
+          question.test_cases?.length !== 20 ||
           question.open_test_cases?.length !== 5 ||
-          question.hidden_test_cases?.length !== 10
+          question.hidden_test_cases?.length !== 15
         ) {
           throw new InternalServerErrorException(
-            `${question.id} must include 15 doc test cases, 5 open cases and 10 hidden cases`,
+            `${question.id} must include 20 test cases, 5 open cases and 15 hidden cases`,
           );
         }
         this.assertDsaApproachTags(question);
@@ -232,7 +242,17 @@ export class QuestionBankService {
       }
 
       if (question.section === 'OOPs') {
+        if (
+          question.test_cases?.length !== 20 ||
+          question.open_test_cases?.length !== 5 ||
+          question.hidden_test_cases?.length !== 15
+        ) {
+          throw new InternalServerErrorException(
+            `${question.id} must include 20 test cases, 5 open cases and 15 hidden cases`,
+          );
+        }
         this.assertOopsContext(question);
+        this.assertOopsCases(question);
       }
     });
   }
@@ -628,5 +648,84 @@ export class QuestionBankService {
         );
       }
     });
+
+    [
+      'expected_oops_tags',
+      'required_classes',
+      'required_abstractions',
+      'required_patterns',
+      'required_solid_principles',
+      'required_error_cases',
+      'required_design_rules',
+      'red_flag_tags',
+    ].forEach((key) => {
+      const values = question[key as keyof BankQuestion];
+      if (!Array.isArray(values) || !values.length) {
+        throw new InternalServerErrorException(
+          `${question.id} must define ${key}`,
+        );
+      }
+      this.assertSlugArray(question.id || 'OOPs question', key, values);
+    });
+
+    if (question.optional_oops_tags) {
+      this.assertSlugArray(
+        question.id || 'OOPs question',
+        'optional_oops_tags',
+        question.optional_oops_tags,
+      );
+    }
+  }
+
+  private assertOopsCases(question: BankQuestion) {
+    const cases = [
+      ...(question.open_test_cases || []),
+      ...(question.hidden_test_cases || []),
+      ...(question.test_cases || []),
+    ];
+
+    cases.forEach((testCase) => {
+      const label = `${question.id}:${testCase.id || testCase.number || '?'}`;
+      const input = String(testCase.input || '').trim();
+      const expected = String(
+        testCase.expected_output || testCase.expected || '',
+      ).trim();
+      const purpose = String(testCase.purpose || '').trim();
+      const tags = Array.isArray(testCase.tags) ? testCase.tags : [];
+
+      if (!input || !expected || !purpose) {
+        throw new InternalServerErrorException(
+          `${label} must include input, expected output and purpose`,
+        );
+      }
+
+      if (!tags.length) {
+        throw new InternalServerErrorException(
+          `${label} must include at least one tag`,
+        );
+      }
+
+      this.assertSlugArray(label, 'tags', tags);
+    });
+  }
+
+  private assertSlugArray(questionId: string, key: string, values: unknown[]) {
+    const invalid = values.filter(
+      (value) =>
+        typeof value !== 'string' ||
+        !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
+    );
+
+    if (invalid.length) {
+      throw new InternalServerErrorException(
+        `${questionId} has non-slug ${key} entries`,
+      );
+    }
+
+    if (new Set(values).size !== values.length) {
+      throw new InternalServerErrorException(
+        `${questionId} has duplicate ${key} entries`,
+      );
+    }
   }
 }

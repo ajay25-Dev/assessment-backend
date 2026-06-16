@@ -1,27 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import {
-  DSA_COMPLEXITY_PROMPT,
-  DSA_COMPLEXITY_PROMPT_VERSION,
-} from '../ai/prompts/dsa-complexity.v1';
-import {
-  DSA_APPROACH_PROMPT,
-  DSA_APPROACH_PROMPT_VERSION,
-} from '../ai/prompts/dsa-approach.v1';
-import {
-  DSA_EXPECTED_CODE_PROMPT,
-  DSA_EXPECTED_CODE_PROMPT_VERSION,
-} from '../ai/prompts/dsa-expected-code.v1';
-import {
-  dsaApproachOutputSchema,
-  dsaComplexityOutputSchema,
-  dsaExpectedCodeOutputSchema,
-} from '../ai/schemas/evaluation-output.schemas';
-import { OpenAiClientService } from '../ai/openai-client.service';
-import { BaseEvaluatorService } from './base-evaluator.service';
-import {
-  isKnownComplexityRank,
-  loadComplexityRanks,
-} from './complexity-ranks';
+import { Injectable, Logger } from '@nestjs/common';
 import { evaluateDsaSubmission } from './dsa-deterministic-evaluator';
 
 type DsaComplexityOutput = {
@@ -29,172 +6,155 @@ type DsaComplexityOutput = {
   student_space_complexity_rank: number;
 };
 
-type DsaApproachOutput = {
-  detected_tags: string[];
-};
-
-type DsaExpectedCodeOutput = {
-  expected_code_score: number;
-};
+type JsonRecord = Record<string, unknown>;
 
 @Injectable()
-export class DsaEvaluationService extends BaseEvaluatorService {
+export class DsaEvaluationService {
   private readonly logger = new Logger(DsaEvaluationService.name);
-
-  constructor(aiClient: OpenAiClientService) {
-    super(aiClient);
-  }
 
   async evaluate(input: unknown) {
     this.logger.log('Starting DSA evaluation');
-    const [complexitySelection, expectedCodeScore, detectedApproachTags] = await Promise.all([
-      this.extractComplexitySelection(input),
-      this.extractExpectedCodeScore(input),
-      this.extractApproachTags(input),
-    ]);
+    const record = this.asRecord(input);
+    const complexitySelection = this.deriveComplexitySelection(record);
+    const detectedApproachTags = this.deriveApproachTags(record);
+
     this.logger.log(
-      `DSA complexity selected: timeRank=${complexitySelection.student_time_complexity_rank}, spaceRank=${complexitySelection.student_space_complexity_rank}`,
+      `DSA complexity derived: timeRank=${complexitySelection.student_time_complexity_rank}, spaceRank=${complexitySelection.student_space_complexity_rank}`,
     );
     this.logger.log(
-      `DSA expected code score selected: ${expectedCodeScore === null ? 'fallback' : expectedCodeScore}`,
+      `DSA approach tags derived: ${detectedApproachTags.length ? detectedApproachTags.join(', ') : 'none'}`,
     );
-    this.logger.log(
-      `DSA approach tags selected: ${detectedApproachTags.length ? detectedApproachTags.join(', ') : 'none'}`,
-    );
+
     return evaluateDsaSubmission({
-      ...(this.asRecord(input) || {}),
+      ...record,
       student_time_complexity_rank: complexitySelection.student_time_complexity_rank,
       student_space_complexity_rank:
         complexitySelection.student_space_complexity_rank,
-      expected_code_score: expectedCodeScore ?? undefined,
       detected_approach_tags: detectedApproachTags,
     });
   }
 
-  private async extractComplexitySelection(input: unknown): Promise<DsaComplexityOutput> {
-    const record = this.asRecord(input);
-    this.logger.log(
-      `Preparing DSA complexity prompt with question length=${String([record.question_title, record.prompt].filter(Boolean).join('\n\n')).length} and submitted_code length=${String(record.submitted_code || '').length}`,
-    );
-    const rankTable = loadComplexityRanks().map((entry) => ({
-      rank: entry.rank,
-      label: entry.label,
-      aliases: entry.aliases,
-    }));
-    this.logger.log(
-      `DSA complexity rank input: count=${rankTable.length}, first=${rankTable[0]?.rank}:${rankTable[0]?.label}, last=${rankTable[rankTable.length - 1]?.rank}:${rankTable[rankTable.length - 1]?.label}`,
-    );
-    const output = await this.evaluateWithPrompt({
-      section: 'DSA',
-      promptVersion: DSA_COMPLEXITY_PROMPT_VERSION,
-      schemaName: 'dsa_complexity_extraction',
-      schema: dsaComplexityOutputSchema,
-      systemPrompt: DSA_COMPLEXITY_PROMPT,
-      input: {
-        complexity_rankings: rankTable,
-        question: [record.question_title, record.prompt].filter(Boolean).join('\n\n'),
-        submitted_code: record.submitted_code,
-      },
-    });
-    this.logger.log(`Raw DSA complexity output: ${JSON.stringify(output.output)}`);
+  private deriveComplexitySelection(record: JsonRecord): DsaComplexityOutput {
+    const submittedCode = String(record.submitted_code || '');
+    const normalizedCode = this.normalizeText(submittedCode);
+    const lowerCode = submittedCode.toLowerCase();
+    const loopCount = this.loopCount(submittedCode);
+    const hasFactorial = this.containsAny(lowerCode, [
+      /\bpermutation\b/,
+      /\bfactorial\b/,
+      /\bn!\b/,
+      /branch\s*and\s*bound/,
+    ]);
+    const hasExponential = this.containsAny(normalizedCode, [
+      /\bbitmask\b/,
+      /\bsubset\b/,
+      /\bmask\b/,
+      /\bbacktrack\b/,
+      /\bbacktracking\b/,
+      /\bmemo\b/,
+      /\bmemoization\b/,
+      /\bdp\b/,
+      /\bpowerset\b/,
+    ]);
+    const hasGraphOrQueue = this.containsAny(normalizedCode, [
+      /\bgraph\b/,
+      /\badjacency\b/,
+      /\bdijkstra\b/,
+      /\bheap\b/,
+      /\bpriority\b/,
+      /\bqueue\b/,
+      /\btopolog\b/,
+      /\bcycle\b/,
+    ]);
+    const hasSort = this.containsAny(normalizedCode, [/\bsort\b/, /\bsorted\b/]);
+    const hasHashing = this.containsAny(normalizedCode, [
+      /\bmap\b/,
+      /\bset\b/,
+      /\bhash\b/,
+      /\bcache\b/,
+    ]);
+    const nestedLoops = loopCount >= 2;
 
-    const parsed = this.asComplexityOutput(output.output);
-    this.logger.log(
-      `Validated DSA complexity output: timeRank=${parsed.student_time_complexity_rank}, spaceRank=${parsed.student_space_complexity_rank}`,
-    );
-    if (!isKnownComplexityRank(parsed.student_time_complexity_rank)) {
-      throw new InternalServerErrorException(
-        'Invalid DSA time complexity returned by the model',
-      );
-    }
-    if (!isKnownComplexityRank(parsed.student_space_complexity_rank)) {
-      throw new InternalServerErrorException(
-        'Invalid DSA space complexity returned by the model',
-      );
+    if (hasFactorial) {
+      return {
+        student_time_complexity_rank: 41,
+        student_space_complexity_rank: 41,
+      };
     }
 
-    return parsed;
+    if (hasExponential) {
+      return {
+        student_time_complexity_rank: nestedLoops || hasHashing ? 36 : 35,
+        student_space_complexity_rank: nestedLoops || hasHashing ? 35 : 36,
+      };
+    }
+
+    if (hasGraphOrQueue || hasSort) {
+      return {
+        student_time_complexity_rank: nestedLoops ? 16 : 11,
+        student_space_complexity_rank: nestedLoops ? 11 : 9,
+      };
+    }
+
+    if (nestedLoops) {
+      return {
+        student_time_complexity_rank: 16,
+        student_space_complexity_rank: 9,
+      };
+    }
+
+    if (loopCount === 1) {
+      return {
+        student_time_complexity_rank: 9,
+        student_space_complexity_rank: hasHashing ? 9 : 9,
+      };
+    }
+
+    if (this.containsAny(normalizedCode, [/\brecurs\b/, /\bdfs\b/, /\bbacktrack\b/])) {
+      return {
+        student_time_complexity_rank: 16,
+        student_space_complexity_rank: 16,
+      };
+    }
+
+    return {
+      student_time_complexity_rank: 1,
+      student_space_complexity_rank: 1,
+    };
   }
 
-  private async extractApproachTags(input: unknown): Promise<string[]> {
-    const record = this.asRecord(input);
+  private deriveApproachTags(record: JsonRecord) {
+    const submittedCode = String(record.submitted_code || '');
+    const normalizedCode = this.normalizeText(submittedCode);
+    const lowerCode = submittedCode.toLowerCase();
     const expectedApproach = this.stringList(record.expected_approach);
 
-    if (!expectedApproach.length) {
-      throw new InternalServerErrorException(
-        'DSA approach extraction requires expected_approach',
-      );
-    }
-
-    this.logger.log(
-      `Preparing DSA approach prompt with question length=${String([record.question_title, record.prompt].filter(Boolean).join('\n\n')).length}, submitted_code length=${String(record.submitted_code || '').length}, expected_approach count=${expectedApproach.length}`,
+    return expectedApproach.filter((tag) =>
+      this.tagMatchesCode(tag, normalizedCode, lowerCode),
     );
-    const output = await this.evaluateWithPrompt({
-      section: 'DSA',
-      promptVersion: DSA_APPROACH_PROMPT_VERSION,
-      schemaName: 'dsa_approach_extraction',
-      schema: dsaApproachOutputSchema,
-      systemPrompt: DSA_APPROACH_PROMPT,
-      input: {
-        question: [record.question_title, record.prompt].filter(Boolean).join('\n\n'),
-        submitted_code: record.submitted_code,
-        allowed_expected_approach_tags: expectedApproach,
-      },
-    });
-    this.logger.log(`Raw DSA approach output: ${JSON.stringify(output.output)}`);
-
-    const parsed = this.asApproachOutput(output.output);
-    this.logger.log(
-      `Validated DSA approach output: detectedTags=${parsed.detected_tags.length}`,
-    );
-    return parsed.detected_tags;
   }
 
-  private async extractExpectedCodeScore(input: unknown): Promise<number | null> {
-    const record = this.asRecord(input);
-    const expectedCode = this.stringList(record.expected_code);
+  private tagMatchesCode(tag: string, normalizedCode: string, lowerCode: string) {
+    const normalizedTag = this.normalizeTag(tag);
+    if (!normalizedTag) return false;
 
-    if (!expectedCode.length) {
-      this.logger.log(
-        'Skipping DSA expected-code prompt because expected_code is empty',
-      );
-      return null;
+    const parts = normalizedTag.split('-').filter(Boolean);
+    if (!parts.length) return false;
+
+    const matchesPart = (part: string) =>
+      normalizedCode.includes(part) || lowerCode.includes(part);
+
+    if (parts.length === 1) {
+      return matchesPart(parts[0]);
     }
 
-    try {
-      this.logger.log(
-        `Preparing DSA expected-code prompt with question length=${String([record.question_title, record.prompt].filter(Boolean).join('\n\n')).length}, submitted_code length=${String(record.submitted_code || '').length}, expected_code count=${expectedCode.length}`,
-      );
-      const output = await this.evaluateWithPrompt({
-        section: 'DSA',
-        promptVersion: DSA_EXPECTED_CODE_PROMPT_VERSION,
-        schemaName: 'dsa_expected_code_extraction',
-        schema: dsaExpectedCodeOutputSchema,
-        systemPrompt: DSA_EXPECTED_CODE_PROMPT,
-        input: {
-          question: [record.question_title, record.prompt].filter(Boolean).join('\n\n'),
-          submitted_code: record.submitted_code,
-          expected_code: expectedCode,
-        },
-      });
-      this.logger.log(`Raw DSA expected-code output: ${JSON.stringify(output.output)}`);
-
-      const parsed = this.asExpectedCodeOutput(output.output);
-      this.logger.log(
-        `Validated DSA expected-code output: expectedCodeScore=${parsed.expected_code_score}`,
-      );
-      return parsed.expected_code_score;
-    } catch (error) {
-      this.logger.warn(
-        `DSA expected-code extraction failed, falling back to deterministic heuristic: ${this.errorMessage(error)}`,
-      );
-      return null;
-    }
+    const matchedParts = parts.filter((part) => matchesPart(part)).length;
+    return matchedParts >= Math.max(1, Math.ceil(parts.length * 0.6));
   }
 
   private asRecord(value: unknown) {
     return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
+      ? (value as JsonRecord)
       : {};
   }
 
@@ -204,62 +164,22 @@ export class DsaEvaluationService extends BaseEvaluatorService {
       : [];
   }
 
-  private asComplexityOutput(value: unknown): DsaComplexityOutput {
-    const record = this.asRecord(value);
-    return {
-      student_time_complexity_rank: this.rankValue(
-        record.student_time_complexity_rank,
-      ),
-      student_space_complexity_rank: this.rankValue(
-        record.student_space_complexity_rank,
-      ),
-    };
+  private containsAny(text: string, patterns: RegExp[]) {
+    return patterns.some((pattern) => pattern.test(text));
   }
 
-  private asApproachOutput(value: unknown): DsaApproachOutput {
-    const record = this.asRecord(value);
-    return {
-      detected_tags: this.normalizeTags(this.stringList(record.detected_tags)),
-    };
+  private loopCount(code: string) {
+    const matches = code.match(/\b(for|while)\b/g);
+    return matches ? matches.length : 0;
   }
 
-  private asExpectedCodeOutput(value: unknown): DsaExpectedCodeOutput {
-    const record = this.asRecord(value);
-    return {
-      expected_code_score: this.percentageValueOrThrow(
-        record.expected_code_score,
-        'DSA expected-code score',
-      ),
-    };
-  }
-
-  private percentageValueOrThrow(value: unknown, label = 'DSA percentage') {
-    const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 100) {
-      throw new InternalServerErrorException(
-        `Invalid ${label} returned by the model`,
-      );
-    }
-    return parsed;
-  }
-
-  private rankValue(value: unknown) {
-    const parsed = Number(value);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 50) {
-      throw new InternalServerErrorException(
-        'Invalid DSA complexity rank returned by the model',
-      );
-    }
-    return parsed;
-  }
-
-  private errorMessage(error: unknown) {
-    if (error instanceof Error) return error.message;
-    return String(error);
-  }
-
-  private normalizeTags(value: string[]) {
-    return [...new Set(value.map((item) => this.normalizeTag(item)).filter(Boolean))];
+  private normalizeText(value: string) {
+    return value
+      .toLowerCase()
+      .replace(/['"`]/g, ' ')
+      .replace(/[^a-z0-9_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private normalizeTag(value: string) {

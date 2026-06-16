@@ -46,6 +46,22 @@ export const sqlConceptTagsOutputSchema = strictObject({
   detected_tags: stringArray,
 });
 
+export const oopsEvidenceOutputSchema = strictObject({
+  detected_oops_tags: stringArray,
+  detected_classes: stringArray,
+  detected_abstractions: stringArray,
+  detected_patterns: stringArray,
+  detected_solid_principles: stringArray,
+  detected_error_cases: stringArray,
+  detected_design_rules: stringArray,
+  detected_red_flags: stringArray,
+  reasoning_summary: text,
+  missing_components: stringArray,
+  key_strengths: stringArray,
+  key_weaknesses: stringArray,
+  improvement_recommendation: text,
+});
+
 export const dsaExpectedCodeOutputSchema = strictObject({
   expected_code_score: score,
 });
