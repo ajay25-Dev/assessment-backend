@@ -37,7 +37,7 @@ describe('TestHarnessService', () => {
     expect(source).not.toContain('includes("before")');
   });
 
-  it('adds a no-op C++ main for code-design questions without test cases', async () => {
+  it('generates a static OOPs harness for C++ submissions', async () => {
     const source = await service.buildSource({
       language: 'cpp',
       sourceCode: 'class WorkflowEngine { public: void next() {} };',
@@ -45,11 +45,12 @@ describe('TestHarnessService', () => {
       runType: 'run',
     });
 
-    expect(source).toContain('class WorkflowEngine');
-    expect(source).toContain('int main() { return 0; }');
+    expect(source).toContain('===TEST_RESULTS_START===');
+    expect(source).toContain('std::cout');
+    expect(source).not.toContain('int main() { return 0; }');
   });
 
-  it('adds a Java Main class for code-design questions without test cases', async () => {
+  it('generates a static OOPs harness for Java submissions', async () => {
     const source = await service.buildSource({
       language: 'java',
       sourceCode: 'public interface PaymentMethod { boolean pay(); }',
@@ -57,9 +58,9 @@ describe('TestHarnessService', () => {
       runType: 'run',
     });
 
-    expect(source).toContain('interface PaymentMethod');
-    expect(source).not.toContain('public interface PaymentMethod');
-    expect(source).toContain(
+    expect(source).toContain('===TEST_RESULTS_START===');
+    expect(source).toContain('System.out.println');
+    expect(source).not.toContain(
       'class Main { public static void main(String[] args) {} }',
     );
   });

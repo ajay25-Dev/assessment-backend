@@ -144,28 +144,40 @@
           "input": "n=3, dependencies=[[1,0],[2,1]], durations=[3,3,3], deadlines=[2,6,9]",
           "expected": "2",
           "purpose": "First incident misses SLA but chain can continue",
-          "tags": ["dependency-chain", "deadline-boundary"]
+          "tags": [
+            "dependency-chain",
+            "deadline-boundary"
+          ]
         },
         {
           "id": "open_3",
           "input": "n=3, dependencies=[[0,1],[1,2],[2,0]], durations=[1,1,1], deadlines=[5,5,5]",
           "expected": "-1",
           "purpose": "Cycle detection",
-          "tags": ["cycle", "graph"]
+          "tags": [
+            "cycle",
+            "graph"
+          ]
         },
         {
           "id": "open_4",
           "input": "n=3, dependencies=[], durations=[5,1,1], deadlines=[5,2,3]",
           "expected": "2",
           "purpose": "Choosing order matters",
-          "tags": ["ordering", "greedy-trap"]
+          "tags": [
+            "ordering",
+            "greedy-trap"
+          ]
         },
         {
           "id": "open_5",
           "input": "n=1, dependencies=[], durations=[10], deadlines=[5]",
           "expected": "0",
           "purpose": "Single incident misses SLA",
-          "tags": ["single-item", "deadline-boundary"]
+          "tags": [
+            "single-item",
+            "deadline-boundary"
+          ]
         }
       ],
       "hidden_test_cases": [
@@ -174,49 +186,70 @@
           "input": "n=2, dependencies=[[1,0]], durations=[2,2], deadlines=[2,3]",
           "expected": "1",
           "purpose": "Dependent incident misses by one unit",
-          "tags": ["dependency-chain", "deadline-boundary"]
+          "tags": [
+            "dependency-chain",
+            "deadline-boundary"
+          ]
         },
         {
           "id": "hidden_7",
           "input": "n=4, dependencies=[], durations=[4,4,1,1], deadlines=[4,8,1,2]",
           "expected": "3",
           "purpose": "Optimal order is not input order",
-          "tags": ["ordering", "greedy-trap"]
+          "tags": [
+            "ordering",
+            "greedy-trap"
+          ]
         },
         {
           "id": "hidden_8",
           "input": "n=5, dependencies=[[3,1],[3,2],[4,3]], durations=[1,2,2,3,1], deadlines=[1,2,4,7,9]",
           "expected": "4",
           "purpose": "Multiple prerequisites",
-          "tags": ["multiple-prerequisites", "graph"]
+          "tags": [
+            "multiple-prerequisites",
+            "graph"
+          ]
         },
         {
           "id": "hidden_9",
           "input": "n=4, dependencies=[[2,0],[2,1]], durations=[3,3,10,1], deadlines=[3,6,10,20]",
           "expected": "3",
           "purpose": "Large dependent job may be skipped for SLA score",
-          "tags": ["skip-large-job", "deadline-boundary"]
+          "tags": [
+            "skip-large-job",
+            "deadline-boundary"
+          ]
         },
         {
           "id": "hidden_10",
           "input": "n=3, dependencies=[[1,1]], durations=[1,1,1], deadlines=[2,2,2]",
           "expected": "-1",
           "purpose": "Self dependency cycle",
-          "tags": ["self-cycle", "cycle"]
+          "tags": [
+            "self-cycle",
+            "cycle"
+          ]
         },
         {
           "id": "hidden_11",
           "input": "n=6, dependencies=[[2,0],[2,1],[3,2],[4,2],[5,3],[5,4]], durations=[1,1,2,2,2,1], deadlines=[1,2,4,6,7,8]",
           "expected": "4",
           "purpose": "Diamond dependency graph",
-          "tags": ["diamond-dependency", "graph"]
+          "tags": [
+            "diamond-dependency",
+            "graph"
+          ]
         },
         {
           "id": "hidden_12",
           "input": "n=3, dependencies=[], durations=[2,2,2], deadlines=[1,3,5]",
           "expected": "2",
           "purpose": "At least one SLA must be missed",
-          "tags": ["deadline-boundary", "ordering"]
+          "tags": [
+            "deadline-boundary",
+            "ordering"
+          ]
         },
         {
           "id": "hidden_13",
@@ -229,14 +262,20 @@
           "input": "n=4, dependencies=[[1,0],[2,0],[3,1],[3,2]], durations=[5,1,1,1], deadlines=[4,7,7,8]",
           "expected": "3",
           "purpose": "Prerequisite can miss SLA but unlocks others",
-          "tags": ["dependency-chain", "greedy-trap"]
+          "tags": [
+            "dependency-chain",
+            "greedy-trap"
+          ]
         },
         {
           "id": "hidden_15",
           "input": "n=5, dependencies=[], durations=[10,1,1,1,1], deadlines=[10,1,2,3,4]",
           "expected": "4",
           "purpose": "Small jobs before long job can still be optimal",
-          "tags": ["ordering", "greedy-trap"]
+          "tags": [
+            "ordering",
+            "greedy-trap"
+          ]
         }
       ],
       "test_cases": [
@@ -404,21 +443,30 @@
           "input": "n=3, roads=[[0,1,5,0],[1,2,5,0]], packages=[[1,2,9]]",
           "expected": "0",
           "purpose": "Single package misses deadline",
-          "tags": ["deadline-boundary", "single-package"]
+          "tags": [
+            "deadline-boundary",
+            "single-package"
+          ]
         },
         {
           "id": "open_4",
           "input": "n=4, roads=[[0,1,1,0],[1,2,2,5],[2,3,1,0]], packages=[[1,3,9]]",
           "expected": "1",
           "purpose": "Must wait for a road to open",
-          "tags": ["time-window", "waiting"]
+          "tags": [
+            "time-window",
+            "waiting"
+          ]
         },
         {
           "id": "open_5",
           "input": "n=5, roads=[[0,1,1,0],[1,2,2,0],[2,3,2,0],[3,4,2,0],[0,3,10,0],[4,1,1,0]], packages=[[1,2,5],[3,4,20],[1,3,12]]",
           "expected": "3",
           "purpose": "Order selection enables all packages",
-          "tags": ["ordering", "greedy-trap"]
+          "tags": [
+            "ordering",
+            "greedy-trap"
+          ]
         }
       ],
       "hidden_test_cases": [
@@ -427,70 +475,100 @@
           "input": "n=4, roads=[[0,1,2,0],[1,2,2,0]], packages=[[3,2,20],[1,2,10]]",
           "expected": "1",
           "purpose": "Unreachable pickup is skipped",
-          "tags": ["unreachable", "graph"]
+          "tags": [
+            "unreachable",
+            "graph"
+          ]
         },
         {
           "id": "hidden_7",
           "input": "n=5, roads=[[0,1,1,0],[1,4,1,100],[0,2,5,0],[2,4,5,0],[4,3,1,0]], packages=[[1,3,20],[2,3,15]]",
           "expected": "1",
           "purpose": "Late-opening fast edge loses to slower usable route",
-          "tags": ["time-window", "shortest-path"]
+          "tags": [
+            "time-window",
+            "shortest-path"
+          ]
         },
         {
           "id": "hidden_8",
           "input": "n=3, roads=[], packages=[[0,0,1],[0,1,10]]",
           "expected": "1",
           "purpose": "Zero roads with same-location package",
-          "tags": ["empty-graph", "same-location"]
+          "tags": [
+            "empty-graph",
+            "same-location"
+          ]
         },
         {
           "id": "hidden_9",
           "input": "n=4, roads=[[0,1,2,0],[1,2,2,0],[2,1,2,0],[1,3,4,0],[3,1,4,0]], packages=[[1,2,6],[1,3,14],[1,2,20]]",
           "expected": "3",
           "purpose": "Multiple packages share pickup hub",
-          "tags": ["shared-pickup", "state-reuse"]
+          "tags": [
+            "shared-pickup",
+            "state-reuse"
+          ]
         },
         {
           "id": "hidden_10",
           "input": "n=6, roads=[[0,1,1,0],[1,2,1,0],[2,3,1,0],[3,4,1,0],[4,5,1,0],[5,1,1,0]], packages=[[1,2,3],[3,4,7],[5,1,11]]",
           "expected": "3",
           "purpose": "Cycle route can complete all packages",
-          "tags": ["cycle", "graph"]
+          "tags": [
+            "cycle",
+            "graph"
+          ]
         },
         {
           "id": "hidden_11",
           "input": "n=6, roads=[[0,1,3,0],[1,2,3,0],[2,3,3,0],[3,4,3,0],[4,5,3,0],[0,5,20,0],[5,1,1,0]], packages=[[1,2,8],[3,4,15],[5,1,22],[2,5,16]]",
           "expected": "3",
           "purpose": "Best answer skips one package",
-          "tags": ["skip-package", "greedy-trap"]
+          "tags": [
+            "skip-package",
+            "greedy-trap"
+          ]
         },
         {
           "id": "hidden_12",
           "input": "n=3, roads=[[0,1,4,0],[1,2,6,0]], packages=[[1,2,10]]",
           "expected": "1",
           "purpose": "Delivery exactly at deadline is valid",
-          "tags": ["exact-deadline", "boundary"]
+          "tags": [
+            "exact-deadline",
+            "boundary"
+          ]
         },
         {
           "id": "hidden_13",
           "input": "n=4, roads=[[0,1,1,0],[1,2,1,0],[2,1,1,0],[2,3,1,0],[3,1,1,0]], packages=[[1,2,3],[1,3,6],[1,2,9]]",
           "expected": "3",
           "purpose": "Revisiting locations between packages",
-          "tags": ["revisit", "state-reuse"]
+          "tags": [
+            "revisit",
+            "state-reuse"
+          ]
         },
         {
           "id": "hidden_14",
           "input": "n=5, roads=[[0,1,2,0],[1,2,2,10],[0,3,6,0],[3,2,1,0],[2,4,2,0],[4,1,2,0]], packages=[[1,4,16],[3,4,12],[1,2,14]]",
           "expected": "2",
           "purpose": "Time-dependent shortest paths change with current time",
-          "tags": ["time-dependent", "shortest-path"]
+          "tags": [
+            "time-dependent",
+            "shortest-path"
+          ]
         },
         {
           "id": "hidden_15",
           "input": "n=7, roads=[[0,1,1,0],[1,2,2,0],[2,3,2,0],[3,4,2,0],[4,5,2,0],[5,6,2,0],[6,1,2,0],[0,4,10,0]], packages=[[1,2,4],[3,4,9],[5,6,15],[1,3,20],[4,6,24]]",
           "expected": "5",
           "purpose": "Five-package bitmask DP case",
-          "tags": ["bitmask-dp", "stress"]
+          "tags": [
+            "bitmask-dp",
+            "stress"
+          ]
         }
       ],
       "test_cases": [
@@ -650,21 +728,30 @@
           "input": "files=[[\"a\"],[\"a\"],[\"a\"]], queries=[[0,0],[0,2],[1,2]]",
           "expected": "[1,1,1]",
           "purpose": "Same chunk across all files",
-          "tags": ["same-chunk", "range-repeat"]
+          "tags": [
+            "same-chunk",
+            "range-repeat"
+          ]
         },
         {
           "id": "open_3",
           "input": "files=[[\"a\",\"a\",\"b\"],[\"b\",\"b\",\"c\"]], queries=[[0,1]]",
           "expected": "[3]",
           "purpose": "Duplicates inside files",
-          "tags": ["intra-file-duplicate", "deduplication"]
+          "tags": [
+            "intra-file-duplicate",
+            "deduplication"
+          ]
         },
         {
           "id": "open_4",
           "input": "files=[[],[\"x\"],[\"y\",\"x\"]], queries=[[0,0],[0,2],[1,2]]",
           "expected": "[0,2,2]",
           "purpose": "Empty file handling",
-          "tags": ["empty-file", "boundary"]
+          "tags": [
+            "empty-file",
+            "boundary"
+          ]
         },
         {
           "id": "open_5",
@@ -679,70 +766,100 @@
           "input": "files=[[\"abc\",\"ABC\"],[\"abc\"]], queries=[[0,0],[0,1]]",
           "expected": "[2,2]",
           "purpose": "Case sensitivity",
-          "tags": ["case-sensitive", "hash-format"]
+          "tags": [
+            "case-sensitive",
+            "hash-format"
+          ]
         },
         {
           "id": "hidden_7",
           "input": "files=[[\"1\",\"2\"],[\"01\",\"1\"],[\"2\",\"3\"]], queries=[[0,2],[1,2]]",
           "expected": "[4,4]",
           "purpose": "Numeric-like hashes",
-          "tags": ["numeric-like", "hash-format"]
+          "tags": [
+            "numeric-like",
+            "hash-format"
+          ]
         },
         {
           "id": "hidden_8",
           "input": "files=[[\"a#1\"],[\"b@2\",\"a#1\"],[\"c$3\"]], queries=[[0,1],[1,2]]",
           "expected": "[2,3]",
           "purpose": "Special-character hashes",
-          "tags": ["special-characters", "hash-format"]
+          "tags": [
+            "special-characters",
+            "hash-format"
+          ]
         },
         {
           "id": "hidden_9",
           "input": "files=[[\"x\",\"x\",\"x\"],[\"x\"],[]], queries=[[0,2],[2,2]]",
           "expected": "[1,0]",
           "purpose": "Repeated chunk and empty range end",
-          "tags": ["repeated-chunk", "empty-file"]
+          "tags": [
+            "repeated-chunk",
+            "empty-file"
+          ]
         },
         {
           "id": "hidden_10",
           "input": "files=[[\"a\",\"b\"],[\"b\",\"c\"],[\"c\",\"d\"],[\"d\",\"e\"]], queries=[[0,1],[1,3],[0,3]]",
           "expected": "[3,4,5]",
           "purpose": "Overlapping ranges",
-          "tags": ["range-overlap", "query-window"]
+          "tags": [
+            "range-overlap",
+            "query-window"
+          ]
         },
         {
           "id": "hidden_11",
           "input": "files=[[\"h1\"],[\"h2\"],[\"h1\",\"h3\"],[\"h4\",\"h2\"]], queries=[[0,2],[2,3],[0,3]]",
           "expected": "[3,4,4]",
           "purpose": "Chunks reappear after gaps",
-          "tags": ["reappearing-chunks", "range-overlap"]
+          "tags": [
+            "reappearing-chunks",
+            "range-overlap"
+          ]
         },
         {
           "id": "hidden_12",
           "input": "files=[[\"a\",\"b\",\"c\"]], queries=[[0,0]]",
           "expected": "[3]",
           "purpose": "Single file",
-          "tags": ["single-file", "boundary"]
+          "tags": [
+            "single-file",
+            "boundary"
+          ]
         },
         {
           "id": "hidden_13",
           "input": "files=[[\"a\"],[],[],[\"a\",\"b\"]], queries=[[1,2],[0,3]]",
           "expected": "[0,2]",
           "purpose": "Multiple empty files",
-          "tags": ["empty-file", "boundary"]
+          "tags": [
+            "empty-file",
+            "boundary"
+          ]
         },
         {
           "id": "hidden_14",
           "input": "files=[[\"a\",\"b\"],[\"c\",\"d\"],[\"a\",\"d\"],[\"e\"]], queries=[[0,2],[2,3]]",
           "expected": "[4,3]",
           "purpose": "Mixed repeated and new chunks",
-          "tags": ["mixed-duplicates", "range-overlap"]
+          "tags": [
+            "mixed-duplicates",
+            "range-overlap"
+          ]
         },
         {
           "id": "hidden_15",
           "input": "files=[[\"p\",\"q\"],[\"q\",\"r\"],[\"r\",\"s\"],[\"s\",\"t\"],[\"p\",\"t\"]], queries=[[0,4],[1,3],[2,4]]",
           "expected": "[5,4,4]",
           "purpose": "Stress-like overlap",
-          "tags": ["stress", "range-overlap"]
+          "tags": [
+            "stress",
+            "range-overlap"
+          ]
         }
       ],
       "test_cases": [
@@ -908,21 +1025,30 @@
           "input": "v1=set(0,\"height\",10); v2=set(v1,\"height\",12); get(v1,\"height\"); get(v2,\"height\")",
           "expected": "10, 12",
           "purpose": "Base version remains unchanged",
-          "tags": ["immutability", "branch-isolation"]
+          "tags": [
+            "immutability",
+            "branch-isolation"
+          ]
         },
         {
           "id": "open_4",
           "input": "v1=set(0,\"a\",1); v2=set(v1,\"b\",2); v3=set(v1,\"c\",3); get(v2,\"c\"); get(v3,\"b\")",
           "expected": "NULL, NULL",
           "purpose": "Sibling branches do not share later updates",
-          "tags": ["branch-isolation", "sibling-branches"]
+          "tags": [
+            "branch-isolation",
+            "sibling-branches"
+          ]
         },
         {
           "id": "open_5",
           "input": "v1=set(0,\"a\",1); get(0,\"a\")",
           "expected": "NULL",
           "purpose": "Version 0 is empty",
-          "tags": ["version-zero", "boundary"]
+          "tags": [
+            "version-zero",
+            "boundary"
+          ]
         }
       ],
       "hidden_test_cases": [
@@ -931,70 +1057,100 @@
           "input": "v1=set(0,\"a\",5); v2=set(v1,\"b\",10); v3=set(v2,\"a\",20); get(v3,\"a\"); get(v3,\"b\")",
           "expected": "20, 10",
           "purpose": "Update existing key in descendant",
-          "tags": ["overwrite", "descendant-update"]
+          "tags": [
+            "overwrite",
+            "descendant-update"
+          ]
         },
         {
           "id": "hidden_7",
           "input": "v1=set(0,\"x\",100); v2=set(v1,\"y\",200); v3=set(v1,\"z\",300); get(v2,\"z\"); get(v3,\"x\")",
           "expected": "NULL, 100",
           "purpose": "Branch isolation with inherited root value",
-          "tags": ["branch-isolation", "inheritance"]
+          "tags": [
+            "branch-isolation",
+            "inheritance"
+          ]
         },
         {
           "id": "hidden_8",
           "input": "v1=set(0,\"x\",1); v2=set(v1,\"x\",2); v3=set(v1,\"x\",3); get(v2,\"x\"); get(v3,\"x\")",
           "expected": "2, 3",
           "purpose": "Two branches overwrite same key differently",
-          "tags": ["branch-conflict", "overwrite"]
+          "tags": [
+            "branch-conflict",
+            "overwrite"
+          ]
         },
         {
           "id": "hidden_9",
           "input": "v1=set(0,\"long_design_parameter\",45); get(v1,\"long_design_parameter\")",
           "expected": "45",
           "purpose": "Long key name",
-          "tags": ["long-key", "boundary"]
+          "tags": [
+            "long-key",
+            "boundary"
+          ]
         },
         {
           "id": "hidden_10",
           "input": "v1=set(0,\"a\",1000000000); get(v1,\"a\")",
           "expected": "1000000000",
           "purpose": "Large value",
-          "tags": ["large-value", "boundary"]
+          "tags": [
+            "large-value",
+            "boundary"
+          ]
         },
         {
           "id": "hidden_11",
           "input": "v1=set(0,\"a\",1); v2=set(v1,\"b\",2); v3=set(v2,\"c\",3); get(v3,\"a\"); get(v3,\"b\"); get(v3,\"c\")",
           "expected": "1, 2, 3",
           "purpose": "Deep inheritance chain",
-          "tags": ["deep-chain", "inheritance"]
+          "tags": [
+            "deep-chain",
+            "inheritance"
+          ]
         },
         {
           "id": "hidden_12",
           "input": "v1=set(0,\"a\",1); v2=set(v1,\"b\",2); v3=set(v2,\"a\",3); get(v2,\"a\"); get(v3,\"a\")",
           "expected": "1, 3",
           "purpose": "Parent remains immutable",
-          "tags": ["immutability", "parent-chain"]
+          "tags": [
+            "immutability",
+            "parent-chain"
+          ]
         },
         {
           "id": "hidden_13",
           "input": "v1=set(0,\"a\",1); v2=set(0,\"a\",2); get(v1,\"a\"); get(v2,\"a\")",
           "expected": "1, 2",
           "purpose": "Two branches from empty version",
-          "tags": ["branch-from-root", "branch-isolation"]
+          "tags": [
+            "branch-from-root",
+            "branch-isolation"
+          ]
         },
         {
           "id": "hidden_14",
           "input": "v1=set(0,\"a\",1); v2=set(v1,\"b\",2); get(v1,\"b\")",
           "expected": "NULL",
           "purpose": "Child update not visible in parent",
-          "tags": ["parent-immutability", "branch-isolation"]
+          "tags": [
+            "parent-immutability",
+            "branch-isolation"
+          ]
         },
         {
           "id": "hidden_15",
           "input": "v1=set(0,\"a\",1); v2=set(v1,\"b\",2); v3=set(v2,\"a\",4); v4=set(v1,\"c\",5); get(v3,\"b\"); get(v4,\"b\"); get(v4,\"c\")",
           "expected": "2, NULL, 5",
           "purpose": "Mixed branch stress case",
-          "tags": ["stress", "branching"]
+          "tags": [
+            "stress",
+            "branching"
+          ]
         }
       ],
       "test_cases": [
@@ -1419,6 +1575,59 @@
         "Open/Closed Principle",
         "State or Strategy pattern"
       ],
+      "expected_oops_tags": [
+        "class-design",
+        "workflow-abstraction",
+        "state-pattern",
+        "strategy-pattern",
+        "polymorphism",
+        "encapsulation",
+        "open-closed",
+        "invalid-transition-handling",
+        "extension-hook",
+        "separation-of-concerns"
+      ],
+      "required_classes": [
+        "issue",
+        "workflow-engine",
+        "bug-workflow",
+        "task-workflow"
+      ],
+      "required_abstractions": [
+        "issue-workflow-interface",
+        "issue-abstraction"
+      ],
+      "required_patterns": [
+        "state-or-strategy-pattern"
+      ],
+      "required_solid_principles": [
+        "single-responsibility",
+        "open-closed",
+        "dependency-inversion"
+      ],
+      "required_error_cases": [
+        "invalid-transition-handling"
+      ],
+      "required_design_rules": [
+        "encapsulated-state",
+        "validated-transition",
+        "service-delegates-to-strategy",
+        "new-workflow-without-engine-change"
+      ],
+      "optional_oops_tags": [
+        "registry-pattern",
+        "factory-pattern",
+        "result-object",
+        "state-query"
+      ],
+      "red_flag_tags": [
+        "single-procedural-function",
+        "type-switching",
+        "public-mutable-state",
+        "no-error-handling",
+        "new-type-requires-core-change",
+        "no-class-structure"
+      ],
       "evaluator_context": {
         "domain_rules": [
           "Bug issues follow Open -> In Progress -> Fixed -> Verified -> Closed.",
@@ -1460,7 +1669,455 @@
         "javascript": "// Design classes/interfaces for the workflow engine.\n",
         "java": "// Design classes/interfaces for the workflow engine.\n",
         "cpp": "// Design classes/interfaces for the workflow engine.\n"
-      }
+      },
+      "open_test_cases": [
+        {
+          "id": "open_1",
+          "input": "design issue/workflow abstractions",
+          "expected": "PASS",
+          "purpose": "Issue model and workflow engine abstractions are present.",
+          "tags": [
+            "class-design",
+            "workflow-abstraction",
+            "state-pattern"
+          ]
+        },
+        {
+          "id": "open_2",
+          "input": "reject invalid state transition",
+          "expected": "PASS",
+          "purpose": "Invalid transitions are blocked with a controlled failure.",
+          "tags": [
+            "encapsulation",
+            "invalid-transition-handling",
+            "controlled-failure"
+          ]
+        },
+        {
+          "id": "open_3",
+          "input": "bug and task workflows remain separate",
+          "expected": "PASS",
+          "purpose": "Different workflows are separated behind polymorphism.",
+          "tags": [
+            "polymorphism",
+            "strategy-pattern",
+            "separation-of-concerns"
+          ]
+        },
+        {
+          "id": "open_4",
+          "input": "register a new workflow without editing the engine",
+          "expected": "PASS",
+          "purpose": "New workflows can be added through a registry or factory.",
+          "tags": [
+            "open-closed",
+            "registry-pattern",
+            "extension-hook",
+            "new-workflow-without-engine-change"
+          ]
+        },
+        {
+          "id": "open_5",
+          "input": "report current issue state",
+          "expected": "PASS",
+          "purpose": "Current state can be queried and reported clearly.",
+          "tags": [
+            "result-object",
+            "code-readability",
+            "single-responsibility"
+          ]
+        }
+      ],
+      "hidden_test_cases": [
+        {
+          "id": "hidden_6",
+          "input": "inject workflow abstraction into engine",
+          "expected": "PASS",
+          "purpose": "Workflow engine depends on abstractions, not concrete rules.",
+          "tags": [
+            "dependency-inversion",
+            "workflow-abstraction",
+            "class-design"
+          ]
+        },
+        {
+          "id": "hidden_7",
+          "input": "state object owns transitions",
+          "expected": "PASS",
+          "purpose": "State transitions remain encapsulated inside the state objects.",
+          "tags": [
+            "state-pattern",
+            "encapsulated-state",
+            "validated-transition"
+          ]
+        },
+        {
+          "id": "hidden_8",
+          "input": "create workflow from issue type",
+          "expected": "PASS",
+          "purpose": "Factory or registry can create the workflow by issue type.",
+          "tags": [
+            "workflow-abstraction",
+            "open-closed",
+            "factory-pattern"
+          ]
+        },
+        {
+          "id": "hidden_9",
+          "input": "invalid transition returns failure result",
+          "expected": "PASS",
+          "purpose": "Invalid transitions return a clear result object or error.",
+          "tags": [
+            "invalid-transition-handling",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "id": "hidden_10",
+          "input": "core engine delegates transition rules",
+          "expected": "PASS",
+          "purpose": "Transition handling is delegated away from the core engine.",
+          "tags": [
+            "polymorphism",
+            "strategy-pattern",
+            "dependency-inversion"
+          ]
+        },
+        {
+          "id": "hidden_11",
+          "input": "separate identity from workflow rules",
+          "expected": "PASS",
+          "purpose": "Workflow responsibilities are separated from ticket identity.",
+          "tags": [
+            "separation-of-concerns",
+            "single-responsibility",
+            "code-readability"
+          ]
+        },
+        {
+          "id": "hidden_12",
+          "input": "add feature request workflow without switch edits",
+          "expected": "PASS",
+          "purpose": "Adding a workflow does not require editing existing switch logic.",
+          "tags": [
+            "new-workflow-without-engine-change",
+            "registry-pattern",
+            "open-closed"
+          ]
+        },
+        {
+          "id": "hidden_13",
+          "input": "encapsulated issue state access",
+          "expected": "PASS",
+          "purpose": "Issue data remains encapsulated and queryable.",
+          "tags": [
+            "class-design",
+            "encapsulation",
+            "validated-transition"
+          ]
+        },
+        {
+          "id": "hidden_14",
+          "input": "select workflow through abstraction",
+          "expected": "PASS",
+          "purpose": "Workflow selection uses abstraction rather than hard-coded branching.",
+          "tags": [
+            "state-pattern",
+            "service-delegates-to-strategy",
+            "dependency-inversion"
+          ]
+        },
+        {
+          "id": "hidden_15",
+          "input": "unsupported workflow returns controlled error",
+          "expected": "PASS",
+          "purpose": "Errors remain explicit for unsupported workflows.",
+          "tags": [
+            "invalid-transition-handling",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "id": "hidden_16",
+          "input": "polymorphic state transition",
+          "expected": "PASS",
+          "purpose": "Polymorphic transition logic is visible in the design.",
+          "tags": [
+            "polymorphism",
+            "strategy-pattern",
+            "extension-hook"
+          ]
+        },
+        {
+          "id": "hidden_17",
+          "input": "closed for modification, open for extension",
+          "expected": "PASS",
+          "purpose": "The engine stays closed for modification.",
+          "tags": [
+            "open-closed",
+            "factory-pattern",
+            "registry-pattern"
+          ]
+        },
+        {
+          "id": "hidden_18",
+          "input": "organized workflow classes",
+          "expected": "PASS",
+          "purpose": "Workflow responsibilities are organized cleanly.",
+          "tags": [
+            "separation-of-concerns",
+            "single-responsibility",
+            "code-readability"
+          ]
+        },
+        {
+          "id": "hidden_19",
+          "input": "guarded next state",
+          "expected": "PASS",
+          "purpose": "Guard conditions keep invalid next states out.",
+          "tags": [
+            "validated-transition",
+            "encapsulation",
+            "result-object"
+          ]
+        },
+        {
+          "id": "hidden_20",
+          "input": "class based readable workflow engine",
+          "expected": "PASS",
+          "purpose": "Overall design remains class-based and readable.",
+          "tags": [
+            "class-design",
+            "code-readability",
+            "single-responsibility"
+          ]
+        }
+      ],
+      "test_cases": [
+        {
+          "number": 1,
+          "input": "design issue/workflow abstractions",
+          "expected_output": "PASS",
+          "purpose": "Issue model and workflow engine abstractions are present.",
+          "tags": [
+            "class-design",
+            "workflow-abstraction",
+            "state-pattern"
+          ]
+        },
+        {
+          "number": 2,
+          "input": "reject invalid state transition",
+          "expected_output": "PASS",
+          "purpose": "Invalid transitions are blocked with a controlled failure.",
+          "tags": [
+            "encapsulation",
+            "invalid-transition-handling",
+            "controlled-failure"
+          ]
+        },
+        {
+          "number": 3,
+          "input": "bug and task workflows remain separate",
+          "expected_output": "PASS",
+          "purpose": "Different workflows are separated behind polymorphism.",
+          "tags": [
+            "polymorphism",
+            "strategy-pattern",
+            "separation-of-concerns"
+          ]
+        },
+        {
+          "number": 4,
+          "input": "register a new workflow without editing the engine",
+          "expected_output": "PASS",
+          "purpose": "New workflows can be added through a registry or factory.",
+          "tags": [
+            "open-closed",
+            "registry-pattern",
+            "extension-hook",
+            "new-workflow-without-engine-change"
+          ]
+        },
+        {
+          "number": 5,
+          "input": "report current issue state",
+          "expected_output": "PASS",
+          "purpose": "Current state can be queried and reported clearly.",
+          "tags": [
+            "result-object",
+            "code-readability",
+            "single-responsibility"
+          ]
+        },
+        {
+          "number": 6,
+          "input": "inject workflow abstraction into engine",
+          "expected_output": "PASS",
+          "purpose": "Workflow engine depends on abstractions, not concrete rules.",
+          "tags": [
+            "dependency-inversion",
+            "workflow-abstraction",
+            "class-design"
+          ]
+        },
+        {
+          "number": 7,
+          "input": "state object owns transitions",
+          "expected_output": "PASS",
+          "purpose": "State transitions remain encapsulated inside the state objects.",
+          "tags": [
+            "state-pattern",
+            "encapsulated-state",
+            "validated-transition"
+          ]
+        },
+        {
+          "number": 8,
+          "input": "create workflow from issue type",
+          "expected_output": "PASS",
+          "purpose": "Factory or registry can create the workflow by issue type.",
+          "tags": [
+            "workflow-abstraction",
+            "open-closed",
+            "factory-pattern"
+          ]
+        },
+        {
+          "number": 9,
+          "input": "invalid transition returns failure result",
+          "expected_output": "PASS",
+          "purpose": "Invalid transitions return a clear result object or error.",
+          "tags": [
+            "invalid-transition-handling",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "number": 10,
+          "input": "core engine delegates transition rules",
+          "expected_output": "PASS",
+          "purpose": "Transition handling is delegated away from the core engine.",
+          "tags": [
+            "polymorphism",
+            "strategy-pattern",
+            "dependency-inversion"
+          ]
+        },
+        {
+          "number": 11,
+          "input": "separate identity from workflow rules",
+          "expected_output": "PASS",
+          "purpose": "Workflow responsibilities are separated from ticket identity.",
+          "tags": [
+            "separation-of-concerns",
+            "single-responsibility",
+            "code-readability"
+          ]
+        },
+        {
+          "number": 12,
+          "input": "add feature request workflow without switch edits",
+          "expected_output": "PASS",
+          "purpose": "Adding a workflow does not require editing existing switch logic.",
+          "tags": [
+            "new-workflow-without-engine-change",
+            "registry-pattern",
+            "open-closed"
+          ]
+        },
+        {
+          "number": 13,
+          "input": "encapsulated issue state access",
+          "expected_output": "PASS",
+          "purpose": "Issue data remains encapsulated and queryable.",
+          "tags": [
+            "class-design",
+            "encapsulation",
+            "validated-transition"
+          ]
+        },
+        {
+          "number": 14,
+          "input": "select workflow through abstraction",
+          "expected_output": "PASS",
+          "purpose": "Workflow selection uses abstraction rather than hard-coded branching.",
+          "tags": [
+            "state-pattern",
+            "service-delegates-to-strategy",
+            "dependency-inversion"
+          ]
+        },
+        {
+          "number": 15,
+          "input": "unsupported workflow returns controlled error",
+          "expected_output": "PASS",
+          "purpose": "Errors remain explicit for unsupported workflows.",
+          "tags": [
+            "invalid-transition-handling",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "number": 16,
+          "input": "polymorphic state transition",
+          "expected_output": "PASS",
+          "purpose": "Polymorphic transition logic is visible in the design.",
+          "tags": [
+            "polymorphism",
+            "strategy-pattern",
+            "extension-hook"
+          ]
+        },
+        {
+          "number": 17,
+          "input": "closed for modification, open for extension",
+          "expected_output": "PASS",
+          "purpose": "The engine stays closed for modification.",
+          "tags": [
+            "open-closed",
+            "factory-pattern",
+            "registry-pattern"
+          ]
+        },
+        {
+          "number": 18,
+          "input": "organized workflow classes",
+          "expected_output": "PASS",
+          "purpose": "Workflow responsibilities are organized cleanly.",
+          "tags": [
+            "separation-of-concerns",
+            "single-responsibility",
+            "code-readability"
+          ]
+        },
+        {
+          "number": 19,
+          "input": "guarded next state",
+          "expected_output": "PASS",
+          "purpose": "Guard conditions keep invalid next states out.",
+          "tags": [
+            "validated-transition",
+            "encapsulation",
+            "result-object"
+          ]
+        },
+        {
+          "number": 20,
+          "input": "class based readable workflow engine",
+          "expected_output": "PASS",
+          "purpose": "Overall design remains class-based and readable.",
+          "tags": [
+            "class-design",
+            "code-readability",
+            "single-responsibility"
+          ]
+        }
+      ]
     },
     {
       "id": "oops_razorpay_payments",
@@ -1477,6 +2134,63 @@
         "Polymorphism",
         "Dependency inversion",
         "Strategy or Factory pattern"
+      ],
+      "expected_oops_tags": [
+        "class-design",
+        "payment-abstraction",
+        "strategy-pattern",
+        "factory-pattern",
+        "polymorphism",
+        "dependency-inversion",
+        "open-closed",
+        "validation-with-strategy",
+        "result-object",
+        "separation-of-concerns"
+      ],
+      "required_classes": [
+        "payment-method",
+        "checkout-service",
+        "card-payment",
+        "upi-payment",
+        "wallet-payment"
+      ],
+      "required_abstractions": [
+        "payment-method-interface"
+      ],
+      "required_patterns": [
+        "strategy-or-factory-pattern"
+      ],
+      "required_solid_principles": [
+        "single-responsibility",
+        "open-closed",
+        "dependency-inversion"
+      ],
+      "required_error_cases": [
+        "card-validation-failure",
+        "upi-validation-failure",
+        "wallet-insufficient-balance",
+        "payment-processing-failure"
+      ],
+      "required_design_rules": [
+        "checkout-depends-on-abstraction",
+        "validation-with-strategy",
+        "service-delegates-to-strategy",
+        "new-payment-mode-without-checkout-change"
+      ],
+      "optional_oops_tags": [
+        "registry-pattern",
+        "composition",
+        "controlled-failure",
+        "clear-error"
+      ],
+      "red_flag_tags": [
+        "single-procedural-function",
+        "type-switching",
+        "public-mutable-state",
+        "no-shared-abstraction",
+        "no-error-handling",
+        "new-type-requires-core-change",
+        "no-class-structure"
       ],
       "evaluator_context": {
         "domain_rules": [
@@ -1520,7 +2234,455 @@
         "javascript": "// Design payment abstractions and checkout flow.\n",
         "java": "// Design payment abstractions and checkout flow.\n",
         "cpp": "// Design payment abstractions and checkout flow.\n"
-      }
+      },
+      "open_test_cases": [
+        {
+          "id": "open_1",
+          "input": "design payment abstractions",
+          "expected": "PASS",
+          "purpose": "Payment method abstraction and checkout service are present.",
+          "tags": [
+            "class-design",
+            "payment-abstraction",
+            "strategy-pattern"
+          ]
+        },
+        {
+          "id": "open_2",
+          "input": "validate then process payment",
+          "expected": "PASS",
+          "purpose": "Validation happens before processing with a result object.",
+          "tags": [
+            "validation-with-strategy",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "id": "open_3",
+          "input": "checkout uses payment abstraction",
+          "expected": "PASS",
+          "purpose": "Checkout depends on abstractions and not concrete modes.",
+          "tags": [
+            "polymorphism",
+            "dependency-inversion",
+            "separation-of-concerns"
+          ]
+        },
+        {
+          "id": "open_4",
+          "input": "add BNPL without changing checkout",
+          "expected": "PASS",
+          "purpose": "New payment modes are added through registry or factory.",
+          "tags": [
+            "open-closed",
+            "factory-pattern",
+            "registry-pattern",
+            "new-payment-mode-without-checkout-change"
+          ]
+        },
+        {
+          "id": "open_5",
+          "input": "show processing failure clearly",
+          "expected": "PASS",
+          "purpose": "Processing failures are surfaced clearly.",
+          "tags": [
+            "payment-processing-failure",
+            "error-handling",
+            "code-readability"
+          ]
+        }
+      ],
+      "hidden_test_cases": [
+        {
+          "id": "hidden_6",
+          "input": "card validation failure path",
+          "expected": "PASS",
+          "purpose": "Card validation failure is handled explicitly.",
+          "tags": [
+            "card-validation-failure",
+            "validation-with-strategy",
+            "result-object"
+          ]
+        },
+        {
+          "id": "hidden_7",
+          "input": "upi validation failure path",
+          "expected": "PASS",
+          "purpose": "UPI validation failure remains isolated.",
+          "tags": [
+            "upi-validation-failure",
+            "strategy-pattern",
+            "polymorphism"
+          ]
+        },
+        {
+          "id": "hidden_8",
+          "input": "wallet balance failure path",
+          "expected": "PASS",
+          "purpose": "Wallet balance failures return a controlled failure.",
+          "tags": [
+            "wallet-insufficient-balance",
+            "controlled-failure",
+            "result-object"
+          ]
+        },
+        {
+          "id": "hidden_9",
+          "input": "checkout delegates to payment method",
+          "expected": "PASS",
+          "purpose": "Checkout delegates the payment rule to the method object.",
+          "tags": [
+            "checkout-depends-on-abstraction",
+            "service-delegates-to-strategy",
+            "dependency-inversion"
+          ]
+        },
+        {
+          "id": "hidden_10",
+          "input": "add gift card without checkout edits",
+          "expected": "PASS",
+          "purpose": "Adding a new payment mode does not require checkout edits.",
+          "tags": [
+            "new-payment-mode-without-checkout-change",
+            "open-closed",
+            "factory-pattern"
+          ]
+        },
+        {
+          "id": "hidden_11",
+          "input": "encapsulated payment details",
+          "expected": "PASS",
+          "purpose": "Payment state or internal details remain encapsulated.",
+          "tags": [
+            "encapsulation",
+            "private-state",
+            "payment-abstraction"
+          ]
+        },
+        {
+          "id": "hidden_12",
+          "input": "split payment flow into classes",
+          "expected": "PASS",
+          "purpose": "Payment flow is split into focused classes.",
+          "tags": [
+            "single-responsibility",
+            "separation-of-concerns",
+            "code-readability"
+          ]
+        },
+        {
+          "id": "hidden_13",
+          "input": "validation delegated to strategy",
+          "expected": "PASS",
+          "purpose": "Validation logic is delegated to the strategy.",
+          "tags": [
+            "validation-with-strategy",
+            "service-delegates-to-strategy",
+            "result-object"
+          ]
+        },
+        {
+          "id": "hidden_14",
+          "input": "explicit failure response",
+          "expected": "PASS",
+          "purpose": "Failure responses stay explicit and clear.",
+          "tags": [
+            "clear-error",
+            "controlled-failure",
+            "payment-processing-failure"
+          ]
+        },
+        {
+          "id": "hidden_15",
+          "input": "strategy and factory patterns",
+          "expected": "PASS",
+          "purpose": "Strategy and factory patterns are visible.",
+          "tags": [
+            "strategy-pattern",
+            "factory-pattern",
+            "registry-pattern"
+          ]
+        },
+        {
+          "id": "hidden_16",
+          "input": "inject abstraction into checkout",
+          "expected": "PASS",
+          "purpose": "The checkout service is injected with an abstraction.",
+          "tags": [
+            "dependency-inversion",
+            "checkout-depends-on-abstraction",
+            "class-design"
+          ]
+        },
+        {
+          "id": "hidden_17",
+          "input": "future payment mode extension",
+          "expected": "PASS",
+          "purpose": "Open-closed design is maintained for future modes.",
+          "tags": [
+            "open-closed",
+            "new-payment-mode-without-checkout-change",
+            "payment-abstraction"
+          ]
+        },
+        {
+          "id": "hidden_18",
+          "input": "class based polymorphic payment design",
+          "expected": "PASS",
+          "purpose": "The design remains class-based and polymorphic.",
+          "tags": [
+            "class-design",
+            "polymorphism",
+            "payment-abstraction"
+          ]
+        },
+        {
+          "id": "hidden_19",
+          "input": "error handling for validation and processing",
+          "expected": "PASS",
+          "purpose": "Error handling is explicit for validation and processing.",
+          "tags": [
+            "error-handling",
+            "validation-with-strategy",
+            "result-object"
+          ]
+        },
+        {
+          "id": "hidden_20",
+          "input": "readable and separated payment design",
+          "expected": "PASS",
+          "purpose": "The design is readable and separated clearly.",
+          "tags": [
+            "code-readability",
+            "separation-of-concerns",
+            "single-responsibility"
+          ]
+        }
+      ],
+      "test_cases": [
+        {
+          "number": 1,
+          "input": "design payment abstractions",
+          "expected_output": "PASS",
+          "purpose": "Payment method abstraction and checkout service are present.",
+          "tags": [
+            "class-design",
+            "payment-abstraction",
+            "strategy-pattern"
+          ]
+        },
+        {
+          "number": 2,
+          "input": "validate then process payment",
+          "expected_output": "PASS",
+          "purpose": "Validation happens before processing with a result object.",
+          "tags": [
+            "validation-with-strategy",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "number": 3,
+          "input": "checkout uses payment abstraction",
+          "expected_output": "PASS",
+          "purpose": "Checkout depends on abstractions and not concrete modes.",
+          "tags": [
+            "polymorphism",
+            "dependency-inversion",
+            "separation-of-concerns"
+          ]
+        },
+        {
+          "number": 4,
+          "input": "add BNPL without changing checkout",
+          "expected_output": "PASS",
+          "purpose": "New payment modes are added through registry or factory.",
+          "tags": [
+            "open-closed",
+            "factory-pattern",
+            "registry-pattern",
+            "new-payment-mode-without-checkout-change"
+          ]
+        },
+        {
+          "number": 5,
+          "input": "show processing failure clearly",
+          "expected_output": "PASS",
+          "purpose": "Processing failures are surfaced clearly.",
+          "tags": [
+            "payment-processing-failure",
+            "error-handling",
+            "code-readability"
+          ]
+        },
+        {
+          "number": 6,
+          "input": "card validation failure path",
+          "expected_output": "PASS",
+          "purpose": "Card validation failure is handled explicitly.",
+          "tags": [
+            "card-validation-failure",
+            "validation-with-strategy",
+            "result-object"
+          ]
+        },
+        {
+          "number": 7,
+          "input": "upi validation failure path",
+          "expected_output": "PASS",
+          "purpose": "UPI validation failure remains isolated.",
+          "tags": [
+            "upi-validation-failure",
+            "strategy-pattern",
+            "polymorphism"
+          ]
+        },
+        {
+          "number": 8,
+          "input": "wallet balance failure path",
+          "expected_output": "PASS",
+          "purpose": "Wallet balance failures return a controlled failure.",
+          "tags": [
+            "wallet-insufficient-balance",
+            "controlled-failure",
+            "result-object"
+          ]
+        },
+        {
+          "number": 9,
+          "input": "checkout delegates to payment method",
+          "expected_output": "PASS",
+          "purpose": "Checkout delegates the payment rule to the method object.",
+          "tags": [
+            "checkout-depends-on-abstraction",
+            "service-delegates-to-strategy",
+            "dependency-inversion"
+          ]
+        },
+        {
+          "number": 10,
+          "input": "add gift card without checkout edits",
+          "expected_output": "PASS",
+          "purpose": "Adding a new payment mode does not require checkout edits.",
+          "tags": [
+            "new-payment-mode-without-checkout-change",
+            "open-closed",
+            "factory-pattern"
+          ]
+        },
+        {
+          "number": 11,
+          "input": "encapsulated payment details",
+          "expected_output": "PASS",
+          "purpose": "Payment state or internal details remain encapsulated.",
+          "tags": [
+            "encapsulation",
+            "private-state",
+            "payment-abstraction"
+          ]
+        },
+        {
+          "number": 12,
+          "input": "split payment flow into classes",
+          "expected_output": "PASS",
+          "purpose": "Payment flow is split into focused classes.",
+          "tags": [
+            "single-responsibility",
+            "separation-of-concerns",
+            "code-readability"
+          ]
+        },
+        {
+          "number": 13,
+          "input": "validation delegated to strategy",
+          "expected_output": "PASS",
+          "purpose": "Validation logic is delegated to the strategy.",
+          "tags": [
+            "validation-with-strategy",
+            "service-delegates-to-strategy",
+            "result-object"
+          ]
+        },
+        {
+          "number": 14,
+          "input": "explicit failure response",
+          "expected_output": "PASS",
+          "purpose": "Failure responses stay explicit and clear.",
+          "tags": [
+            "clear-error",
+            "controlled-failure",
+            "payment-processing-failure"
+          ]
+        },
+        {
+          "number": 15,
+          "input": "strategy and factory patterns",
+          "expected_output": "PASS",
+          "purpose": "Strategy and factory patterns are visible.",
+          "tags": [
+            "strategy-pattern",
+            "factory-pattern",
+            "registry-pattern"
+          ]
+        },
+        {
+          "number": 16,
+          "input": "inject abstraction into checkout",
+          "expected_output": "PASS",
+          "purpose": "The checkout service is injected with an abstraction.",
+          "tags": [
+            "dependency-inversion",
+            "checkout-depends-on-abstraction",
+            "class-design"
+          ]
+        },
+        {
+          "number": 17,
+          "input": "future payment mode extension",
+          "expected_output": "PASS",
+          "purpose": "Open-closed design is maintained for future modes.",
+          "tags": [
+            "open-closed",
+            "new-payment-mode-without-checkout-change",
+            "payment-abstraction"
+          ]
+        },
+        {
+          "number": 18,
+          "input": "class based polymorphic payment design",
+          "expected_output": "PASS",
+          "purpose": "The design remains class-based and polymorphic.",
+          "tags": [
+            "class-design",
+            "polymorphism",
+            "payment-abstraction"
+          ]
+        },
+        {
+          "number": 19,
+          "input": "error handling for validation and processing",
+          "expected_output": "PASS",
+          "purpose": "Error handling is explicit for validation and processing.",
+          "tags": [
+            "error-handling",
+            "validation-with-strategy",
+            "result-object"
+          ]
+        },
+        {
+          "number": 20,
+          "input": "readable and separated payment design",
+          "expected_output": "PASS",
+          "purpose": "The design is readable and separated clearly.",
+          "tags": [
+            "code-readability",
+            "separation-of-concerns",
+            "single-responsibility"
+          ]
+        }
+      ]
     },
     {
       "id": "oops_canva_export",
@@ -1538,6 +2700,62 @@
         "Polymorphism",
         "Open/Closed Principle",
         "Strategy or Factory pattern"
+      ],
+      "expected_oops_tags": [
+        "class-design",
+        "exporter-abstraction",
+        "composition",
+        "strategy-pattern",
+        "factory-pattern",
+        "polymorphism",
+        "open-closed",
+        "unsupported-format-handling",
+        "result-object",
+        "separation-of-concerns"
+      ],
+      "required_classes": [
+        "design-file",
+        "exporter",
+        "pdf-exporter",
+        "png-exporter",
+        "preview-exporter",
+        "export-service"
+      ],
+      "required_abstractions": [
+        "exporter-interface"
+      ],
+      "required_patterns": [
+        "strategy-or-factory-pattern"
+      ],
+      "required_solid_principles": [
+        "single-responsibility",
+        "open-closed",
+        "dependency-inversion"
+      ],
+      "required_error_cases": [
+        "unsupported-format-handling",
+        "export-failure-handling"
+      ],
+      "required_design_rules": [
+        "design-file-delegates-export",
+        "explicit-export-settings",
+        "service-delegates-to-strategy",
+        "new-exporter-without-design-file-change"
+      ],
+      "optional_oops_tags": [
+        "registry-pattern",
+        "controlled-failure",
+        "clear-error",
+        "low-coupling"
+      ],
+      "red_flag_tags": [
+        "single-procedural-function",
+        "type-switching",
+        "public-mutable-state",
+        "no-exporter-abstraction",
+        "silent-failure",
+        "new-type-requires-core-change",
+        "no-class-structure"
       ],
       "evaluator_context": {
         "domain_rules": [
@@ -1583,7 +2801,455 @@
         "javascript": "// Design export classes and services.\n",
         "java": "// Design export classes and services.\n",
         "cpp": "// Design export classes and services.\n"
-      }
+      },
+      "open_test_cases": [
+        {
+          "id": "open_1",
+          "input": "design file and exporter abstractions",
+          "expected": "PASS",
+          "purpose": "Design file and exporter abstractions are present.",
+          "tags": [
+            "class-design",
+            "exporter-abstraction",
+            "strategy-pattern"
+          ]
+        },
+        {
+          "id": "open_2",
+          "input": "delegate export through service",
+          "expected": "PASS",
+          "purpose": "Export is delegated through composition and services.",
+          "tags": [
+            "composition",
+            "separation-of-concerns",
+            "design-file-delegates-export"
+          ]
+        },
+        {
+          "id": "open_3",
+          "input": "unsupported format should fail safely",
+          "expected": "PASS",
+          "purpose": "Unsupported formats fail in a controlled way.",
+          "tags": [
+            "unsupported-format-handling",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "id": "open_4",
+          "input": "add SVG exporter without changing design file",
+          "expected": "PASS",
+          "purpose": "New exporters are added via registry or factory.",
+          "tags": [
+            "open-closed",
+            "factory-pattern",
+            "registry-pattern",
+            "new-exporter-without-design-file-change"
+          ]
+        },
+        {
+          "id": "open_5",
+          "input": "exporter selection through abstraction",
+          "expected": "PASS",
+          "purpose": "Exporter selection depends on abstractions.",
+          "tags": [
+            "polymorphism",
+            "dependency-inversion",
+            "exporter-abstraction"
+          ]
+        }
+      ],
+      "hidden_test_cases": [
+        {
+          "id": "hidden_6",
+          "input": "pdf export settings and metadata",
+          "expected": "PASS",
+          "purpose": "PDF export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "exporter-abstraction",
+            "class-design"
+          ]
+        },
+        {
+          "id": "hidden_7",
+          "input": "png export settings and resolution",
+          "expected": "PASS",
+          "purpose": "PNG export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "strategy-pattern",
+            "code-readability"
+          ]
+        },
+        {
+          "id": "hidden_8",
+          "input": "dwg export settings and layers",
+          "expected": "PASS",
+          "purpose": "DWG export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "composition",
+            "exporter-abstraction"
+          ]
+        },
+        {
+          "id": "hidden_9",
+          "input": "3d export settings and mesh data",
+          "expected": "PASS",
+          "purpose": "3D export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "strategy-pattern",
+            "exporter-abstraction"
+          ]
+        },
+        {
+          "id": "hidden_10",
+          "input": "graceful unsupported format error",
+          "expected": "PASS",
+          "purpose": "Unsupported formats remain graceful.",
+          "tags": [
+            "unsupported-format-handling",
+            "error-handling",
+            "clear-error"
+          ]
+        },
+        {
+          "id": "hidden_11",
+          "input": "future exporter extension",
+          "expected": "PASS",
+          "purpose": "Future exporters are added without design file edits.",
+          "tags": [
+            "new-exporter-without-design-file-change",
+            "factory-pattern",
+            "registry-pattern"
+          ]
+        },
+        {
+          "id": "hidden_12",
+          "input": "export service delegation",
+          "expected": "PASS",
+          "purpose": "Export service delegates to exporter strategies.",
+          "tags": [
+            "design-file-delegates-export",
+            "service-delegates-to-strategy",
+            "composition"
+          ]
+        },
+        {
+          "id": "hidden_13",
+          "input": "clean export service boundary",
+          "expected": "PASS",
+          "purpose": "Service boundaries stay clean.",
+          "tags": [
+            "separation-of-concerns",
+            "domain-service-boundary",
+            "class-design"
+          ]
+        },
+        {
+          "id": "hidden_14",
+          "input": "explicit failure response",
+          "expected": "PASS",
+          "purpose": "Failure responses remain explicit.",
+          "tags": [
+            "result-object",
+            "controlled-failure",
+            "unsupported-format-handling"
+          ]
+        },
+        {
+          "id": "hidden_15",
+          "input": "open closed registry export design",
+          "expected": "PASS",
+          "purpose": "Open-closed and registry patterns are visible.",
+          "tags": [
+            "open-closed",
+            "registry-pattern",
+            "extension-hook"
+          ]
+        },
+        {
+          "id": "hidden_16",
+          "input": "polymorphic exporters",
+          "expected": "PASS",
+          "purpose": "Polymorphic exporter behavior is visible.",
+          "tags": [
+            "polymorphism",
+            "exporter-abstraction",
+            "strategy-pattern"
+          ]
+        },
+        {
+          "id": "hidden_17",
+          "input": "inverted exporter dependency",
+          "expected": "PASS",
+          "purpose": "Dependency inversion is respected.",
+          "tags": [
+            "dependency-inversion",
+            "class-design",
+            "separation-of-concerns"
+          ]
+        },
+        {
+          "id": "hidden_18",
+          "input": "clear export error handling",
+          "expected": "PASS",
+          "purpose": "Error handling is clear for unsupported and failing exports.",
+          "tags": [
+            "error-handling",
+            "unsupported-format-handling",
+            "clear-error"
+          ]
+        },
+        {
+          "id": "hidden_19",
+          "input": "readable export design",
+          "expected": "PASS",
+          "purpose": "The code stays readable and organized.",
+          "tags": [
+            "code-readability",
+            "composition",
+            "organization"
+          ]
+        },
+        {
+          "id": "hidden_20",
+          "input": "single responsibility design file",
+          "expected": "PASS",
+          "purpose": "Single responsibility is preserved.",
+          "tags": [
+            "single-responsibility",
+            "new-exporter-without-design-file-change",
+            "open-closed"
+          ]
+        }
+      ],
+      "test_cases": [
+        {
+          "number": 1,
+          "input": "design file and exporter abstractions",
+          "expected_output": "PASS",
+          "purpose": "Design file and exporter abstractions are present.",
+          "tags": [
+            "class-design",
+            "exporter-abstraction",
+            "strategy-pattern"
+          ]
+        },
+        {
+          "number": 2,
+          "input": "delegate export through service",
+          "expected_output": "PASS",
+          "purpose": "Export is delegated through composition and services.",
+          "tags": [
+            "composition",
+            "separation-of-concerns",
+            "design-file-delegates-export"
+          ]
+        },
+        {
+          "number": 3,
+          "input": "unsupported format should fail safely",
+          "expected_output": "PASS",
+          "purpose": "Unsupported formats fail in a controlled way.",
+          "tags": [
+            "unsupported-format-handling",
+            "result-object",
+            "controlled-failure"
+          ]
+        },
+        {
+          "number": 4,
+          "input": "add SVG exporter without changing design file",
+          "expected_output": "PASS",
+          "purpose": "New exporters are added via registry or factory.",
+          "tags": [
+            "open-closed",
+            "factory-pattern",
+            "registry-pattern",
+            "new-exporter-without-design-file-change"
+          ]
+        },
+        {
+          "number": 5,
+          "input": "exporter selection through abstraction",
+          "expected_output": "PASS",
+          "purpose": "Exporter selection depends on abstractions.",
+          "tags": [
+            "polymorphism",
+            "dependency-inversion",
+            "exporter-abstraction"
+          ]
+        },
+        {
+          "number": 6,
+          "input": "pdf export settings and metadata",
+          "expected_output": "PASS",
+          "purpose": "PDF export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "exporter-abstraction",
+            "class-design"
+          ]
+        },
+        {
+          "number": 7,
+          "input": "png export settings and resolution",
+          "expected_output": "PASS",
+          "purpose": "PNG export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "strategy-pattern",
+            "code-readability"
+          ]
+        },
+        {
+          "number": 8,
+          "input": "dwg export settings and layers",
+          "expected_output": "PASS",
+          "purpose": "DWG export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "composition",
+            "exporter-abstraction"
+          ]
+        },
+        {
+          "number": 9,
+          "input": "3d export settings and mesh data",
+          "expected_output": "PASS",
+          "purpose": "3D export behavior is explicit.",
+          "tags": [
+            "explicit-export-settings",
+            "strategy-pattern",
+            "exporter-abstraction"
+          ]
+        },
+        {
+          "number": 10,
+          "input": "graceful unsupported format error",
+          "expected_output": "PASS",
+          "purpose": "Unsupported formats remain graceful.",
+          "tags": [
+            "unsupported-format-handling",
+            "error-handling",
+            "clear-error"
+          ]
+        },
+        {
+          "number": 11,
+          "input": "future exporter extension",
+          "expected_output": "PASS",
+          "purpose": "Future exporters are added without design file edits.",
+          "tags": [
+            "new-exporter-without-design-file-change",
+            "factory-pattern",
+            "registry-pattern"
+          ]
+        },
+        {
+          "number": 12,
+          "input": "export service delegation",
+          "expected_output": "PASS",
+          "purpose": "Export service delegates to exporter strategies.",
+          "tags": [
+            "design-file-delegates-export",
+            "service-delegates-to-strategy",
+            "composition"
+          ]
+        },
+        {
+          "number": 13,
+          "input": "clean export service boundary",
+          "expected_output": "PASS",
+          "purpose": "Service boundaries stay clean.",
+          "tags": [
+            "separation-of-concerns",
+            "domain-service-boundary",
+            "class-design"
+          ]
+        },
+        {
+          "number": 14,
+          "input": "explicit failure response",
+          "expected_output": "PASS",
+          "purpose": "Failure responses remain explicit.",
+          "tags": [
+            "result-object",
+            "controlled-failure",
+            "unsupported-format-handling"
+          ]
+        },
+        {
+          "number": 15,
+          "input": "open closed registry export design",
+          "expected_output": "PASS",
+          "purpose": "Open-closed and registry patterns are visible.",
+          "tags": [
+            "open-closed",
+            "registry-pattern",
+            "extension-hook"
+          ]
+        },
+        {
+          "number": 16,
+          "input": "polymorphic exporters",
+          "expected_output": "PASS",
+          "purpose": "Polymorphic exporter behavior is visible.",
+          "tags": [
+            "polymorphism",
+            "exporter-abstraction",
+            "strategy-pattern"
+          ]
+        },
+        {
+          "number": 17,
+          "input": "inverted exporter dependency",
+          "expected_output": "PASS",
+          "purpose": "Dependency inversion is respected.",
+          "tags": [
+            "dependency-inversion",
+            "class-design",
+            "separation-of-concerns"
+          ]
+        },
+        {
+          "number": 18,
+          "input": "clear export error handling",
+          "expected_output": "PASS",
+          "purpose": "Error handling is clear for unsupported and failing exports.",
+          "tags": [
+            "error-handling",
+            "unsupported-format-handling",
+            "clear-error"
+          ]
+        },
+        {
+          "number": 19,
+          "input": "readable export design",
+          "expected_output": "PASS",
+          "purpose": "The code stays readable and organized.",
+          "tags": [
+            "code-readability",
+            "composition",
+            "organization"
+          ]
+        },
+        {
+          "number": 20,
+          "input": "single responsibility design file",
+          "expected_output": "PASS",
+          "purpose": "Single responsibility is preserved.",
+          "tags": [
+            "single-responsibility",
+            "new-exporter-without-design-file-change",
+            "open-closed"
+          ]
+        }
+      ]
     },
     {
       "id": "mcq_01_html_semantic_form",

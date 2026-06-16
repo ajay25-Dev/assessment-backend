@@ -63,4 +63,42 @@ describe('AssessmentPipelineService', () => {
     expect(from).toHaveBeenCalledWith('student_assessment_attempts');
     expect(questionBank.getBank).not.toHaveBeenCalled();
   });
+
+  it('persists the dashboard report during final submission', async () => {
+    const { service, questionBank } = makeService();
+    questionBank.getBank.mockResolvedValue({
+      assessment: { duration_minutes: 120 },
+    });
+
+    const upsertAssessmentAttempt = jest
+      .spyOn(service as any, 'upsertAssessmentAttempt')
+      .mockResolvedValue('attempt-123');
+    const persistDashboardReport = jest
+      .spyOn(service as any, 'persistDashboardReport')
+      .mockResolvedValue({ id: 'report-123' });
+
+    await expect(
+      service.finalize({
+        student_id: 'student-a',
+        assessment_id: 'assessment-a',
+        answers: {},
+      }),
+    ).resolves.toEqual({
+      attempt_id: 'attempt-123',
+      status: 'finalized',
+    });
+
+    expect(upsertAssessmentAttempt).toHaveBeenCalledTimes(1);
+    expect(persistDashboardReport).toHaveBeenCalledWith(
+      'attempt-123',
+      expect.objectContaining({
+        student_id: 'student-a',
+        assessment_id: 'assessment-a',
+        answers: {},
+      }),
+      expect.objectContaining({
+        assessment: { duration_minutes: 120 },
+      }),
+    );
+  });
 });

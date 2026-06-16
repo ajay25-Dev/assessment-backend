@@ -112,6 +112,15 @@ type BankQuestion = {
   edge_cases?: unknown[];
   null_rules?: unknown[];
   duplicate_rules?: unknown[];
+  expected_oops_tags?: unknown[];
+  required_classes?: unknown[];
+  required_abstractions?: unknown[];
+  required_patterns?: unknown[];
+  required_solid_principles?: unknown[];
+  required_error_cases?: unknown[];
+  required_design_rules?: unknown[];
+  optional_oops_tags?: unknown[];
+  red_flag_tags?: unknown[];
 };
 
 type CodeTestSummary = {
@@ -183,6 +192,7 @@ export class AssessmentPipelineService {
           ? 'auto_submitted'
           : 'submitted',
     );
+    await this.persistDashboardReport(attemptId, input, bank);
     return {
       attempt_id: attemptId,
       status: 'finalized',
@@ -349,54 +359,8 @@ export class AssessmentPipelineService {
     );
 
     if (stage === 'DASHBOARD') {
-      const dsa = await this.evaluateCodingSection('DSA', questions, input);
-      const sql = await this.evaluateSqlSection(questions, input);
-      const oops = await this.evaluateCodingSection('OOPs', questions, input);
-      const mcq = await this.evaluateMcqSection(questions, input);
-      const deterministicScores = {
-        DSA: dsa.score,
-        SQL: sql.score,
-        OOPs: oops.score,
-        MCQ: mcq.score,
-      };
-      const hiddenTestPassRate = this.aggregateHiddenTestPassRate(
-        questions,
-        input,
-      );
-      const dashboardInput = this.buildDashboardInput(
-        input,
-        bank,
-        deterministicScores,
-        { DSA: dsa, SQL: sql, OOPs: oops, MCQ: mcq },
-        hiddenTestPassRate,
-      );
-      const dashboardEvaluation = await this.dashboardEvaluation
-        .evaluate(dashboardInput)
-        .catch(() =>
-          this.fallbackDashboard(
-            input,
-            bank,
-            deterministicScores,
-            hiddenTestPassRate,
-          ),
-        );
-
       await this.persistFinalRuntimeSnapshots(attemptId, input, questions);
-      await this.replaceReportForAttempt(attemptId);
-      const report = await this.persistReport({
-        attemptId,
-        input,
-        bank,
-        dashboardEvaluation,
-        deterministicScores,
-        allEvaluations: {
-          DSA: dsa.evaluations,
-          SQL: sql.evaluations,
-          OOPs: oops.evaluations,
-          MCQ: mcq.evaluations,
-        },
-        dashboardInput,
-      });
+      const report = await this.persistDashboardReport(attemptId, input, bank);
 
       return {
         attempt_id: attemptId,
@@ -427,6 +391,61 @@ export class AssessmentPipelineService {
       status: 'processed',
       score: summary.score,
     };
+  }
+
+  private async persistDashboardReport(
+    attemptId: string,
+    input: FinalizeInput,
+    bank: Bank,
+  ) {
+    const questions = bank.questions || [];
+    const dsa = await this.evaluateCodingSection('DSA', questions, input);
+    const sql = await this.evaluateSqlSection(questions, input);
+    const oops = await this.evaluateCodingSection('OOPs', questions, input);
+    const mcq = await this.evaluateMcqSection(questions, input);
+    const deterministicScores = {
+      DSA: dsa.score,
+      SQL: sql.score,
+      OOPs: oops.score,
+      MCQ: mcq.score,
+    };
+    const hiddenTestPassRate = this.aggregateHiddenTestPassRate(
+      questions,
+      input,
+    );
+    const dashboardInput = this.buildDashboardInput(
+      input,
+      bank,
+      deterministicScores,
+      { DSA: dsa, SQL: sql, OOPs: oops, MCQ: mcq },
+      hiddenTestPassRate,
+    );
+    const dashboardEvaluation = await this.dashboardEvaluation
+      .evaluate(dashboardInput)
+      .catch(() =>
+        this.fallbackDashboard(
+          input,
+          bank,
+          deterministicScores,
+          hiddenTestPassRate,
+        ),
+      );
+
+    await this.replaceReportForAttempt(attemptId);
+    return this.persistReport({
+      attemptId,
+      input,
+      bank,
+      dashboardEvaluation,
+      deterministicScores,
+      allEvaluations: {
+        DSA: dsa.evaluations,
+        SQL: sql.evaluations,
+        OOPs: oops.evaluations,
+        MCQ: mcq.evaluations,
+      },
+      dashboardInput,
+    });
   }
 
   private parseInput(rawInput: unknown): FinalizeInput {
@@ -488,6 +507,15 @@ export class AssessmentPipelineService {
         ideal_time: question.ideal_time,
         ideal_space: question.ideal_space,
         evaluator_context: question.evaluator_context,
+        expected_oops_tags: question.expected_oops_tags || [],
+        required_classes: question.required_classes || [],
+        required_abstractions: question.required_abstractions || [],
+        required_patterns: question.required_patterns || [],
+        required_solid_principles: question.required_solid_principles || [],
+        required_error_cases: question.required_error_cases || [],
+        required_design_rules: question.required_design_rules || [],
+        optional_oops_tags: question.optional_oops_tags || [],
+        red_flag_tags: question.red_flag_tags || [],
         language: answer.language,
         submitted_code: answer.value || '',
         status: answer.status || 'unvisited',
@@ -499,8 +527,7 @@ export class AssessmentPipelineService {
         testResults: answer.testResults || answer.test_results || null,
         test_results: answer.testResults || answer.test_results || null,
         open_test_cases: question.open_test_cases || [],
-        hidden_test_cases:
-          section === 'DSA' ? question.hidden_test_cases || [] : [],
+        hidden_test_cases: question.hidden_test_cases || [],
         all_doc_test_cases: question.test_cases || [],
       };
     });
@@ -511,15 +538,7 @@ export class AssessmentPipelineService {
         continue;
       }
 
-      const fallback = this.fallbackQuestionEvaluation(section, detail);
-      evaluations.push(
-        await this.tryEvaluate(
-          section,
-          () => this.oopsEvaluation.evaluate(detail),
-          fallback,
-          useAi,
-        ),
-      );
+      evaluations.push(await this.oopsEvaluation.evaluate(detail));
     }
 
     return {
@@ -836,6 +855,15 @@ export class AssessmentPipelineService {
         expected_approach: question.expected_approach,
         expected_code: question.expected_code,
         evaluator_context: question.evaluator_context,
+        expected_oops_tags: question.expected_oops_tags || [],
+        required_classes: question.required_classes || [],
+        required_abstractions: question.required_abstractions || [],
+        required_patterns: question.required_patterns || [],
+        required_solid_principles: question.required_solid_principles || [],
+        required_error_cases: question.required_error_cases || [],
+        required_design_rules: question.required_design_rules || [],
+        optional_oops_tags: question.optional_oops_tags || [],
+        red_flag_tags: question.red_flag_tags || [],
         language: answer.language,
         submitted_code: answer.value || '',
         status: answer.status || 'submitted',
@@ -846,15 +874,11 @@ export class AssessmentPipelineService {
         execution_memory_kb: this.nullableNumber(answer.executionMemory),
         testResults: input.test_results || answer.testResults || answer.test_results || null,
         test_results: input.test_results || answer.testResults || answer.test_results || null,
-        open_test_cases: [],
-        hidden_test_cases: [],
+        open_test_cases: question.open_test_cases || [],
+        hidden_test_cases: question.hidden_test_cases || [],
         all_doc_test_cases: question.test_cases || [],
       };
-      return this.tryEvaluateQuestionSubmit(
-        'OOPs',
-        () => this.oopsEvaluation.evaluate(detail),
-        this.fallbackQuestionEvaluation('OOPs', detail),
-      );
+      return this.oopsEvaluation.evaluate(detail);
     }
 
     if (section === 'MCQ') {

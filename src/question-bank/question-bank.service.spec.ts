@@ -8,8 +8,8 @@ describe('QuestionBankService', () => {
         section: string;
         id: string;
         test_cases?: unknown[];
-        open_test_cases?: Array<{ input?: string; expected?: string }>;
-        hidden_test_cases?: Array<{ input?: string; expected?: string }>;
+        open_test_cases?: Array<{ input?: string; expected?: string; tags?: string[] }>;
+        hidden_test_cases?: Array<{ input?: string; expected?: string; tags?: string[] }>;
         expected_approach?: string[];
         ideal_time?: number;
         ideal_space?: number;
@@ -26,6 +26,15 @@ describe('QuestionBankService', () => {
         edge_cases?: string[];
         null_rules?: string[];
         duplicate_rules?: string[];
+        expected_oops_tags?: string[];
+        required_classes?: string[];
+        required_abstractions?: string[];
+        required_patterns?: string[];
+        required_solid_principles?: string[];
+        required_error_cases?: string[];
+        required_design_rules?: string[];
+        optional_oops_tags?: string[];
+        red_flag_tags?: string[];
         options?: Array<{ label?: string }>;
         correct_options?: string[];
         evaluator_context?: {
@@ -64,6 +73,16 @@ describe('QuestionBankService', () => {
             question.test_cases?.length === 15 &&
             question.open_test_cases?.length === 5 &&
             question.hidden_test_cases?.length === 10,
+        ),
+    ).toBe(true);
+    expect(
+      bank.questions
+        .filter((question) => question.section === 'OOPs')
+        .every(
+          (question) =>
+            question.test_cases?.length === 20 &&
+            question.open_test_cases?.length === 5 &&
+            question.hidden_test_cases?.length === 15,
         ),
     ).toBe(true);
   });
@@ -177,6 +196,18 @@ describe('QuestionBankService', () => {
     const bank = (await service.getBank()) as {
       questions: Array<{
         section: string;
+        expected_oops_tags?: string[];
+        required_classes?: string[];
+        required_abstractions?: string[];
+        required_patterns?: string[];
+        required_solid_principles?: string[];
+        required_error_cases?: string[];
+        required_design_rules?: string[];
+        optional_oops_tags?: string[];
+        red_flag_tags?: string[];
+        test_cases?: Array<{ tags?: string[] }>;
+        open_test_cases?: Array<{ tags?: string[] }>;
+        hidden_test_cases?: Array<{ tags?: string[] }>;
         evaluator_context?: {
           domain_rules?: unknown[];
           required_components?: unknown[];
@@ -193,6 +224,17 @@ describe('QuestionBankService', () => {
       'acceptance_signals',
       'red_flags',
     ] as const;
+    const requiredScoringFields = [
+      'expected_oops_tags',
+      'required_classes',
+      'required_abstractions',
+      'required_patterns',
+      'required_solid_principles',
+      'required_error_cases',
+      'required_design_rules',
+      'red_flag_tags',
+    ] as const;
+    const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
     bank.questions
       .filter((question) => question.section === 'OOPs')
@@ -201,6 +243,22 @@ describe('QuestionBankService', () => {
           expect(Array.isArray(question.evaluator_context?.[key])).toBe(true);
           expect(question.evaluator_context?.[key]?.length).toBeGreaterThan(0);
         });
+        requiredScoringFields.forEach((key) => {
+          expect(Array.isArray(question[key])).toBe(true);
+          expect(question[key]?.length).toBeGreaterThan(0);
+          question[key]?.forEach((tag: string) => expect(tag).toMatch(slugPattern));
+        });
+        expect(question.test_cases?.length).toBe(20);
+        expect(question.open_test_cases?.length).toBe(5);
+        expect(question.hidden_test_cases?.length).toBe(15);
+        [...(question.test_cases || []), ...(question.open_test_cases || []), ...(question.hidden_test_cases || [])].forEach((testCase: { tags?: string[] }) => {
+          expect(Array.isArray(testCase.tags)).toBe(true);
+          expect(testCase.tags?.length).toBeGreaterThan(0);
+          testCase.tags?.forEach((tag: string) => expect(tag).toMatch(slugPattern));
+        });
+        question.optional_oops_tags?.forEach((tag) =>
+          expect(tag).toMatch(slugPattern),
+        );
       });
   });
 

@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 
 type TestCase = {
+  id?: string;
   number: number;
   input: string;
   expected?: string;
@@ -103,6 +104,10 @@ export class TestHarnessService {
       return this.wrapCompileOnlySource(language, sourceCode);
     }
 
+    if (this.isOopsQuestion(questionId)) {
+      return this.oopsHarness(language, sourceCode, testCases, questionId);
+    }
+
     switch (language) {
       case 'python':
         return this.pythonHarness(sourceCode, testCases, questionId);
@@ -121,10 +126,193 @@ export class TestHarnessService {
 
   private normalizedTestCases(testCases: TestCase[]) {
     return testCases.map((tc) => ({
+      id: tc.id || '',
+      number: tc.number,
       input: tc.input,
       expected: tc.expected_output || tc.expected || '',
       purpose: tc.purpose || '',
+      tags: Array.isArray(tc.tags) ? tc.tags : [],
     }));
+  }
+
+  private isOopsQuestion(questionId: string) {
+    return new Set([
+      'oops_atlassian_jira_workflow',
+      'oops_razorpay_payments',
+      'oops_canva_export',
+    ]).has(questionId);
+  }
+
+  private normalizeTag(value: string) {
+    return String(value || '')
+      .trim()
+      .replace(/([a-z])([A-Z])/g, '$1-$2')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-');
+  }
+
+  private normalizeTags(values: string[]) {
+    return [...new Set(values.map((value) => this.normalizeTag(value)).filter(Boolean))];
+  }
+
+  private oopsHarness(
+    language: string,
+    sourceCode: string,
+    testCases: TestCase[],
+    questionId: string,
+  ) {
+    const payload = JSON.stringify(
+      this.oopsStaticResult(sourceCode, testCases, questionId),
+    );
+
+    switch (language) {
+      case 'python':
+        return `print("===TEST_RESULTS_START===")\nprint(${JSON.stringify(payload)})\nprint("===TEST_RESULTS_END===")\n`;
+      case 'javascript':
+        return `console.log("===TEST_RESULTS_START===");\nconsole.log(${JSON.stringify(payload)});\nconsole.log("===TEST_RESULTS_END===");\n`;
+      case 'java':
+        return `public class Main {\n  public static void main(String[] args) {\n    System.out.println("===TEST_RESULTS_START===");\n    System.out.println(${JSON.stringify(payload)});\n    System.out.println("===TEST_RESULTS_END===");\n  }\n}\n`;
+      case 'cpp':
+        return `#include <iostream>\nint main() {\n  std::cout << "===TEST_RESULTS_START===\\n" << ${JSON.stringify(payload)} << "\\n===TEST_RESULTS_END===\\n";\n  return 0;\n}\n`;
+      default:
+        return sourceCode;
+    }
+  }
+
+  private oopsStaticResult(
+    sourceCode: string,
+    testCases: TestCase[],
+    questionId: string,
+  ) {
+    const normalizedSource = String(sourceCode || '');
+    const normalizedTests = this.normalizedTestCases(testCases);
+    const results = normalizedTests.map((testCase, index) => {
+      const tags = this.normalizeTags((testCase.tags || []) as string[]);
+      const missingTags = tags.filter(
+        (tag: string) => !this.oopsTagPass(normalizedSource, tag, questionId),
+      );
+      const passed = missingTags.length === 0;
+
+      return {
+        id: testCase.id || `case_${index + 1}`,
+        number: index + 1,
+        input: testCase.input,
+        expected: testCase.expected || 'PASS',
+        actual: passed ? 'PASS' : `FAIL: ${missingTags.join(', ')}`,
+        passed,
+        purpose: testCase.purpose,
+        tags,
+      };
+    });
+
+    return {
+      test_results: results,
+      total: results.length,
+      passed: results.filter((result) => result.passed).length,
+    };
+  }
+
+  private oopsTagPass(sourceCode: string, tag: string, questionId: string) {
+    const source = String(sourceCode || '');
+    const has = (...patterns: RegExp[]) =>
+      patterns.every((pattern) => pattern.test(source));
+    const hasAny = (...patterns: RegExp[]) =>
+      patterns.some((pattern) => pattern.test(source));
+    const hasClassStructure = hasAny(
+      /\bclass\b/i,
+      /\binterface\b/i,
+      /\babstract\b/i,
+      /\bstruct\b/i,
+    );
+    const lower = source.toLowerCase();
+    const tagKey = this.normalizeTag(tag);
+
+    if (tagKey === 'class-design' || tagKey === 'class-structure') {
+      return hasClassStructure;
+    }
+    if (tagKey === 'workflow-abstraction' || tagKey === 'issue-abstraction') {
+      return hasClassStructure && /(workflow|state|ticket|issue)/i.test(source);
+    }
+    if (tagKey === 'payment-abstraction') {
+      return hasClassStructure && /(payment|checkout)/i.test(source);
+    }
+    if (tagKey === 'exporter-abstraction') {
+      return hasClassStructure && /(export|designfile|design file)/i.test(source);
+    }
+    if (tagKey === 'encapsulation' || tagKey === 'encapsulated-state' || tagKey === 'private-state') {
+      return /private|protected|readonly|_state|getState|setState/i.test(source);
+    }
+    if (tagKey === 'polymorphism') {
+      return /(implements|extends|override|virtual|polymorph|interface)/i.test(source);
+    }
+    if (tagKey === 'strategy-pattern') {
+      return /(strategy|delegate)/i.test(source);
+    }
+    if (tagKey === 'state-pattern') {
+      return /(state|transition)/i.test(source);
+    }
+    if (tagKey === 'factory-pattern') {
+      return /(factory|create|build|make)/i.test(source);
+    }
+    if (tagKey === 'registry-pattern') {
+      return /(registry|register|map|dictionary)/i.test(source);
+    }
+    if (tagKey === 'open-closed' || tagKey === 'extension-hook' || tagKey === 'new-workflow-without-engine-change' || tagKey === 'new-payment-mode-without-checkout-change' || tagKey === 'new-exporter-without-design-file-change') {
+      return /(factory|registry|register|extension|without\s+modifying|without\s+changing|new\s+.+without)/i.test(source);
+    }
+    if (tagKey === 'separation-of-concerns' || tagKey === 'single-responsibility' || tagKey === 'domain-service-boundary') {
+      return hasClassStructure && /(service|engine|workflow|checkout|export)/i.test(source);
+    }
+    if (tagKey === 'dependency-inversion') {
+      return /(interface|abstract)/i.test(source) && /(service|engine|checkout|export)/i.test(source);
+    }
+    if (tagKey === 'invalid-transition-handling') {
+      return /(invalid|reject|throw|error|fail)/i.test(source);
+    }
+    if (tagKey === 'controlled-failure' || tagKey === 'result-object' || tagKey === 'clear-error') {
+      return /(result|response|outcome|status|success|failure)/i.test(source);
+    }
+    if (tagKey === 'unsupported-format-handling') {
+      return /(unsupported|not supported|return false)/i.test(source);
+    }
+    if (tagKey === 'payment-processing-failure') {
+      return /(decline|fail|error|reject)/i.test(source);
+    }
+    if (tagKey === 'validation-with-strategy' || tagKey === 'validation-separation') {
+      return /validate/i.test(source) && /(strategy|payment|workflow|export)/i.test(source);
+    }
+    if (tagKey === 'code-readability' || tagKey === 'organization' || tagKey === 'concise' || tagKey === 'naming') {
+      return source.split(/\r?\n/).filter((line) => line.trim()).length >= 8;
+    }
+    if (tagKey === 'composition') {
+      return /(delegate|compose|has-a|contains|uses)/i.test(source);
+    }
+    if (tagKey === 'service-delegates-to-strategy' || tagKey === 'checkout-depends-on-abstraction' || tagKey === 'design-file-delegates-export') {
+      return /(delegate|strategy|exporter|paymentmethod|workflow)/i.test(source);
+    }
+    if (tagKey === 'explicit-export-settings') {
+      return /(settings|options|resolution|page_size|units)/i.test(source);
+    }
+
+    if (questionId === 'oops_atlassian_jira_workflow') {
+      if (tagKey === 'workflow-abstraction') {
+        return hasClassStructure && /(workflow|issue|ticket)/i.test(source);
+      }
+    }
+    if (questionId === 'oops_razorpay_payments') {
+      if (tagKey === 'payment-abstraction') {
+        return hasClassStructure && /(payment|checkout)/i.test(source);
+      }
+    }
+    if (questionId === 'oops_canva_export') {
+      if (tagKey === 'exporter-abstraction') {
+        return hasClassStructure && /(export|designfile|design file)/i.test(source);
+      }
+    }
+
+    return hasAny(new RegExp(tagKey.replace(/-/g, '[-_ ]'), 'i'));
   }
 
   private wrapCompileOnlySource(language: string, sourceCode: string) {
