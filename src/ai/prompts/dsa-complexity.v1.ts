@@ -9,6 +9,7 @@ You will receive:
 - the complexity ranking table
 
 Choose the single best matching rank for the student's runtime complexity and the single best matching rank for the student's space complexity.
+The evaluator will later normalize these detailed ranks into a 10-tier scoring scale.
 
 Rules:
 - Use only the provided ranking table.

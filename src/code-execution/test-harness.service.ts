@@ -1681,12 +1681,12 @@ const TEST_CASES = ${testCasesJson};
 const CANDIDATES = ${candidatesJson};
 
 function intValue(inputStr, key) {
-    const match = inputStr.match(new RegExp(key + "\\s*=\\s*(-?\\d+)"));
+    const match = inputStr.match(new RegExp(key + "\\\\s*=\\\\s*(-?\\\\d+)"));
     return match ? Number(match[1]) : null;
 }
 
 function matrixValue(inputStr, key) {
-    const match = inputStr.match(new RegExp(key + "\\s*=\\s*"));
+    const match = inputStr.match(new RegExp(key + "\\\\s*=\\\\s*"));
     if (!match || match.index === undefined) return [];
     const valueStart = match.index + match[0].length;
     if (inputStr.slice(valueStart).trimStart().startsWith("[]")) return [];
@@ -1703,7 +1703,7 @@ function matrixValue(inputStr, key) {
 }
 
 function oneDArrayValue(inputStr, key) {
-    const match = inputStr.match(new RegExp(key + "\\s*=\\s*\\["));
+    const match = inputStr.match(new RegExp(key + "\\\\s*=\\\\s*\\\\["));
     if (!match) return [];
     const start = match.index + match[0].length;
     const end = inputStr.indexOf("]", start);
@@ -1767,6 +1767,25 @@ function findUserFunc() {
         const candidate = namespace[name];
         if (typeof candidate === 'function') return candidate.bind(namespace);
     }
+    // Check if Solution class exists (matching Python harness behavior)
+    const Sol = namespace['Solution'];
+    if (typeof Sol === 'function' && Sol.prototype) {
+        const solver = new Sol();
+        for (const name of CANDIDATES) {
+            const candidate = solver[name];
+            if (typeof candidate === 'function') return candidate.bind(solver);
+        }
+    }
+    // Fallback: try direct eval for function declarations in module scope
+    // (top-level function declarations are not on globalThis in Node modules)
+    for (const name of CANDIDATES) {
+        try {
+            const candidate = eval(name);
+            if (typeof candidate === 'function') return candidate;
+        } catch(e) {
+            // continue to next candidate
+        }
+    }
     return null;
 }
 
@@ -1798,7 +1817,7 @@ for (const tc of TEST_CASES) {
             entry.actual = "[ERROR] No matching function found";
         } else {
             const output = invokeUserFunc("${questionId}", func, tc.input);
-            entry.actual = JSON.stringify(output);
+            entry.actual = Array.isArray(output) || (output && typeof output === "object") ? JSON.stringify(output) : String(output);
             entry.passed = compareOutputs("${questionId}", output, tc.expected, tc.input);
         }
     } catch(e) {

@@ -1,5 +1,11 @@
 import { EvaluationResult } from './evaluation.types';
-import { loadComplexityRanks } from './complexity-ranks';
+import {
+  complexityScoreFromRanks,
+  complexityScoreRankFromDetailedRank,
+  loadComplexityRanks,
+} from './complexity-ranks';
+
+export { complexityScoreFromRanks, complexityScoreRankFromDetailedRank } from './complexity-ranks';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -56,7 +62,7 @@ type EdgeCaseEvaluation = {
 };
 
 const SCORE_BASIS =
-  'Score is calculated from visible test correctness, expected code coverage, code-derived complexity ranks versus question-bank targets, and edge-case performance.';
+  'Score is calculated from visible test correctness, expected code coverage, normalized complexity score ranks versus question-bank targets, and edge-case performance.';
 
 const STOP_WORDS = new Set([
   'a',
@@ -178,7 +184,9 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const hiddenTestCaseScore = testSummary.hiddenAvailable
     ? scoreRatio(testSummary.hiddenPassed, testSummary.hiddenTotal)
     : 'Not available';
-  const correctnessScore = openTestCaseScore;
+  const correctnessScore = testSummary.hiddenAvailable
+    ? scoreRatio(testSummary.totalPassed, testSummary.totalTests)
+    : openTestCaseScore;
 
   const expectedTimeComplexity = textValue(record.expected_time_complexity) || 'Not available';
   const expectedSpaceComplexity = textValue(record.expected_space_complexity) || 'Not available';
@@ -195,15 +203,31 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const studentSpaceComplexityRank = rankValue(record.student_space_complexity_rank);
   const studentTimeComplexityLabel = complexityLabelFromRank(studentTimeComplexityRank);
   const studentSpaceComplexityLabel = complexityLabelFromRank(studentSpaceComplexityRank);
-  const timeComplexityRankGap = studentTimeComplexityRank - expectedTimeComplexityRank;
-  const spaceComplexityRankGap = studentSpaceComplexityRank - expectedSpaceComplexityRank;
-  const timeComplexityScore = rankGapScore(
+  const expectedTimeComplexityScoreRank = complexityScoreRankFromDetailedRank(
     expectedTimeComplexityRank,
+  );
+  const expectedSpaceComplexityScoreRank = complexityScoreRankFromDetailedRank(
+    expectedSpaceComplexityRank,
+  );
+  const studentTimeComplexityScoreRank = complexityScoreRankFromDetailedRank(
     studentTimeComplexityRank,
   );
-  const spaceComplexityScore = rankGapScore(
-    expectedSpaceComplexityRank,
+  const studentSpaceComplexityScoreRank = complexityScoreRankFromDetailedRank(
     studentSpaceComplexityRank,
+  );
+  const timeComplexityRankGap = studentTimeComplexityRank - expectedTimeComplexityRank;
+  const spaceComplexityRankGap = studentSpaceComplexityRank - expectedSpaceComplexityRank;
+  const timeComplexityScoreRankGap =
+    studentTimeComplexityScoreRank - expectedTimeComplexityScoreRank;
+  const spaceComplexityScoreRankGap =
+    studentSpaceComplexityScoreRank - expectedSpaceComplexityScoreRank;
+  const timeComplexityScore = complexityScoreFromRanks(
+    expectedTimeComplexityScoreRank,
+    studentTimeComplexityScoreRank,
+  );
+  const spaceComplexityScore = complexityScoreFromRanks(
+    expectedSpaceComplexityScoreRank,
+    studentSpaceComplexityScoreRank,
   );
   const approachAnalysis = evaluateApproach(
     submittedCode,
@@ -221,8 +245,6 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   );
   const overallQuestionScore = averageQuestionScore([
     correctnessScore,
-    openTestCaseScore,
-    typeof hiddenTestCaseScore === 'number' ? hiddenTestCaseScore : null,
     approachAnalysis.approachScore,
     timeComplexityScore,
     spaceComplexityScore,
@@ -230,7 +252,7 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   ]);
   return {
     section: 'DSA',
-    prompt_version: 'dsa-deterministic.v1',
+    prompt_version: 'dsa-deterministic.v2',
     model: 'deterministic',
     output: {
       section: 'DSA',
@@ -251,16 +273,22 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       expected_time_complexity: expectedTimeComplexity,
       expected_time_complexity_rank: expectedTimeComplexityRank,
       expected_time_complexity_label: complexityLabelFromRank(expectedTimeComplexityRank),
+      expected_time_complexity_score_rank: expectedTimeComplexityScoreRank,
       student_time_complexity_rank: studentTimeComplexityRank,
       student_time_complexity_label: studentTimeComplexityLabel,
+      student_time_complexity_score_rank: studentTimeComplexityScoreRank,
       time_complexity_rank_gap: timeComplexityRankGap,
+      time_complexity_score_rank_gap: timeComplexityScoreRankGap,
       time_complexity_score: timeComplexityScore,
       expected_space_complexity: expectedSpaceComplexity,
       expected_space_complexity_rank: expectedSpaceComplexityRank,
       expected_space_complexity_label: complexityLabelFromRank(expectedSpaceComplexityRank),
+      expected_space_complexity_score_rank: expectedSpaceComplexityScoreRank,
       student_space_complexity_rank: studentSpaceComplexityRank,
       student_space_complexity_label: studentSpaceComplexityLabel,
+      student_space_complexity_score_rank: studentSpaceComplexityScoreRank,
       space_complexity_rank_gap: spaceComplexityRankGap,
+      space_complexity_score_rank_gap: spaceComplexityScoreRankGap,
       space_complexity_score: spaceComplexityScore,
       edge_case_score: edgeCaseEvaluation.score,
       edge_cases_passed: edgeCaseEvaluation.passedText,
@@ -356,12 +384,11 @@ export function resolveComplexityRank(value: string) {
   return 50;
 }
 
-export function rankGapScore(expectedRank: number, studentRank: number) {
-  if (!Number.isFinite(expectedRank) || !Number.isFinite(studentRank)) return 0;
-  const gap = studentRank - expectedRank;
-  if (gap <= 0) return 100;
-  return Math.max(0, 100 - gap * 10);
+export function rankRatioScore(expectedRank: number, studentRank: number) {
+  return complexityScoreFromRanks(expectedRank, studentRank);
 }
+
+export const rankGapScore = rankRatioScore;
 
 function complexityLabelFromRank(rank: number) {
   return loadComplexityRanks().find((entry) => entry.rank === rank)?.label || 'O(unknown)';

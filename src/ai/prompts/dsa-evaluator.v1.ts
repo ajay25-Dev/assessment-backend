@@ -1,4 +1,4 @@
-export const DSA_EVALUATOR_PROMPT_VERSION = 'dsa-evaluator.v9';
+export const DSA_EVALUATOR_PROMPT_VERSION = 'dsa-evaluator.v10';
 
 export const DSA_EVALUATOR_PROMPT = `
 You are an expert DSA evaluator for a placement-readiness assessment.
@@ -21,14 +21,20 @@ Scoring rubric:
 - open_test_case_score: visible/sample test performance only.
 - hidden_test_case_score: informational only. Do not use unseen validation performance to change overall_question_score or any other score.
 - expected_code_score: checklist coverage of the exact expected implementation signals from the question bank.
-- expected_time_complexity_rank: rank for the target runtime complexity, where 1 is best and 50 is worst.
-- student_time_complexity_rank: rank for the observed solution runtime complexity.
-- time_complexity_rank_gap: student_time_complexity_rank - expected_time_complexity_rank.
-- time_complexity_score: backend-calculated rank-gap score using the question-bank expected runtime rank and the student runtime rank. Higher scores indicate a closer or better rank, clamped to 100.
-- expected_space_complexity_rank: rank for the target memory complexity, where 1 is best and 50 is worst.
-- student_space_complexity_rank: rank for the observed solution memory complexity.
-- space_complexity_rank_gap: student_space_complexity_rank - expected_space_complexity_rank.
-- space_complexity_score: backend-calculated rank-gap score using the question-bank expected memory rank and the student memory rank. Higher scores indicate a closer or better rank, clamped to 100.
+ - expected_time_complexity_rank: raw detailed rank for the target runtime complexity, where 1 is best and 50 is worst.
+ - student_time_complexity_rank: raw detailed rank for the observed solution runtime complexity.
+ - time_complexity_rank_gap: student_time_complexity_rank - expected_time_complexity_rank.
+ - expected_time_complexity_score_rank: normalized 10-tier scoring rank for the target runtime complexity, where 10 is best and 1 is worst.
+ - student_time_complexity_score_rank: normalized 10-tier scoring rank for the observed runtime complexity.
+ - time_complexity_score_rank_gap: student_time_complexity_score_rank - expected_time_complexity_score_rank.
+ - time_complexity_score: backend-calculated normalized score using round(100 * student_time_complexity_score_rank / expected_time_complexity_score_rank), capped at 100.
+ - expected_space_complexity_rank: raw detailed rank for the target memory complexity, where 1 is best and 50 is worst.
+ - student_space_complexity_rank: raw detailed rank for the observed solution memory complexity.
+ - space_complexity_rank_gap: student_space_complexity_rank - expected_space_complexity_rank.
+ - expected_space_complexity_score_rank: normalized 10-tier scoring rank for the target memory complexity, where 10 is best and 1 is worst.
+ - student_space_complexity_score_rank: normalized 10-tier scoring rank for the observed memory complexity.
+ - space_complexity_score_rank_gap: student_space_complexity_score_rank - expected_space_complexity_score_rank.
+ - space_complexity_score: backend-calculated normalized score using round(100 * student_space_complexity_score_rank / expected_space_complexity_score_rank), capped at 100.
 - edge_case_score: null/empty input handling, boundary conditions, duplicates, overflow, and unusual cases.
 - overall_question_score: simple average of correctness_score, open_test_case_score, hidden_test_case_score, approach_score, time_complexity_score, space_complexity_score, and edge_case_score when available.
 
