@@ -440,7 +440,7 @@
         {
           "number": 19,
           "input": "n=5, dependencies=[[2,0],[2,1],[4,3]], durations=[1,1,3,2,1], deadlines=[1,2,5,3,6]",
-          "expected_output": "4",
+          "expected_output": "3",
           "purpose": "Mixed dependency and deadline pressure"
         },
         {

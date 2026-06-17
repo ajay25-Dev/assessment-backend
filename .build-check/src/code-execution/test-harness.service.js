@@ -1085,9 +1085,11 @@ function intValue(inputStr, key) {
 }
 
 function matrixValue(inputStr, key) {
-    const start = inputStr.indexOf(key + "=");
-    if (start < 0) return [];
-    const first = inputStr.indexOf("[[", start);
+    const match = inputStr.match(new RegExp(key + "\\s*=\\s*"));
+    if (!match || match.index === undefined) return [];
+    const valueStart = match.index + match[0].length;
+    if (inputStr.slice(valueStart).trimStart().startsWith("[]")) return [];
+    const first = inputStr.indexOf("[[", valueStart);
     if (first < 0) return [];
     let depth = 0;
     let end = first;
@@ -1099,10 +1101,29 @@ function matrixValue(inputStr, key) {
     return JSON.parse(inputStr.slice(first, end + 1));
 }
 
+function oneDArrayValue(inputStr, key) {
+    const match = inputStr.match(new RegExp(key + "\\s*=\\s*\\["));
+    if (!match) return [];
+    const start = match.index + match[0].length;
+    const end = inputStr.indexOf("]", start);
+    if (end < 0) return [];
+    const body = inputStr.slice(start, end).trim();
+    if (!body) return [];
+    return body.split(",").map(x => Number(x.trim()));
+}
+
+function resolveVersion(token, vars) {
+    token = token.trim();
+    if (/^-?\d+$/.test(token)) {
+        return Number(token);
+    }
+    return vars[token] !== undefined ? vars[token] : 0;
+}
+
 function invokeUserFunc(questionId, func, inputStr) {
-    if (questionId === "dsa_servicenow_incident_dependency") return func(intValue(inputStr, "n"), matrixValue(inputStr, "dependencies"));
-    if (questionId === "dsa_amazon_delivery_routes") return func(intValue(inputStr, "n"), matrixValue(inputStr, "roads"));
-    if (questionId === "dsa_commvault_deduplication") return func(JSON.parse(inputStr));
+    if (questionId === "dsa_servicenow_incident_dependency") return func(intValue(inputStr, "n"), matrixValue(inputStr, "dependencies"), oneDArrayValue(inputStr, "durations"), oneDArrayValue(inputStr, "deadlines"));
+    if (questionId === "dsa_amazon_delivery_routes") return func(intValue(inputStr, "n"), matrixValue(inputStr, "roads"), matrixValue(inputStr, "packages"));
+    if (questionId === "dsa_commvault_deduplication") return func(matrixValue(inputStr, "files"), matrixValue(inputStr, "queries"));
     if (questionId === "dsa_autodesk_versioned_kv") {
         let store;
         try {
@@ -1111,18 +1132,30 @@ function invokeUserFunc(questionId, func, inputStr) {
             store = func();
         }
         const outputs = [];
+        const vars = { "0": 0 };
         for (const op of inputStr.split(";")) {
-            const setMatch = op.trim().match(/set\("([^"]+)",\s*(-?\d+)\)/);
-            const getMatch = op.trim().match(/get\("([^"]+)",\s*(-?\d+)\)/);
-            if (setMatch) store.set(setMatch[1], Number(setMatch[2]));
-            if (getMatch) {
-                const value = store.get(getMatch[1], Number(getMatch[2]));
+            const trimmed = op.trim();
+            if (!trimmed) continue;
+            const setAssignMatch = trimmed.match(/^(\w+)\s*=\s*set\s*\(\s*([^,]+)\s*,\s*"([^"]+)"\s*,\s*(-?\d+)\s*\)/);
+            const getMatch = trimmed.match(/^get\s*\(\s*([^,]+)\s*,\s*"([^"]+)"\s*\)/);
+            if (setAssignMatch) {
+                const targetVar = setAssignMatch[1];
+                const baseToken = setAssignMatch[2];
+                const key = setAssignMatch[3];
+                const value = Number(setAssignMatch[4]);
+                const baseVersion = resolveVersion(baseToken, vars);
+                const newVersion = store.set(baseVersion, key, value);
+                vars[targetVar] = newVersion;
+            } else if (getMatch) {
+                const versionToken = getMatch[1];
+                const key = getMatch[2];
+                const version = resolveVersion(versionToken, vars);
+                const value = store.get(version, key);
                 outputs.push(value === null || value === undefined ? "NULL" : String(value));
             }
         }
         return outputs.join(", ");
     }
-    if (questionId === "dsa_amazon_fraud_window") return func(matrixValue(inputStr, "transactions"), intValue(inputStr, "k"), intValue(inputStr, "t"));
     return func(inputStr);
 }
 function findUserFunc() {
@@ -1131,21 +1164,18 @@ function findUserFunc() {
         const candidate = namespace[name];
         if (typeof candidate === 'function') return candidate.bind(namespace);
     }
+    const Sol = namespace['Solution'];
+    if (typeof Sol === 'function' && Sol.prototype) {
+        const solver = new Sol();
+        for (const name of CANDIDATES) {
+            const candidate = solver[name];
+            if (typeof candidate === 'function') return candidate.bind(solver);
+        }
+    }
     return null;
 }
 
-function compareTopologicalOrder(result, expectedStr, inputStr) {
-    if (expectedStr.trim() === "[]") return Array.isArray(result) && result.length === 0;
-    const n = intValue(inputStr, "n");
-    const dependencies = matrixValue(inputStr, "dependencies");
-    if (!Array.isArray(result) || result.length !== n) return false;
-    if (JSON.stringify([...result].sort((a, b) => a - b)) !== JSON.stringify(Array.from({ length: n }, (_, i) => i))) return false;
-    const position = new Map(result.map((node, index) => [node, index]));
-    return dependencies.every(([after, before]) => after !== before && position.get(before) < position.get(after));
-}
-
 function compareOutputs(questionId, result, expectedStr, inputStr) {
-    if (questionId === "dsa_servicenow_incident_dependency") return compareTopologicalOrder(result, expectedStr, inputStr);
     if (Array.isArray(result) || (result && typeof result === "object")) {
         try {
             return JSON.stringify(result) === JSON.stringify(JSON.parse(expectedStr));
@@ -1173,7 +1203,7 @@ for (const tc of TEST_CASES) {
             entry.actual = "[ERROR] No matching function found";
         } else {
             const output = invokeUserFunc("${questionId}", func, tc.input);
-            entry.actual = JSON.stringify(output);
+            entry.actual = Array.isArray(output) || (output && typeof output === "object") ? JSON.stringify(output) : String(output);
             entry.passed = compareOutputs("${questionId}", output, tc.expected, tc.input);
         }
     } catch(e) {
