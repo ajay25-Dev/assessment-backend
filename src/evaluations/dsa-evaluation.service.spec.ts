@@ -1,8 +1,11 @@
 import { DsaEvaluationService } from './dsa-evaluation.service';
 
 describe('DsaEvaluationService', () => {
-  function makeService() {
-    return new DsaEvaluationService();
+  function makeService(generateStructuredJson: jest.Mock) {
+    return new DsaEvaluationService({
+      model: 'test-model',
+      generateStructuredJson,
+    } as never);
   }
 
   function makeResults(openPassed: number, hiddenPassed: number) {
@@ -20,8 +23,24 @@ describe('DsaEvaluationService', () => {
     };
   }
 
-  it('derives deterministic complexity, code coverage, and approach tags without AI', async () => {
-    const service = makeService();
+  it('derives complexity deterministically and uses AI-returned approach tags', async () => {
+    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
+      if (request.schemaName === 'dsa_approach_tag_extraction') {
+        return {
+          detected_tags: [
+            'prerequisite-bitmask',
+            'cycle-detection',
+            'bitmask-dp',
+            'subset-transition',
+            'deadline-aware-selection',
+          ],
+        };
+      }
+
+      throw new Error(`Unexpected schema ${request.schemaName}`);
+    });
+
+    const service = makeService(generateStructuredJson);
 
     const result = await service.evaluate({
       question_id: 'dsa_servicenow_incident_dependency',
@@ -72,6 +91,25 @@ describe('DsaEvaluationService', () => {
     const output = result.output as Record<string, unknown>;
 
     expect(output.section).toBe('DSA');
+    expect(generateStructuredJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        schemaName: 'dsa_approach_tag_extraction',
+        input: expect.objectContaining({
+          allowed_expected_approach_tags: [
+            'prerequisite-bitmask',
+            'cycle-detection',
+            'bitmask-dp',
+            'subset-transition',
+            'deadline-aware-selection',
+          ],
+          submitted_code_lines: expect.arrayContaining([
+            expect.stringContaining('function maxOnTimeIncidents()'),
+            expect.stringContaining('for (let i = 0; i < 1; i += 1) {'),
+            expect.stringContaining('const mask = 0;'),
+          ]),
+        }),
+      }),
+    );
     expect(output.open_test_case_score).toBe(80);
     expect(output.hidden_test_case_score).toBe(67);
     expect(output.expected_code_score).toBe(100);
@@ -108,11 +146,28 @@ describe('DsaEvaluationService', () => {
   });
 
   it('marks hidden results as not available when only visible evidence exists', async () => {
-    const service = makeService();
+    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
+      if (request.schemaName === 'dsa_approach_tag_extraction') {
+        return {
+          detected_tags: ['bitmask-dp', 'cycle-detection'],
+        };
+      }
+
+      throw new Error(`Unexpected schema ${request.schemaName}`);
+    });
+
+    const service = makeService(generateStructuredJson);
 
     const result = await service.evaluate({
       question_id: 'dsa_servicenow_incident_dependency',
       question_title: 'Incident SLA Scheduling with Dependencies',
+      expected_approach: [
+        'prerequisite-bitmask',
+        'cycle-detection',
+        'bitmask-dp',
+        'subset-transition',
+        'deadline-aware-selection',
+      ],
       submitted_code: 'function maxOnTimeIncidents() { return 0; }',
       detected_approach_tags: [],
       status: 'submitted',
@@ -136,5 +191,42 @@ describe('DsaEvaluationService', () => {
     expect(output.correctness_score).toBe(80);
     expect(output.hidden_tests_passed).toBe('Not available');
     expect(output.total_tests_passed).toBe('Not available');
+  });
+
+  it('fails when AI does not return any approach tags', async () => {
+    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
+      if (request.schemaName === 'dsa_approach_tag_extraction') {
+        return { detected_tags: [] };
+      }
+
+      throw new Error(`Unexpected schema ${request.schemaName}`);
+    });
+
+    const service = makeService(generateStructuredJson);
+
+    await expect(
+      service.evaluate({
+        question_id: 'dsa_servicenow_incident_dependency',
+        question_title: 'Incident SLA Scheduling with Dependencies',
+        prompt:
+          'Use bitmask DP with prerequisite masking, cycle detection, subset transitions, and deadline-aware selection.',
+        expected_approach: [
+          'prerequisite-bitmask',
+          'cycle-detection',
+          'bitmask-dp',
+          'subset-transition',
+          'deadline-aware-selection',
+        ],
+        expected_time_complexity: 'O(n * 2^n)',
+        expected_space_complexity: 'O(2^n)',
+        submitted_code: 'function maxOnTimeIncidents() { return 0; }',
+        status: 'submitted',
+        run_count: 0,
+        submit_count: 0,
+        compiler_result_summary: 'Test results: 0/5 passed (0%)',
+        open_test_cases: [],
+        hidden_test_cases: [],
+      }),
+    ).rejects.toThrow('DSA approach tag extraction returned no detected_tags');
   });
 });

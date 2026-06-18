@@ -44,8 +44,8 @@ export function isKnownComplexityRank(rank: number) {
   return allowedComplexityRanks().includes(rank);
 }
 
-// Normalized scoring rank used for percentage comparisons.
-// Higher is better: 10 = O(1), 1 = O(n!) or worse, 0 = unavailable/unknown.
+// Raw-rank percentage comparison using student/expected * 100, capped to 100.
+// Higher returned values mean the student rank is larger than the expected rank.
 export function complexityScoreRankFromDetailedRank(rank: number) {
   if (!Number.isFinite(rank) || rank <= 0) return 0;
   if (rank <= 1) return 10;
@@ -64,7 +64,5 @@ export function complexityScoreRankFromDetailedRank(rank: number) {
 export function complexityScoreFromRanks(expectedRank: number, studentRank: number) {
   if (!Number.isFinite(expectedRank) || !Number.isFinite(studentRank)) return 0;
   if (expectedRank <= 0 || studentRank <= 0) return 0;
-  const better = Math.min(expectedRank, studentRank);
-  const worse = Math.max(expectedRank, studentRank);
-  return Math.max(0, Math.min(100, Math.round((better / worse) * 100)));
+  return Math.max(0, Math.min(100, Math.round((studentRank / expectedRank) * 100)));
 }

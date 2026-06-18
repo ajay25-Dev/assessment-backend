@@ -62,7 +62,7 @@ type EdgeCaseEvaluation = {
 };
 
 const SCORE_BASIS =
-  'Score is calculated from visible test correctness, expected code coverage, normalized complexity score ranks versus question-bank targets, and edge-case performance.';
+  'Score is calculated from visible test correctness, expected code coverage, raw detailed complexity rank ratios versus question-bank targets, and edge-case performance.';
 
 const STOP_WORDS = new Set([
   'a',
@@ -222,12 +222,12 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const spaceComplexityScoreRankGap =
     studentSpaceComplexityScoreRank - expectedSpaceComplexityScoreRank;
   const timeComplexityScore = complexityScoreFromRanks(
-    expectedTimeComplexityScoreRank,
-    studentTimeComplexityScoreRank,
+    expectedTimeComplexityRank,
+    studentTimeComplexityRank,
   );
   const spaceComplexityScore = complexityScoreFromRanks(
-    expectedSpaceComplexityScoreRank,
-    studentSpaceComplexityScoreRank,
+    expectedSpaceComplexityRank,
+    studentSpaceComplexityRank,
   );
   const approachAnalysis = evaluateApproach(
     submittedCode,
