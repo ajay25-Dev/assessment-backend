@@ -47,7 +47,7 @@ describe('AssessmentPipelineService', () => {
         dsaEvaluation as never,
         sqlEvaluation as never,
         sqlSandbox as never,
-        oopsEvaluation as never,
+        oopsEvaluation,
         mcqEvaluation as never,
         dashboardEvaluation as never,
       ),
@@ -57,12 +57,14 @@ describe('AssessmentPipelineService', () => {
 
   it('rejects finalize-stage processing when the attempt belongs to a different student', async () => {
     const { service, questionBank } = makeService();
-    const maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
+    const maybeSingle = jest
+      .fn()
+      .mockResolvedValue({ data: null, error: null });
     const eqStudentId = jest.fn().mockReturnValue({ maybeSingle });
     const eqAttemptId = jest.fn().mockReturnValue({ eq: eqStudentId });
     const select = jest.fn().mockReturnValue({ eq: eqAttemptId });
     const from = jest.fn().mockReturnValue({ select });
-    jest.spyOn(service as any, 'getSupabase').mockReturnValue({ from } as never);
+    jest.spyOn(service as any, 'getSupabase').mockReturnValue({ from });
 
     await expect(
       service.processFinalizeStage('attempt-123', 'DASHBOARD', {

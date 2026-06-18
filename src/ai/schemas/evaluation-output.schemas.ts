@@ -23,7 +23,6 @@ function strictObject(properties: Record<string, JsonSchema>): JsonSchema {
 
 const score = { type: 'integer' };
 const text = { type: 'string' };
-const bool = { type: 'boolean' };
 const scoreOrText: JsonSchema = { anyOf: [score, text] };
 const complexityRankEnum = Array.from({ length: 50 }, (_, index) => index + 1);
 
@@ -162,16 +161,10 @@ export const oopsEvaluationOutputSchema = strictObject({
   section: { type: 'string', enum: ['OOPs'] },
   question_id: text,
   question_title: text,
-  class_design_score: score,
   abstraction_score: score,
   encapsulation_score: score,
   polymorphism_score: score,
-  extensibility_score: score,
-  separation_of_concerns_score: score,
   solid_principles_score: score,
-  error_handling_score: score,
-  code_readability_score: score,
-  design_pattern_awareness_score: score,
   overall_question_score: score,
   design_maturity_label: {
     type: 'string',

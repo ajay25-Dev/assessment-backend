@@ -147,12 +147,14 @@ describe('evaluateSqlSubmission', () => {
     expect(outputRecord.structure_score).toBeGreaterThanOrEqual(0);
     expect(outputRecord.simplicity_score).toBeGreaterThanOrEqual(0);
     expect(outputRecord.readability_score).toBeGreaterThanOrEqual(0);
-    expect(outputRecord.null_duplicate_handling_score).toBeGreaterThanOrEqual(0);
+    expect(outputRecord.null_duplicate_handling_score).toBeGreaterThanOrEqual(
+      0,
+    );
     expect(outputRecord.overall_question_score).toBeGreaterThan(0);
     expect(Array.isArray(outputRecord.missing_business_rules)).toBe(true);
-    expect((outputRecord.missing_business_rules as unknown[]).length).toBeLessThan(
-      8,
-    );
+    expect(
+      (outputRecord.missing_business_rules as unknown[]).length,
+    ).toBeLessThan(8);
     expect(outputRecord.expected_concepts_used).toEqual(
       expect.arrayContaining(['join', 'group-by', 'date-filter']),
     );
@@ -166,13 +168,11 @@ describe('evaluateSqlSubmission', () => {
     expect(typeof outputRecord.placement_readiness_label).toBe('string');
     const trace = outputRecord.calculation_trace as Record<string, any>;
     expect(trace?.result_correctness?.expected_columns).toEqual(
-      expect.arrayContaining([
-        'account_id',
-        'account_name',
-        'plan_type',
-      ]),
+      expect.arrayContaining(['account_id', 'account_name', 'plan_type']),
     );
-    expect(Array.isArray(trace?.business_logic?.required_business_rules)).toBe(true);
+    expect(Array.isArray(trace?.business_logic?.required_business_rules)).toBe(
+      true,
+    );
     expect(Array.isArray(trace?.query_efficiency?.signals)).toBe(true);
   });
 

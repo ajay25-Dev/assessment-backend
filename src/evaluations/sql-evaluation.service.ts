@@ -35,7 +35,8 @@ export class SqlEvaluationService extends BaseEvaluatorService {
 
   private async extractConceptTags(input: unknown): Promise<string[]> {
     const record = this.asRecord(input);
-    const allowedConceptTags = this.stringList(record.expected_sql_concept_tags).length
+    const allowedConceptTags = this.stringList(record.expected_sql_concept_tags)
+      .length
       ? this.stringList(record.expected_sql_concept_tags)
       : this.stringList(record.expected_sql_concepts);
 
@@ -57,12 +58,16 @@ export class SqlEvaluationService extends BaseEvaluatorService {
         schema: sqlConceptTagsOutputSchema,
         systemPrompt: SQL_CONCEPT_TAGS_PROMPT,
         input: {
-          question: [record.question_title, record.prompt].filter(Boolean).join('\n\n'),
+          question: [record.question_title, record.prompt]
+            .filter(Boolean)
+            .join('\n\n'),
           submitted_query: record.submitted_query,
           allowed_sql_concept_tags: allowedConceptTags,
         },
       });
-      this.logger.log(`Raw SQL concept tag output: ${JSON.stringify(output.output)}`);
+      this.logger.log(
+        `Raw SQL concept tag output: ${JSON.stringify(output.output)}`,
+      );
 
       const parsed = this.asConceptTagsOutput(output.output);
       this.logger.log(
@@ -102,7 +107,9 @@ export class SqlEvaluationService extends BaseEvaluatorService {
   }
 
   private normalizeTags(value: string[]) {
-    return [...new Set(value.map((item) => this.normalizeTag(item)).filter(Boolean))];
+    return [
+      ...new Set(value.map((item) => this.normalizeTag(item)).filter(Boolean)),
+    ];
   }
 
   private normalizeTag(value: string) {

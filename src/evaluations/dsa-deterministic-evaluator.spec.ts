@@ -38,7 +38,15 @@ describe('evaluateDsaSubmission', () => {
       expected_space_complexity: 'O(2^n)',
       ideal_time: 1000,
       ideal_space: 65536,
-      expected_code: ['bitmask', 'dp', 'prerequisite', 'dfs', 'cycle', 'topological', 'subset'],
+      expected_code: [
+        'bitmask',
+        'dp',
+        'prerequisite',
+        'dfs',
+        'cycle',
+        'topological',
+        'subset',
+      ],
       execution_time_ms: 500,
       execution_memory_kb: 32768,
       student_time_complexity_rank: 36,
@@ -68,7 +76,8 @@ describe('evaluateDsaSubmission', () => {
       })),
       hidden_test_cases: Array.from({ length: 10 }, (_, index) => ({
         id: `hidden_${index + 6}`,
-        purpose: index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
+        purpose:
+          index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
       })),
       testResults: makeResults(5, 0),
     });
@@ -135,7 +144,8 @@ describe('evaluateDsaSubmission', () => {
       })),
       hidden_test_cases: Array.from({ length: 10 }, (_, index) => ({
         id: `hidden_${index + 6}`,
-        purpose: index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
+        purpose:
+          index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
       })),
     });
 
@@ -163,7 +173,8 @@ describe('evaluateDsaSubmission', () => {
       execution_time_ms: 500,
       execution_memory_kb: 32768,
       detected_approach_tags: ['bitmask-dp'],
-      submitted_code: 'function maxOnTimeIncidents() { for (let i = 0; i < 1; i += 1) {} return 0; }',
+      submitted_code:
+        'function maxOnTimeIncidents() { for (let i = 0; i < 1; i += 1) {} return 0; }',
       status: 'submitted',
       run_count: 1,
       submit_count: 0,
@@ -174,7 +185,8 @@ describe('evaluateDsaSubmission', () => {
       })),
       hidden_test_cases: Array.from({ length: 10 }, (_, index) => ({
         id: `hidden_${index + 6}`,
-        purpose: index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
+        purpose:
+          index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
       })),
       testResults: makeResults(0, 0),
     });
@@ -203,7 +215,8 @@ describe('evaluateDsaSubmission', () => {
       execution_memory_kb: 1,
       expected_code: ['bitmask', 'dp'],
       detected_approach_tags: ['bitmask-dp'],
-      submitted_code: 'function maxOnTimeIncidents() { for (let i = 0; i < 1; i += 1) {} return 0; }',
+      submitted_code:
+        'function maxOnTimeIncidents() { for (let i = 0; i < 1; i += 1) {} return 0; }',
       status: 'submitted',
       run_count: 1,
       submit_count: 0,
@@ -214,7 +227,8 @@ describe('evaluateDsaSubmission', () => {
       })),
       hidden_test_cases: Array.from({ length: 10 }, (_, index) => ({
         id: `hidden_${index + 6}`,
-        purpose: index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
+        purpose:
+          index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
       })),
       testResults: makeResults(0, 0),
     });
@@ -280,7 +294,8 @@ describe('evaluateDsaSubmission', () => {
       student_time_complexity_rank: 36,
       student_space_complexity_rank: 35,
       detected_approach_tags: ['prerequisite-bitmask', 'cycle-detection'],
-      submitted_code: 'function maxOnTimeIncidents() { const bitmask = 1; return bitmask; }',
+      submitted_code:
+        'function maxOnTimeIncidents() { const bitmask = 1; return bitmask; }',
       status: 'submitted',
       run_count: 1,
       submit_count: 0,

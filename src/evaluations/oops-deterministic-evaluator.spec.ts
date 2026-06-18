@@ -21,7 +21,7 @@ describe('evaluateOopsSubmission', () => {
       'exporter',
       'pdf-exporter',
       'png-exporter',
-      'preview-exporter',
+      'jpg-exporter',
       'export-service',
     ],
     required_abstractions: ['exporter-interface'],
@@ -31,7 +31,10 @@ describe('evaluateOopsSubmission', () => {
       'open-closed',
       'dependency-inversion',
     ],
-    required_error_cases: ['unsupported-format-handling', 'export-failure-handling'],
+    required_error_cases: [
+      'unsupported-format-handling',
+      'export-failure-handling',
+    ],
     required_design_rules: [
       'design-file-delegates-export',
       'explicit-export-settings',
@@ -54,38 +57,68 @@ describe('evaluateOopsSubmission', () => {
       ...baseInput,
       test_results: {
         test_results: [
-          { id: 'open_1', passed: true, purpose: 'Class design', tags: ['class-design', 'exporter-abstraction'] },
-          { id: 'open_2', passed: true, purpose: 'Composition', tags: ['composition', 'separation-of-concerns'] },
-          { id: 'open_3', passed: true, purpose: 'Unsupported format', tags: ['unsupported-format-handling', 'result-object'] },
-          { id: 'open_4', passed: true, purpose: 'Factory registry', tags: ['factory-pattern', 'registry-pattern', 'open-closed'] },
-          { id: 'open_5', passed: true, purpose: 'Polymorphism', tags: ['polymorphism', 'dependency-inversion'] },
-          { id: 'hidden_6', passed: true, purpose: 'PDF export rules', tags: ['explicit-export-settings', 'result-object'] },
-          { id: 'hidden_7', passed: true, purpose: 'PNG export rules', tags: ['explicit-export-settings', 'strategy-pattern'] },
-          { id: 'hidden_8', passed: false, purpose: 'DWG export rules', tags: ['explicit-export-settings', 'composition'] },
-          { id: 'hidden_9', passed: true, purpose: '3D export rules', tags: ['exporter-abstraction', 'strategy-pattern'] },
-          { id: 'hidden_10', passed: true, purpose: 'Unsupported formats fail safely', tags: ['unsupported-format-handling', 'controlled-failure'] },
-          { id: 'hidden_11', passed: true, purpose: 'New exporter extension', tags: ['new-exporter-without-design-file-change', 'factory-pattern'] },
-          { id: 'hidden_12', passed: true, purpose: 'Delegation', tags: ['design-file-delegates-export', 'service-delegates-to-strategy'] },
-          { id: 'hidden_13', passed: true, purpose: 'Separation', tags: ['separation-of-concerns', 'domain-service-boundary'] },
-          { id: 'hidden_14', passed: true, purpose: 'Result object', tags: ['result-object', 'controlled-failure'] },
-          { id: 'hidden_15', passed: true, purpose: 'Open closed', tags: ['open-closed', 'registry-pattern'] },
-          { id: 'hidden_16', passed: true, purpose: 'Dependency inversion', tags: ['dependency-inversion', 'class-design'] },
-          { id: 'hidden_17', passed: true, purpose: 'Error handling', tags: ['unsupported-format-handling', 'validation-separation'] },
-          { id: 'hidden_18', passed: true, purpose: 'Readability', tags: ['code-readability', 'organization'] },
-          { id: 'hidden_19', passed: true, purpose: 'Single responsibility', tags: ['single-responsibility', 'class-design'] },
-          { id: 'hidden_20', passed: true, purpose: 'Final extension hook', tags: ['extension-hook', 'new-exporter-without-design-file-change'] },
+          {
+            id: 'hidden_1',
+            passed: true,
+            purpose: 'Abstraction',
+            tags: ['exporter-abstraction', 'interface'],
+          },
+          {
+            id: 'hidden_2',
+            passed: true,
+            purpose: 'Private state',
+            tags: ['private-state', 'encapsulated-state'],
+          },
+          {
+            id: 'hidden_3',
+            passed: true,
+            purpose: 'Polymorphism',
+            tags: ['polymorphism', 'strategy-pattern'],
+          },
+          {
+            id: 'hidden_4',
+            passed: true,
+            purpose: 'Strategy behavior',
+            tags: ['strategy-pattern', 'polymorphism'],
+          },
+          {
+            id: 'hidden_5',
+            passed: true,
+            purpose: 'Single responsibility',
+            tags: ['single-responsibility'],
+          },
+          {
+            id: 'hidden_6',
+            passed: true,
+            purpose: 'Dependency inversion',
+            tags: ['dependency-inversion'],
+          },
+          {
+            id: 'hidden_7',
+            passed: false,
+            purpose: 'Open closed',
+            tags: ['open-closed'],
+          },
+          {
+            id: 'hidden_8',
+            passed: true,
+            purpose: 'SOLID responsibility',
+            tags: ['single-responsibility', 'dependency-inversion'],
+          },
         ],
-        total: 20,
-        passed: 19,
+        total: 8,
+        passed: 7,
       },
     });
 
     const output = result.output as Record<string, unknown>;
-    expect(output.class_design_score).toBeGreaterThan(80);
-    expect(output.extensibility_score).toBeGreaterThan(70);
-    expect(output.error_handling_score).toBeGreaterThan(70);
+    expect(output.class_design_score).toBeUndefined();
+    expect(output.abstraction_score).toBe(100);
+    expect(output.encapsulation_score).toBe(100);
+    expect(output.polymorphism_score).toBe(100);
+    expect(output.solid_principles_score).toBeGreaterThan(70);
     expect(output.overall_question_score).toBeGreaterThan(75);
-    expect(output.total_tests_passed).toBe('19 / 20');
+    expect(output.total_tests_passed).toBe('7 / 8');
   });
 
   it('marks a procedural answer as weak', () => {
@@ -94,8 +127,18 @@ describe('evaluateOopsSubmission', () => {
       submitted_code: 'function exportDesign(format) { return format; }',
       test_results: {
         test_results: [
-          { id: 'open_1', passed: false, purpose: 'Class design', tags: ['class-design'] },
-          { id: 'open_2', passed: false, purpose: 'Composition', tags: ['composition'] },
+          {
+            id: 'open_1',
+            passed: false,
+            purpose: 'Abstraction',
+            tags: ['exporter-abstraction'],
+          },
+          {
+            id: 'open_2',
+            passed: false,
+            purpose: 'Composition',
+            tags: ['composition'],
+          },
         ],
         total: 2,
         passed: 0,
@@ -106,7 +149,7 @@ describe('evaluateOopsSubmission', () => {
     expect(output.overall_question_score).toBeLessThanOrEqual(40);
     expect(output.design_maturity_label).toBe('Procedural');
     expect(output.red_flags).toEqual(
-      expect.arrayContaining(['no-class-structure', 'single-procedural-function']),
+      expect.arrayContaining(['single-procedural-function']),
     );
   });
 });

@@ -54,25 +54,71 @@ describe('OopsEvaluationService', () => {
         'no-class-structure',
       ],
       test_results: {
-        test_results: Array.from({ length: 20 }, (_, index) => ({
-          id: index < 5 ? `open_${index + 1}` : `hidden_${index + 1}`,
-          passed: index !== 18,
-          purpose: index === 18 ? 'Stress invalid transition handling' : 'Structured OOPs check',
-          tags:
-            index < 5
-              ? ['class-design', 'payment-abstraction', 'strategy-pattern']
-              : ['open-closed', 'validation-with-strategy', 'result-object'],
-        })),
-        total: 20,
-        passed: 19,
+        test_results: [
+          {
+            id: 'hidden_1',
+            passed: true,
+            purpose: 'Abstraction',
+            tags: ['payment-abstraction', 'interface'],
+          },
+          {
+            id: 'hidden_2',
+            passed: true,
+            purpose: 'Controlled state',
+            tags: ['controlled-state'],
+          },
+          {
+            id: 'hidden_3',
+            passed: true,
+            purpose: 'Polymorphism',
+            tags: ['polymorphism', 'strategy-pattern'],
+          },
+          {
+            id: 'hidden_4',
+            passed: true,
+            purpose: 'Strategy behavior',
+            tags: ['strategy-pattern'],
+          },
+          {
+            id: 'hidden_5',
+            passed: true,
+            purpose: 'Single responsibility',
+            tags: ['single-responsibility'],
+          },
+          {
+            id: 'hidden_6',
+            passed: true,
+            purpose: 'Dependency inversion',
+            tags: ['dependency-inversion'],
+          },
+          {
+            id: 'hidden_7',
+            passed: false,
+            purpose: 'Open closed',
+            tags: ['open-closed'],
+          },
+          {
+            id: 'hidden_8',
+            passed: true,
+            purpose: 'SOLID responsibility',
+            tags: ['single-responsibility'],
+          },
+        ],
+        total: 8,
+        passed: 7,
       },
     });
 
     const output = result.output as Record<string, unknown>;
     expect(output.overall_question_score).toEqual(expect.any(Number));
-    expect(output.class_design_score).toBeGreaterThanOrEqual(80);
-    expect(output.error_handling_score).toBeLessThan(100);
-    expect(output.total_tests_passed).toBe('19 / 20');
-    expect(output.evidence_reasoning_summary).toContain('structured OOPs test case');
+    expect(output.class_design_score).toBeUndefined();
+    expect(output.abstraction_score).toBeGreaterThanOrEqual(80);
+    expect(output.encapsulation_score).toBeGreaterThanOrEqual(80);
+    expect(output.polymorphism_score).toBeGreaterThanOrEqual(80);
+    expect(output.solid_principles_score).toBeLessThan(100);
+    expect(output.total_tests_passed).toBe('7 / 8');
+    expect(output.evidence_reasoning_summary).toContain(
+      'structured OOPs test case',
+    );
   });
 });

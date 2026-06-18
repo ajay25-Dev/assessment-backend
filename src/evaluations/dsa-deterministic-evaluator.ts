@@ -5,7 +5,10 @@ import {
   loadComplexityRanks,
 } from './complexity-ranks';
 
-export { complexityScoreFromRanks, complexityScoreRankFromDetailedRank } from './complexity-ranks';
+export {
+  complexityScoreFromRanks,
+  complexityScoreRankFromDetailedRank,
+} from './complexity-ranks';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -176,7 +179,10 @@ const EDGE_CASE_HINTS: Record<string, RegExp[]> = {
 export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const record = assertRecord(input);
   const questionId = textValue(record.question_id);
-  const questionTitle = textValue(record.question_title, questionId || 'DSA Question');
+  const questionTitle = textValue(
+    record.question_title,
+    questionId || 'DSA Question',
+  );
   const submittedCode = textValue(record.submitted_code);
   const openTests = caseList(record.open_test_cases);
   const hiddenTests = caseList(record.hidden_test_cases);
@@ -202,7 +208,10 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
     summary,
   });
 
-  const openTestCaseScore = scoreRatio(testSummary.openPassed, testSummary.openTotal);
+  const openTestCaseScore = scoreRatio(
+    testSummary.openPassed,
+    testSummary.openTotal,
+  );
   const hiddenTestCaseScore = testSummary.hiddenAvailable
     ? scoreRatio(testSummary.hiddenPassed, testSummary.hiddenTotal)
     : 'Not available';
@@ -210,21 +219,38 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
     ? scoreRatio(testSummary.totalPassed, testSummary.totalTests)
     : openTestCaseScore;
 
-  const expectedTimeComplexity = textValue(record.expected_time_complexity) || 'Not available';
-  const expectedSpaceComplexity = textValue(record.expected_space_complexity) || 'Not available';
+  const expectedTimeComplexity =
+    textValue(record.expected_time_complexity) || 'Not available';
+  const expectedSpaceComplexity =
+    textValue(record.expected_space_complexity) || 'Not available';
   const expectedCodeScore =
     optionalPercentageValue(record.expected_code_score) ??
     expectedCodeSignalsScore(expectedCode, submittedCode);
-  const matchedExpectedCode = matchedExpectedCodeSignals(expectedCode, submittedCode);
+  const matchedExpectedCode = matchedExpectedCodeSignals(
+    expectedCode,
+    submittedCode,
+  );
   const missingExpectedCode = uniqueList(expectedCode).filter(
     (signal) => !matchedExpectedCode.includes(signal),
   );
-  const expectedTimeComplexityRank = resolveComplexityRank(expectedTimeComplexity);
-  const expectedSpaceComplexityRank = resolveComplexityRank(expectedSpaceComplexity);
-  const studentTimeComplexityRank = rankValue(record.student_time_complexity_rank);
-  const studentSpaceComplexityRank = rankValue(record.student_space_complexity_rank);
-  const studentTimeComplexityLabel = complexityLabelFromRank(studentTimeComplexityRank);
-  const studentSpaceComplexityLabel = complexityLabelFromRank(studentSpaceComplexityRank);
+  const expectedTimeComplexityRank = resolveComplexityRank(
+    expectedTimeComplexity,
+  );
+  const expectedSpaceComplexityRank = resolveComplexityRank(
+    expectedSpaceComplexity,
+  );
+  const studentTimeComplexityRank = rankValue(
+    record.student_time_complexity_rank,
+  );
+  const studentSpaceComplexityRank = rankValue(
+    record.student_space_complexity_rank,
+  );
+  const studentTimeComplexityLabel = complexityLabelFromRank(
+    studentTimeComplexityRank,
+  );
+  const studentSpaceComplexityLabel = complexityLabelFromRank(
+    studentSpaceComplexityRank,
+  );
   const expectedTimeComplexityScoreRank = complexityScoreRankFromDetailedRank(
     expectedTimeComplexityRank,
   );
@@ -237,8 +263,10 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
   const studentSpaceComplexityScoreRank = complexityScoreRankFromDetailedRank(
     studentSpaceComplexityRank,
   );
-  const timeComplexityRankGap = studentTimeComplexityRank - expectedTimeComplexityRank;
-  const spaceComplexityRankGap = studentSpaceComplexityRank - expectedSpaceComplexityRank;
+  const timeComplexityRankGap =
+    studentTimeComplexityRank - expectedTimeComplexityRank;
+  const spaceComplexityRankGap =
+    studentSpaceComplexityRank - expectedSpaceComplexityRank;
   const timeComplexityScoreRankGap =
     studentTimeComplexityScoreRank - expectedTimeComplexityScoreRank;
   const spaceComplexityScoreRankGap =
@@ -270,7 +298,9 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
     approachAnalysis.approachScore,
     timeComplexityScore,
     spaceComplexityScore,
-    typeof edgeCaseEvaluation.score === 'number' ? edgeCaseEvaluation.score : null,
+    typeof edgeCaseEvaluation.score === 'number'
+      ? edgeCaseEvaluation.score
+      : null,
   ]);
   return {
     section: 'DSA',
@@ -296,7 +326,9 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       correctness_score: correctnessScore,
       expected_time_complexity: expectedTimeComplexity,
       expected_time_complexity_rank: expectedTimeComplexityRank,
-      expected_time_complexity_label: complexityLabelFromRank(expectedTimeComplexityRank),
+      expected_time_complexity_label: complexityLabelFromRank(
+        expectedTimeComplexityRank,
+      ),
       expected_time_complexity_score_rank: expectedTimeComplexityScoreRank,
       student_time_complexity_rank: studentTimeComplexityRank,
       student_time_complexity_label: studentTimeComplexityLabel,
@@ -306,7 +338,9 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       time_complexity_score: timeComplexityScore,
       expected_space_complexity: expectedSpaceComplexity,
       expected_space_complexity_rank: expectedSpaceComplexityRank,
-      expected_space_complexity_label: complexityLabelFromRank(expectedSpaceComplexityRank),
+      expected_space_complexity_label: complexityLabelFromRank(
+        expectedSpaceComplexityRank,
+      ),
       expected_space_complexity_score_rank: expectedSpaceComplexityScoreRank,
       student_space_complexity_rank: studentSpaceComplexityRank,
       student_space_complexity_label: studentSpaceComplexityLabel,
@@ -317,7 +351,10 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       edge_case_score: edgeCaseEvaluation.score,
       edge_cases_passed: edgeCaseEvaluation.passedText,
       overall_question_score: overallQuestionScore,
-      open_tests_passed: formatPassed(testSummary.openPassed, testSummary.openTotal ?? openTests.length),
+      open_tests_passed: formatPassed(
+        testSummary.openPassed,
+        testSummary.openTotal ?? openTests.length,
+      ),
       hidden_tests_passed: testSummary.hiddenAvailable
         ? formatPassed(testSummary.hiddenPassed, testSummary.hiddenTotal)
         : 'Not available',
@@ -340,7 +377,8 @@ function assertRecord(value: unknown): JsonRecord {
 
 function textValue(value: unknown, fallback = '') {
   if (typeof value === 'string') return value.trim();
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value);
   return fallback;
 }
 
@@ -367,8 +405,8 @@ function formatPassed(passed: number | null, total: number | null) {
 }
 
 function scoreRatio(passed: number | null, total: number | null) {
-  if (!Number.isFinite(passed as number) || !Number.isFinite(total as number) || !total) return 0;
-  return roundScore(((passed as number) / (total as number)) * 100);
+  if (!Number.isFinite(passed) || !Number.isFinite(total) || !total) return 0;
+  return roundScore(((passed as number) / total) * 100);
 }
 
 function stringList(value: unknown): string[] {
@@ -415,7 +453,10 @@ export function rankRatioScore(expectedRank: number, studentRank: number) {
 export const rankGapScore = rankRatioScore;
 
 function complexityLabelFromRank(rank: number) {
-  return loadComplexityRanks().find((entry) => entry.rank === rank)?.label || 'O(unknown)';
+  return (
+    loadComplexityRanks().find((entry) => entry.rank === rank)?.label ||
+    'O(unknown)'
+  );
 }
 
 function uniqueList(value: string[]) {
@@ -423,7 +464,10 @@ function uniqueList(value: string[]) {
 }
 
 function normalizeSignalText(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 function escapeRegExp(value: string) {
@@ -436,16 +480,22 @@ function signalMatchesCode(signal: string, code: string) {
 
   const normalizedCode = normalizeSignalText(code);
   if (normalizedSignal.includes(' ')) {
-    return normalizedCode.replace(/\s+/g, '').includes(normalizedSignal.replace(/\s+/g, ''));
+    return normalizedCode
+      .replace(/\s+/g, '')
+      .includes(normalizedSignal.replace(/\s+/g, ''));
   }
 
-  return new RegExp(`(^|\\s)${escapeRegExp(normalizedSignal)}(\\s|$)`).test(normalizedCode);
+  return new RegExp(`(^|\\s)${escapeRegExp(normalizedSignal)}(\\s|$)`).test(
+    normalizedCode,
+  );
 }
 
 function expectedCodeSignalsScore(expectedSignals: string[], code: string) {
   const signals = uniqueList(expectedSignals);
   if (!signals.length) return 0;
-  const matched = signals.filter((signal) => signalMatchesCode(signal, code)).length;
+  const matched = signals.filter((signal) =>
+    signalMatchesCode(signal, code),
+  ).length;
   return roundScore((matched / signals.length) * 100);
 }
 
@@ -468,7 +518,8 @@ function caseList(value: unknown): TestCase[] {
 
 function submittedTestResults(value: JsonRecord): StructuredTestResults | null {
   const candidate = value.testResults ?? value.test_results ?? null;
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate))
+    return null;
 
   const rows = Array.isArray((candidate as StructuredTestResults).test_results)
     ? ((candidate as StructuredTestResults).test_results || []).filter(
@@ -491,7 +542,9 @@ function numberOrUndefined(value: unknown) {
 }
 
 function parseTestSummary(message: unknown) {
-  const match = textValue(message).match(/Test results:\s*(\d+)\/(\d+)\s*passed/i);
+  const match = textValue(message).match(
+    /Test results:\s*(\d+)\/(\d+)\s*passed/i,
+  );
   if (!match) return null;
   return { passed: Number(match[1]), total: Number(match[2]) };
 }
@@ -511,7 +564,9 @@ function buildTestSummary(params: {
     return {
       openPassed: countPassed(slices.openResults),
       openTotal: slices.openResults.length || null,
-      hiddenPassed: slices.hiddenAvailable ? countPassed(slices.hiddenResults) : null,
+      hiddenPassed: slices.hiddenAvailable
+        ? countPassed(slices.hiddenResults)
+        : null,
       hiddenTotal: slices.hiddenAvailable ? hiddenTotal : hiddenTotal || null,
       totalPassed:
         params.structuredResults.passed ??
@@ -555,11 +610,13 @@ function splitStructuredTestResults(params: {
   const results = params.structuredResults?.test_results || [];
   const openCount = params.openTests.length || params.summary?.total || 0;
   const hiddenResults =
-    params.hiddenTests.length && results.length >= openCount + params.hiddenTests.length
+    params.hiddenTests.length &&
+    results.length >= openCount + params.hiddenTests.length
       ? results.slice(openCount, openCount + params.hiddenTests.length)
       : [];
   const hiddenAvailable =
-    params.hiddenTests.length > 0 && hiddenResults.length === params.hiddenTests.length;
+    params.hiddenTests.length > 0 &&
+    hiddenResults.length === params.hiddenTests.length;
 
   return {
     openResults: results.slice(0, openCount),
@@ -583,13 +640,19 @@ function evaluateApproach(
 ): ApproachAnalysis {
   const normalizedCode = normalizeText(code);
   const tokenSet = tokenSetFromText(normalizedCode);
-  const normalizedExpectedTags = uniqueList(expectedApproach).map(normalizeApproachTag).filter(Boolean);
+  const normalizedExpectedTags = uniqueList(expectedApproach)
+    .map(normalizeApproachTag)
+    .filter(Boolean);
   const normalizedDetectedTags = detectedApproachTags
     ? uniqueList(detectedApproachTags).map(normalizeApproachTag).filter(Boolean)
     : [];
-  const finalMatchPercentage = detectedApproachTags !== null
-    ? calculateApproachMatchPercentage(normalizedExpectedTags, normalizedDetectedTags)
-    : percentageValueOrThrow(legacyApproachMatchPercentage);
+  const finalMatchPercentage =
+    detectedApproachTags !== null
+      ? calculateApproachMatchPercentage(
+          normalizedExpectedTags,
+          normalizedDetectedTags,
+        )
+      : percentageValueOrThrow(legacyApproachMatchPercentage);
   const expectedApproachUsed: 'Yes' | 'Partial' | 'No' =
     finalMatchPercentage >= 70
       ? 'Yes'
@@ -639,10 +702,17 @@ function normalizeApproachTag(value: string) {
     .replace(/-+/g, '-');
 }
 
-function calculateApproachMatchPercentage(expectedTags: string[], detectedTags: string[]) {
+function calculateApproachMatchPercentage(
+  expectedTags: string[],
+  detectedTags: string[],
+) {
   if (!expectedTags.length) return 0;
-  const expectedSet = new Set(uniqueList(expectedTags).map(normalizeApproachTag).filter(Boolean));
-  const detectedSet = new Set(uniqueList(detectedTags).map(normalizeApproachTag).filter(Boolean));
+  const expectedSet = new Set(
+    uniqueList(expectedTags).map(normalizeApproachTag).filter(Boolean),
+  );
+  const detectedSet = new Set(
+    uniqueList(detectedTags).map(normalizeApproachTag).filter(Boolean),
+  );
   if (!expectedSet.size) return 0;
   const matched = [...expectedSet].filter((tag) => detectedSet.has(tag)).length;
   return roundScore((matched / expectedSet.size) * 100);
@@ -670,7 +740,9 @@ function scoreApproachItem(
   const tokens = tokenize(point).filter((token) => !STOP_WORDS.has(token));
   if (!tokens.length) return 0;
 
-  const matched = tokens.filter((token) => tokenMatches(tokenSet, normalizedCode, token)).length;
+  const matched = tokens.filter((token) =>
+    tokenMatches(tokenSet, normalizedCode, token),
+  ).length;
   if (matched >= Math.max(2, Math.ceil(tokens.length * 0.6))) return 1;
   if (matched >= Math.max(1, Math.ceil(tokens.length * 0.3))) return 0.5;
 
@@ -693,7 +765,8 @@ function alternateSolutionScoreFor(
 ) {
   const timeRank = resolveComplexityRank(studentTimeComplexity);
   const spaceRank = resolveComplexityRank(studentSpaceComplexity);
-  const strongComplexity = timeRank > 0 && timeRank <= 3 && spaceRank > 0 && spaceRank <= 3;
+  const strongComplexity =
+    timeRank > 0 && timeRank <= 3 && spaceRank > 0 && spaceRank <= 3;
 
   if (correctnessScore >= 100 && strongComplexity) return 100;
   if (correctnessScore >= 95 && strongComplexity) return 80;
@@ -723,7 +796,9 @@ function evaluateEdgeCases(
       available: false,
       score: 'Not available',
       passedText: 'Not available',
-      missedEdgeCases: indexes.map((index) => describeTestCase(tests[index], index)),
+      missedEdgeCases: indexes.map((index) =>
+        describeTestCase(tests[index], index),
+      ),
     };
   }
 
@@ -740,9 +815,15 @@ function evaluateEdgeCases(
 }
 
 function identifyEdgeCaseIndexes(questionId: string, tests: TestCase[]) {
-  const hints =
-    EDGE_CASE_HINTS[questionId] ||
-    [/\bcycle\b/i, /\bself\b/i, /\bboundary\b/i, /\bempty\b/i, /\bduplicate\b/i, /\bunreachable\b/i, /\blarge\b/i];
+  const hints = EDGE_CASE_HINTS[questionId] || [
+    /\bcycle\b/i,
+    /\bself\b/i,
+    /\bboundary\b/i,
+    /\bempty\b/i,
+    /\bduplicate\b/i,
+    /\bunreachable\b/i,
+    /\blarge\b/i,
+  ];
 
   return tests
     .map((test, index) => ({ test, index }))
@@ -786,11 +867,20 @@ function evaluateCodeQuality(code: string): CodeQualityScores {
     nonEmpty.length > 0
       ? nonEmpty.reduce((sum, line) => sum + line.length, 0) / nonEmpty.length
       : 0;
-  const maxLineLength = lines.reduce((max, line) => Math.max(max, line.length), 0);
-  const commentLines = lines.filter((line) => /^\s*(#|\/\/|\/\*|\*|--)/.test(line)).length;
-  const helperCount = (normalized.match(/\b(function|def|class|private|public|static)\b/g) || []).length;
+  const maxLineLength = lines.reduce(
+    (max, line) => Math.max(max, line.length),
+    0,
+  );
+  const commentLines = lines.filter((line) =>
+    /^\s*(#|\/\/|\/\*|\*|--)/.test(line),
+  ).length;
+  const helperCount = (
+    normalized.match(/\b(function|def|class|private|public|static)\b/g) || []
+  ).length;
   const loopCountValue = loopCount(normalizeText(code));
-  const conditionalCount = (normalized.match(/\b(if|switch|case|else if)\b/g) || []).length;
+  const conditionalCount = (
+    normalized.match(/\b(if|switch|case|else if)\b/g) || []
+  ).length;
   const tokenSet = tokenSetFromText(normalizeText(code));
   const shortIdentifierCount = [...tokenSet].filter(
     (token) => token.length <= 2 && !/^\d+$/.test(token),
@@ -803,12 +893,36 @@ function evaluateCodeQuality(code: string): CodeQualityScores {
     numericLiteralCount > 12;
 
   const readabilityScore = clampQuality(
-    88 - (avgLineLength > 110 ? 10 : avgLineLength > 90 ? 5 : 0) - (maxLineLength > 140 ? 8 : maxLineLength > 110 ? 4 : 0) - (commentLines === 0 && nonEmpty.length > 20 ? 4 : 0),
+    88 -
+      (avgLineLength > 110 ? 10 : avgLineLength > 90 ? 5 : 0) -
+      (maxLineLength > 140 ? 8 : maxLineLength > 110 ? 4 : 0) -
+      (commentLines === 0 && nonEmpty.length > 20 ? 4 : 0),
   );
-  const modularityScore = clampQuality(helperCount >= 4 ? 95 : helperCount === 3 ? 88 : helperCount === 2 ? 80 : helperCount === 1 ? 68 : 58);
-  const namingScore = clampQuality(92 - roundScore((shortIdentifierCount / (tokenSet.size || 1)) * 45));
-  const simplicityScore = clampQuality(90 - Math.max(0, loopCountValue - 2) * 8 - Math.max(0, conditionalCount - 8) * 2);
-  const noHardcodingScore = clampQuality(95 - (suspiciousHardcoding ? Math.min(60, 20 + numericLiteralCount * 2) : Math.min(15, numericLiteralCount)));
+  const modularityScore = clampQuality(
+    helperCount >= 4
+      ? 95
+      : helperCount === 3
+        ? 88
+        : helperCount === 2
+          ? 80
+          : helperCount === 1
+            ? 68
+            : 58,
+  );
+  const namingScore = clampQuality(
+    92 - roundScore((shortIdentifierCount / (tokenSet.size || 1)) * 45),
+  );
+  const simplicityScore = clampQuality(
+    90 -
+      Math.max(0, loopCountValue - 2) * 8 -
+      Math.max(0, conditionalCount - 8) * 2,
+  );
+  const noHardcodingScore = clampQuality(
+    95 -
+      (suspiciousHardcoding
+        ? Math.min(60, 20 + numericLiteralCount * 2)
+        : Math.min(15, numericLiteralCount)),
+  );
 
   const codeQualityScore = roundScore(
     readabilityScore * 0.25 +
@@ -853,7 +967,10 @@ function calculateProblemSolvingScore(params: {
         [params.finalApproachScore, 0.2],
         [params.timeComplexityScore, 0.15],
         [params.spaceComplexityScore, 0.1],
-        [typeof params.edgeCaseScore === 'number' ? params.edgeCaseScore : 0, 0.1],
+        [
+          typeof params.edgeCaseScore === 'number' ? params.edgeCaseScore : 0,
+          0.1,
+        ],
         [params.codeQualityScore, 0.1],
       ]
     : [
@@ -873,10 +990,13 @@ function weightedSum(entries: Array<[number, number]>) {
 
 function averageQuestionScore(scores: Array<number | null | undefined>) {
   const values = scores.filter(
-    (score): score is number => typeof score === 'number' && Number.isFinite(score),
+    (score): score is number =>
+      typeof score === 'number' && Number.isFinite(score),
   );
   if (!values.length) return 0;
-  return roundScore(values.reduce((sum, score) => sum + score, 0) / values.length);
+  return roundScore(
+    values.reduce((sum, score) => sum + score, 0) / values.length,
+  );
 }
 
 function riskLevel(score: number): 'Low' | 'Medium' | 'High' {
@@ -928,7 +1048,11 @@ function optimizationLevel(
   ) {
     return 'Optimal';
   }
-  if (problemSolvingScore >= 70 && bruteForceRisk !== 'High' && hardcodingRisk !== 'High') {
+  if (
+    problemSolvingScore >= 70 &&
+    bruteForceRisk !== 'High' &&
+    hardcodingRisk !== 'High'
+  ) {
     return 'Acceptable';
   }
   if (bruteForceRisk === 'High') {
@@ -949,14 +1073,26 @@ function buildStrengths(
   edgeCaseEvaluation: EdgeCaseEvaluation,
 ) {
   const strengths: string[] = [];
-  if (correctnessScore >= 80) strengths.push('Strong visible test correctness.');
+  if (correctnessScore >= 80)
+    strengths.push('Strong visible test correctness.');
   if (approachAnalysis.expectedApproachUsed !== 'No') {
     strengths.push('Shows alignment with the expected DSA pattern.');
   }
-  if (timeComplexityScore >= 80) strengths.push('Runtime complexity rank is close to or better than the target.');
-  if (spaceComplexityScore >= 80) strengths.push('Memory complexity rank is close to or better than the target.');
-  if (codeQuality.codeQualityScore >= 75) strengths.push('Code structure is readable and maintainable.');
-  if (edgeCaseEvaluation.available && typeof edgeCaseEvaluation.score === 'number' && edgeCaseEvaluation.score >= 75) {
+  if (timeComplexityScore >= 80)
+    strengths.push(
+      'Runtime complexity rank is close to or better than the target.',
+    );
+  if (spaceComplexityScore >= 80)
+    strengths.push(
+      'Memory complexity rank is close to or better than the target.',
+    );
+  if (codeQuality.codeQualityScore >= 75)
+    strengths.push('Code structure is readable and maintainable.');
+  if (
+    edgeCaseEvaluation.available &&
+    typeof edgeCaseEvaluation.score === 'number' &&
+    edgeCaseEvaluation.score >= 75
+  ) {
     strengths.push('Handles tagged edge cases well.');
   }
   return strengths.slice(0, 4);
@@ -971,12 +1107,20 @@ function buildWeaknesses(
   edgeCaseEvaluation: EdgeCaseEvaluation,
 ) {
   const weaknesses: string[] = [];
-  if (correctnessScore < 70) weaknesses.push('Visible test correctness needs improvement.');
-  if (approachAnalysis.expectedApproachUsed === 'No') weaknesses.push('Expected approach is not clearly visible in the code.');
-  if (timeComplexityScore < 70) weaknesses.push('Runtime complexity rank is weaker than the target.');
-  if (spaceComplexityScore < 70) weaknesses.push('Memory complexity rank is weaker than the target.');
-  if (codeQuality.noHardcodingScore < 70) weaknesses.push('Hardcoded logic or literal-heavy code was detected.');
-  if (!edgeCaseEvaluation.available) weaknesses.push('Edge-case coverage could not be measured from the available evidence.');
+  if (correctnessScore < 70)
+    weaknesses.push('Visible test correctness needs improvement.');
+  if (approachAnalysis.expectedApproachUsed === 'No')
+    weaknesses.push('Expected approach is not clearly visible in the code.');
+  if (timeComplexityScore < 70)
+    weaknesses.push('Runtime complexity rank is weaker than the target.');
+  if (spaceComplexityScore < 70)
+    weaknesses.push('Memory complexity rank is weaker than the target.');
+  if (codeQuality.noHardcodingScore < 70)
+    weaknesses.push('Hardcoded logic or literal-heavy code was detected.');
+  if (!edgeCaseEvaluation.available)
+    weaknesses.push(
+      'Edge-case coverage could not be measured from the available evidence.',
+    );
   return weaknesses.slice(0, 4);
 }
 
@@ -988,7 +1132,11 @@ function buildRecommendation(
   codeQuality: CodeQualityScores,
   edgeCaseEvaluation: EdgeCaseEvaluation,
 ) {
-  if (correctnessScore >= 85 && timeComplexityScore >= 80 && spaceComplexityScore >= 80) {
+  if (
+    correctnessScore >= 85 &&
+    timeComplexityScore >= 80 &&
+    spaceComplexityScore >= 80
+  ) {
     return 'Keep this approach, tighten the edge-case handling, and verify the final submission against the full hidden suite.';
   }
   if (approachAnalysis.expectedApproachUsed === 'No') {
@@ -1008,16 +1156,26 @@ function buildFailedCaseAnalysis(
   edgeCaseEvaluation: EdgeCaseEvaluation,
 ) {
   const analysis: string[] = [];
-  if (summary.hiddenAvailable && typeof summary.hiddenPassed === 'number' && summary.hiddenTotal) {
+  if (
+    summary.hiddenAvailable &&
+    typeof summary.hiddenPassed === 'number' &&
+    summary.hiddenTotal
+  ) {
     const missed = summary.hiddenTotal - summary.hiddenPassed;
     if (missed > 0) analysis.push(`${missed} hidden test case(s) failed.`);
   }
   if (!edgeCaseEvaluation.available) {
-    analysis.push('Edge-case failures could not be isolated from tagged cases.');
+    analysis.push(
+      'Edge-case failures could not be isolated from tagged cases.',
+    );
   } else if (edgeCaseEvaluation.missedEdgeCases.length) {
-    analysis.push(`Missed edge cases: ${edgeCaseEvaluation.missedEdgeCases.join(', ')}.`);
+    analysis.push(
+      `Missed edge cases: ${edgeCaseEvaluation.missedEdgeCases.join(', ')}.`,
+    );
   }
-  return analysis.length ? analysis : ['No major failure pattern detected from the available evidence.'];
+  return analysis.length
+    ? analysis
+    : ['No major failure pattern detected from the available evidence.'];
 }
 
 function evaluateRiskSignals(params: {
@@ -1073,12 +1231,16 @@ function evaluateTaggedRiskSignal(
     return emptyRiskSignalSummary();
   }
 
-  const passedCount = taggedIndexes.filter((index) => hiddenResults[index]?.passed).length;
+  const passedCount = taggedIndexes.filter(
+    (index) => hiddenResults[index]?.passed,
+  ).length;
   const failedCount = taggedIndexes.length - passedCount;
 
   return {
     signal: failedCount > 0 ? 'Yes' : 'No',
-    taggedTests: taggedIndexes.map((index) => describeTestCase(hiddenTests[index], index)),
+    taggedTests: taggedIndexes.map((index) =>
+      describeTestCase(hiddenTests[index], index),
+    ),
     taggedCount: taggedIndexes.length,
     failedCount,
     passedCount,
@@ -1117,7 +1279,11 @@ function buildSummary(
 
 function compilationBehavior(summary: string, status: string) {
   const text = `${summary} ${status}`.toLowerCase();
-  if (text.includes('fail') || text.includes('error') || text.includes('syntax')) {
+  if (
+    text.includes('fail') ||
+    text.includes('error') ||
+    text.includes('syntax')
+  ) {
     return 'Failed';
   }
   if (text.includes('warn')) {
@@ -1130,10 +1296,18 @@ function detectApproach(tokenSet: Set<string>, normalizedCode: string) {
   if (tokenSet.has('bitmask') || tokenSet.has('subset') || tokenSet.has('dp')) {
     return 'Bitmask dynamic programming';
   }
-  if (tokenSet.has('topological') || tokenSet.has('dfs') || tokenSet.has('cycle')) {
+  if (
+    tokenSet.has('topological') ||
+    tokenSet.has('dfs') ||
+    tokenSet.has('cycle')
+  ) {
     return 'Graph traversal and cycle detection';
   }
-  if (tokenSet.has('heap') || tokenSet.has('priority') || tokenSet.has('queue')) {
+  if (
+    tokenSet.has('heap') ||
+    tokenSet.has('priority') ||
+    tokenSet.has('queue')
+  ) {
     return 'Heap or priority-queue driven solution';
   }
   if (tokenSet.has('memo') || tokenSet.has('memoization')) {
@@ -1159,9 +1333,15 @@ function tokenSetFromText(value: string) {
   return new Set(tokenize(value));
 }
 
-function tokenMatches(tokenSet: Set<string>, normalizedCode: string, token: string) {
+function tokenMatches(
+  tokenSet: Set<string>,
+  normalizedCode: string,
+  token: string,
+) {
   const variants = singularVariants(token);
-  return variants.some((variant) => tokenSet.has(variant) || normalizedCode.includes(variant));
+  return variants.some(
+    (variant) => tokenSet.has(variant) || normalizedCode.includes(variant),
+  );
 }
 
 function singularVariants(token: string) {

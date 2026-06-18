@@ -78,14 +78,44 @@ type SqlQuestionPatterns = {
 const SQL_PATTERNS: Record<string, SqlQuestionPatterns> = {
   sql_blinkit_replenishment_risk: {
     business: {
-      'latest-inventory-snapshot': [/row_number/i, /\brank\s*\(/i, /latest.*snapshot/i, /max\s*\(.*snapshot/i],
-      'active-store-filter': [/\bactive\b.*store/i, /store.*\bactive\b/i, /status\s*=\s*'active'/i],
-      'non-discontinued-sku-filter': [/discontinued/i, /is\s+discontinued/i, /sku.*active/i],
-      'completed-sales-last-7-days': [/completed/i, /last\s*7\s*days/i, /interval\s*'7/i, /current_date\s*-\s*interval\s*'7/i],
+      'latest-inventory-snapshot': [
+        /row_number/i,
+        /\brank\s*\(/i,
+        /latest.*snapshot/i,
+        /max\s*\(.*snapshot/i,
+      ],
+      'active-store-filter': [
+        /\bactive\b.*store/i,
+        /store.*\bactive\b/i,
+        /status\s*=\s*'active'/i,
+      ],
+      'non-discontinued-sku-filter': [
+        /discontinued/i,
+        /is\s+discontinued/i,
+        /sku.*active/i,
+      ],
+      'completed-sales-last-7-days': [
+        /completed/i,
+        /last\s*7\s*days/i,
+        /interval\s*'7/i,
+        /current_date\s*-\s*interval\s*'7/i,
+      ],
       'average-daily-sales-over-seven-days': [/avg/i, /average/i, /\/\s*7\b/i],
-      'days-of-cover-calculation': [/days?\s+of\s+cover/i, /cover/i, /on_hand.*avg_daily/i],
-      'reorder-point-or-days-cover-threshold': [/reorder/i, /threshold/i, /<\s*3\b/i],
-      'zero-sales-not-flagged-by-null-cover': [/\bcoalesce\b/i, /\bnull\b/i, /no\s+sales/i],
+      'days-of-cover-calculation': [
+        /days?\s+of\s+cover/i,
+        /cover/i,
+        /on_hand.*avg_daily/i,
+      ],
+      'reorder-point-or-days-cover-threshold': [
+        /reorder/i,
+        /threshold/i,
+        /<\s*3\b/i,
+      ],
+      'zero-sales-not-flagged-by-null-cover': [
+        /\bcoalesce\b/i,
+        /\bnull\b/i,
+        /no\s+sales/i,
+      ],
     },
     concepts: {
       'cte-or-subquery': [/\bwith\b/i, /\(\s*select\b/i],
@@ -93,36 +123,91 @@ const SQL_PATTERNS: Record<string, SqlQuestionPatterns> = {
       'left-join': [/\bleft\s+join\b/i],
       aggregation: [/\b(sum|avg|count|min|max)\s*\(/i],
       'group-by': [/\bgroup\s+by\b/i],
-      'date-filter': [/\bdate\b/i, /\binterval\b/i, /\bbetween\b/i, /\bcurrent_date\b/i],
+      'date-filter': [
+        /\bdate\b/i,
+        /\binterval\b/i,
+        /\bbetween\b/i,
+        /\bcurrent_date\b/i,
+      ],
       'case-expression': [/\bcase\b/i],
       'coalesce-or-null-handling': [/\bcoalesce\b/i, /\bnull\b/i],
     },
     edgeCases: {
-      'latest-snapshot-selection': [/row_number/i, /latest.*snapshot/i, /max\s*\(.*snapshot/i],
+      'latest-snapshot-selection': [
+        /row_number/i,
+        /latest.*snapshot/i,
+        /max\s*\(.*snapshot/i,
+      ],
       'inactive-store-exclusion': [/\binactive\b/i, /status\s*!=\s*'active'/i],
       'discontinued-sku-exclusion': [/discontinued/i],
       'cancelled-sales-exclusion': [/cancel/i],
-      'no-recent-sales-null-cover': [/\bcoalesce\b/i, /\bnull\b/i, /no\s+sales/i],
+      'no-recent-sales-null-cover': [
+        /\bcoalesce\b/i,
+        /\bnull\b/i,
+        /no\s+sales/i,
+      ],
       'threshold-reorder-point': [/reorder/i, /threshold/i, /<\s*3\b/i],
     },
     nullRules: {
-      'coalesce-missing-sales-to-zero': [/\bcoalesce\b/i, /sales.*0/i, /sum\s*\(\s*.*\)\s*.*0/i],
-      'avoid-null-days-cover-flag': [/\bcoalesce\b/i, /\bis\s+null\b/i, /case\s+when/i],
+      'coalesce-missing-sales-to-zero': [
+        /\bcoalesce\b/i,
+        /sales.*0/i,
+        /sum\s*\(\s*.*\)\s*.*0/i,
+      ],
+      'avoid-null-days-cover-flag': [
+        /\bcoalesce\b/i,
+        /\bis\s+null\b/i,
+        /case\s+when/i,
+      ],
     },
     duplicateRules: {
-      'aggregate-sales-before-final-join': [/\bgroup\s+by\b/i, /\bwith\b/i, /sum\s*\(/i],
-      'preserve-one-row-per-store-sku': [/\bgroup\s+by\b/i, /\bdistinct\b/i, /row_number/i],
+      'aggregate-sales-before-final-join': [
+        /\bgroup\s+by\b/i,
+        /\bwith\b/i,
+        /sum\s*\(/i,
+      ],
+      'preserve-one-row-per-store-sku': [
+        /\bgroup\s+by\b/i,
+        /\bdistinct\b/i,
+        /row_number/i,
+      ],
     },
   },
   sql_payu_settlement_reconciliation: {
     business: {
-      'active-merchant-filter': [/\bactive\b.*merchant/i, /merchant.*\bactive\b/i, /status\s*=\s*'active'/i],
+      'active-merchant-filter': [
+        /\bactive\b.*merchant/i,
+        /merchant.*\bactive\b/i,
+        /status\s*=\s*'active'/i,
+      ],
       'captured-transaction-filter': [/\bcaptured\b/i],
-      'past-settlement-due-date-filter': [/due.*date/i, /settlement.*date/i, /current_date/i, /2026-06-15/i],
-      'expected-settlement-calculation': [/fee/i, /tax/i, /amount\s*-\s*fee/i, /expected_settlement/i],
-      'settlement-payout-aggregation-by-transaction': [/\bsum\b/i, /\bgroup\s+by\b/i, /transaction/i],
-      'missing-settlement-detection': [/\bleft\s+join\b/i, /\bcoalesce\b/i, /\bmissing\b/i],
-      'mismatch-threshold-greater-than-one': [/abs/i, /difference/i, />\s*1\b/i],
+      'past-settlement-due-date-filter': [
+        /due.*date/i,
+        /settlement.*date/i,
+        /current_date/i,
+        /2026-06-15/i,
+      ],
+      'expected-settlement-calculation': [
+        /fee/i,
+        /tax/i,
+        /amount\s*-\s*fee/i,
+        /expected_settlement/i,
+      ],
+      'settlement-payout-aggregation-by-transaction': [
+        /\bsum\b/i,
+        /\bgroup\s+by\b/i,
+        /transaction/i,
+      ],
+      'missing-settlement-detection': [
+        /\bleft\s+join\b/i,
+        /\bcoalesce\b/i,
+        /\bmissing\b/i,
+      ],
+      'mismatch-threshold-greater-than-one': [
+        /abs/i,
+        /difference/i,
+        />\s*1\b/i,
+      ],
       'settlement-gap-calculation': [/\bgap\b/i],
     },
     concepts: {
@@ -131,14 +216,29 @@ const SQL_PATTERNS: Record<string, SqlQuestionPatterns> = {
       'left-join': [/\bleft\s+join\b/i],
       aggregation: [/\b(sum|avg|count|min|max)\s*\(/i],
       'group-by': [/\bgroup\s+by\b/i],
-      'date-filter': [/\bdate\b/i, /\binterval\b/i, /\bbetween\b/i, /\bcurrent_date\b/i],
+      'date-filter': [
+        /\bdate\b/i,
+        /\binterval\b/i,
+        /\bbetween\b/i,
+        /\bcurrent_date\b/i,
+      ],
       'case-expression': [/\bcase\b/i],
       'coalesce-or-null-handling': [/\bcoalesce\b/i, /\bnull\b/i],
     },
     edgeCases: {
-      'inactive-merchant-exclusion': [/\binactive\b/i, /status\s*!=\s*'active'/i],
-      'non-captured-transaction-exclusion': [/\bnot\s+captured\b/i, /\bcaptured\b/i],
-      'missing-settlement-row': [/\bleft\s+join\b/i, /\bmissing\b/i, /\bcoalesce\b/i],
+      'inactive-merchant-exclusion': [
+        /\binactive\b/i,
+        /status\s*!=\s*'active'/i,
+      ],
+      'non-captured-transaction-exclusion': [
+        /\bnot\s+captured\b/i,
+        /\bcaptured\b/i,
+      ],
+      'missing-settlement-row': [
+        /\bleft\s+join\b/i,
+        /\bmissing\b/i,
+        /\bcoalesce\b/i,
+      ],
       'multiple-payout-aggregation': [/\bsum\b/i, /\bgroup\s+by\b/i],
       'exact-match-not-flagged': [/abs/i, /difference/i, /<=\s*1\b/i],
       'mismatch-threshold-boundary': [/>\s*1\b/i, /threshold/i],
@@ -154,40 +254,91 @@ const SQL_PATTERNS: Record<string, SqlQuestionPatterns> = {
   },
   sql_salesforce_renewal_expansion: {
     business: {
-      'active-account-filter': [/\bactive\b.*account/i, /account.*\bactive\b/i, /status\s*=\s*'active'/i],
-      'active-non-trial-contract-filter': [/\btrial\b/i, /\bactive\b.*contract/i, /contract.*active/i],
-      'contract-ending-next-sixty-days': [/60\s*day/i, /interval\s*'60/i, /next\s*60\s*days/i],
+      'active-account-filter': [
+        /\bactive\b.*account/i,
+        /account.*\bactive\b/i,
+        /status\s*=\s*'active'/i,
+      ],
+      'active-non-trial-contract-filter': [
+        /\btrial\b/i,
+        /\bactive\b.*contract/i,
+        /contract.*active/i,
+      ],
+      'contract-ending-next-sixty-days': [
+        /60\s*day/i,
+        /interval\s*'60/i,
+        /next\s*60\s*days/i,
+      ],
       'exclude-internal-users': [/\binternal\b/i],
       'count-distinct-active-licensed-users': [/\bcount\s*\(\s*distinct/i],
-      'last-thirty-days-usage-window': [/30\s*day/i, /interval\s*'30/i, /last\s*30\s*days/i],
-      'exclude-open-critical-support-tickets': [/critical/i, /support\s+tickets?/i, /\banti\s*join\b/i, /not\s+exists/i],
-      'utilization-at-least-eighty-percent': [/80\s*%/i, /\b0\.8\b/i, />=\s*80\b/i],
+      'last-thirty-days-usage-window': [
+        /30\s*day/i,
+        /interval\s*'30/i,
+        /last\s*30\s*days/i,
+      ],
+      'exclude-open-critical-support-tickets': [
+        /critical/i,
+        /support\s+tickets?/i,
+        /\banti\s*join\b/i,
+        /not\s+exists/i,
+      ],
+      'utilization-at-least-eighty-percent': [
+        /80\s*%/i,
+        /\b0\.8\b/i,
+        />=\s*80\b/i,
+      ],
     },
     concepts: {
       'cte-or-subquery': [/\bwith\b/i, /\(\s*select\b/i],
       join: [/\bjoin\b/i],
-      'left-join-or-anti-join': [/\bleft\s+join\b/i, /\banti\s+join\b/i, /not\s+exists/i],
+      'left-join-or-anti-join': [
+        /\bleft\s+join\b/i,
+        /\banti\s+join\b/i,
+        /not\s+exists/i,
+      ],
       aggregation: [/\b(sum|avg|count|min|max)\s*\(/i],
       'group-by': [/\bgroup\s+by\b/i],
-      'date-filter': [/\bdate\b/i, /\binterval\b/i, /\bbetween\b/i, /\bcurrent_date\b/i],
+      'date-filter': [
+        /\bdate\b/i,
+        /\binterval\b/i,
+        /\bbetween\b/i,
+        /\bcurrent_date\b/i,
+      ],
       'count-distinct': [/\bcount\s*\(\s*distinct/i],
       'having-or-final-filter': [/\bhaving\b/i, /\bwhere\b/i],
     },
     edgeCases: {
       'trial-contract-exclusion': [/\btrial\b/i],
-      'inactive-account-exclusion': [/\binactive\b/i, /status\s*!=\s*'active'/i],
+      'inactive-account-exclusion': [
+        /\binactive\b/i,
+        /status\s*!=\s*'active'/i,
+      ],
       'internal-user-exclusion': [/\binternal\b/i],
-      'duplicate-usage-event-deduplication': [/\bdistinct\b/i, /\bcount\s*\(\s*distinct/i],
-      'open-critical-ticket-exclusion': [/critical/i, /\banti\s*join\b/i, /not\s+exists/i],
+      'duplicate-usage-event-deduplication': [
+        /\bdistinct\b/i,
+        /\bcount\s*\(\s*distinct/i,
+      ],
+      'open-critical-ticket-exclusion': [
+        /critical/i,
+        /\banti\s*join\b/i,
+        /not\s+exists/i,
+      ],
       'utilization-threshold-boundary': [/80\s*%/i, /\b0\.8\b/i, />=\s*80\b/i],
     },
     nullRules: {
       'active-license-assignment-null-end-date': [/\bnull\b/i, /assigned_to/i],
-      'anti-join-handles-missing-critical-ticket': [/\banti\s*join\b/i, /not\s+exists/i, /\bleft\s+join\b/i],
+      'anti-join-handles-missing-critical-ticket': [
+        /\banti\s*join\b/i,
+        /not\s+exists/i,
+        /\bleft\s+join\b/i,
+      ],
     },
     duplicateRules: {
       'count-distinct-users': [/\bcount\s*\(\s*distinct/i],
-      'preserve-one-row-per-account-contract': [/\bgroup\s+by\b/i, /\bdistinct\b/i],
+      'preserve-one-row-per-account-contract': [
+        /\bgroup\s+by\b/i,
+        /\bdistinct\b/i,
+      ],
     },
   },
 };
@@ -196,10 +347,19 @@ const GENERIC_CONCEPT_PATTERNS: RuleSet = {
   'cte-or-subquery': [/\bwith\b/i, /\(\s*select\b/i],
   join: [/\bjoin\b/i],
   'left-join': [/\bleft\s+join\b/i],
-  'left-join-or-anti-join': [/\bleft\s+join\b/i, /\banti\s+join\b/i, /not\s+exists/i],
+  'left-join-or-anti-join': [
+    /\bleft\s+join\b/i,
+    /\banti\s+join\b/i,
+    /not\s+exists/i,
+  ],
   aggregation: [/\b(sum|avg|count|min|max)\s*\(/i],
   'group-by': [/\bgroup\s+by\b/i],
-  'date-filter': [/\bdate\b/i, /\binterval\b/i, /\bbetween\b/i, /\bcurrent_date\b/i],
+  'date-filter': [
+    /\bdate\b/i,
+    /\binterval\b/i,
+    /\bbetween\b/i,
+    /\bcurrent_date\b/i,
+  ],
   'case-expression': [/\bcase\b/i],
   'count-distinct': [/\bcount\s*\(\s*distinct/i],
   'coalesce-or-null-handling': [/\bcoalesce\b/i, /\bnull\b/i],
@@ -209,11 +369,17 @@ const GENERIC_CONCEPT_PATTERNS: RuleSet = {
 export function evaluateSqlSubmission(input: unknown): EvaluationResult {
   const record = assertRecord(input);
   const questionId = textValue(record.question_id);
-  const questionTitle = textValue(record.question_title, questionId || 'SQL Question');
+  const questionTitle = textValue(
+    record.question_title,
+    questionId || 'SQL Question',
+  );
   const patterns = questionPatterns(questionId);
   const submittedQuery = textValue(record.submitted_query);
-  const sqlResultError = textValue(record.sql_result_error) || textValue(record.error);
-  const runtimeObservation = textValue(record.runtime_observation) || textValue(record.sql_result_summary);
+  const sqlResultError =
+    textValue(record.sql_result_error) || textValue(record.error);
+  const runtimeObservation =
+    textValue(record.runtime_observation) ||
+    textValue(record.sql_result_summary);
   const visibleExpectedRows = record.visible_expected_rows;
   const expectedRows = recordArrayOfRecords(visibleExpectedRows);
   const expectedColumns = stringList(record.expected_columns).length
@@ -225,7 +391,8 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
   const actualRows = normalizeActualRows(record.sql_result_rows, actualColumns);
   const comparison = comparisonConfig(record.result_match);
   const detectedSqlConceptTags = stringList(record.detected_sql_concept_tags);
-  const configuredBusinessRules = stringList(record.required_business_rules).length
+  const configuredBusinessRules = stringList(record.required_business_rules)
+    .length
     ? stringList(record.required_business_rules)
     : Object.keys(patterns.business);
   const configuredEdgeCases = stringList(record.edge_cases).length
@@ -256,7 +423,8 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
       correctnessScore: resultCorrectness,
     });
 
-  const fallbackConceptTags = stringList(record.expected_sql_concept_tags).length
+  const fallbackConceptTags = stringList(record.expected_sql_concept_tags)
+    .length
     ? stringList(record.expected_sql_concept_tags)
     : stringList(record.expected_sql_concepts);
   const conceptMatch = detectedSqlConceptTags.length
@@ -494,7 +662,10 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
       detected_mistakes: detectedMistakes,
       missing_business_rules: missingBusinessRules,
       failed_case_analysis: failedCaseAnalysis,
-      runtime_observation: runtimeObservation || sqlResultError || 'No SQL runtime evidence provided.',
+      runtime_observation:
+        runtimeObservation ||
+        sqlResultError ||
+        'No SQL runtime evidence provided.',
       key_strengths: keyStrengths,
       key_weaknesses: keyWeaknesses,
       improvement_recommendation: improvementRecommendation,
@@ -538,7 +709,8 @@ function stringList(value: unknown) {
 
 function textValue(value: unknown, fallback = '') {
   if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value);
   return fallback;
 }
 
@@ -636,7 +808,9 @@ function rowMatchScore(
   expectedColumns: string[],
   numericTolerance: number,
 ) {
-  const columns = expectedColumns.length ? expectedColumns : Object.keys(expectedRow || {});
+  const columns = expectedColumns.length
+    ? expectedColumns
+    : Object.keys(expectedRow || {});
   if (!columns.length) return 0;
   let matched = 0;
   for (const column of columns) {
@@ -648,7 +822,8 @@ function rowMatchScore(
 }
 
 function valuesEqual(left: unknown, right: unknown, numericTolerance: number) {
-  if (left === null || left === undefined) return right === null || right === undefined;
+  if (left === null || left === undefined)
+    return right === null || right === undefined;
   if (right === null || right === undefined) return false;
 
   const leftNumber = Number(left);
@@ -684,9 +859,7 @@ function scoreRuleSet(params: {
 
   const score = keys.length
     ? clampScore(
-        (matched.length / keys.length) *
-          100 *
-          params.weightForEvidence +
+        (matched.length / keys.length) * 100 * params.weightForEvidence +
           params.correctnessScore * (1 - params.weightForEvidence),
       )
     : clampScore(params.correctnessScore);
@@ -698,7 +871,10 @@ function scoreRuleSet(params: {
   };
 }
 
-function scoreTagCoverage(expectedTags: string[], detectedTags: string[]): TagCoverageResult {
+function scoreTagCoverage(
+  expectedTags: string[],
+  detectedTags: string[],
+): TagCoverageResult {
   const expected = uniqueList(expectedTags).map(normalizeTag).filter(Boolean);
   const detected = uniqueList(detectedTags).map(normalizeTag).filter(Boolean);
   if (!expected.length) {
@@ -719,7 +895,9 @@ function scoreTagCoverage(expectedTags: string[], detectedTags: string[]): TagCo
 }
 
 function uniqueList(values: string[]) {
-  return [...new Set(values.map((value) => String(value).trim()).filter(Boolean))];
+  return [
+    ...new Set(values.map((value) => String(value).trim()).filter(Boolean)),
+  ];
 }
 
 function normalizeTag(value: string) {
@@ -747,27 +925,39 @@ function computeFormattingScore(query: string) {
   const indentationBonus = lines.some((line) => /^\s{2,}\S/.test(line)) ? 8 : 0;
   const clauseBonus = Math.min(32, clauseStarts * 6);
   const singleLinePenalty = lineCount === 1 ? 25 : 0;
-  return clampScore(48 + clauseBonus + indentationBonus - longLinePenalty - singleLinePenalty);
+  return clampScore(
+    48 + clauseBonus + indentationBonus - longLinePenalty - singleLinePenalty,
+  );
 }
 
 function computeAliasScore(query: string) {
   if (!query.trim()) return 0;
   const normalized = query.toLowerCase();
-  const aliasDefinitions = [...normalized.matchAll(/\b(from|join)\s+([a-z_][a-z0-9_]*)\s+(?:as\s+)?([a-z_][a-z0-9_]*)\b/gi)].map(
-    (match) => ({ source: match[2], alias: match[3] }),
-  );
+  const aliasDefinitions = [
+    ...normalized.matchAll(
+      /\b(from|join)\s+([a-z_][a-z0-9_]*)\s+(?:as\s+)?([a-z_][a-z0-9_]*)\b/gi,
+    ),
+  ].map((match) => ({ source: match[2], alias: match[3] }));
   const joinCount = (normalized.match(/\bjoin\b/g) || []).length;
-  const qualifiedRefs = (normalized.match(/\b[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*\b/g) || []).length;
+  const qualifiedRefs = (
+    normalized.match(/\b[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*\b/g) || []
+  ).length;
   const aliasUsage = aliasDefinitions.length ? 100 : joinCount > 0 ? 30 : 70;
-  const qualification = joinCount > 0 ? Math.min(100, (qualifiedRefs / Math.max(1, joinCount * 2)) * 100) : 60;
+  const qualification =
+    joinCount > 0
+      ? Math.min(100, (qualifiedRefs / Math.max(1, joinCount * 2)) * 100)
+      : 60;
   const naming = !aliasDefinitions.length
     ? 40
     : average(
-        aliasDefinitions.map((item) =>
-          item.alias.length > 1 ? 100 : 65,
-        ),
+        aliasDefinitions.map((item) => (item.alias.length > 1 ? 100 : 65)),
       );
-  const consistency = aliasDefinitions.length && qualifiedRefs > 0 ? 100 : joinCount > 0 ? 50 : 80;
+  const consistency =
+    aliasDefinitions.length && qualifiedRefs > 0
+      ? 100
+      : joinCount > 0
+        ? 50
+        : 80;
   return clampScore(average([aliasUsage, qualification, naming, consistency]));
 }
 
@@ -778,21 +968,38 @@ function computeStructureScore(query: string) {
   const selectCount = (normalized.match(/\bselect\b/g) || []).length;
   const nestedSelectCount = Math.max(0, selectCount - 1);
   const clauseOrderScore = clauseOrderScoreForQuery(normalized);
-  const lineBreakScore = query.split(/\r?\n/).filter((line) => line.trim()).length > 1 ? 100 : 55;
-  const nestingPenalty = nestedSelectCount > 1 ? Math.min(35, (nestedSelectCount - 1) * 10) : 0;
+  const lineBreakScore =
+    query.split(/\r?\n/).filter((line) => line.trim()).length > 1 ? 100 : 55;
+  const nestingPenalty =
+    nestedSelectCount > 1 ? Math.min(35, (nestedSelectCount - 1) * 10) : 0;
   const cteBonus = hasCte ? 12 : 0;
   const selectStarPenalty = /\bselect\s+\*/i.test(normalized) ? 12 : 0;
-  return clampScore(average([clauseOrderScore, lineBreakScore, hasCte ? 100 : 65]) + cteBonus - nestingPenalty - selectStarPenalty);
+  return clampScore(
+    average([clauseOrderScore, lineBreakScore, hasCte ? 100 : 65]) +
+      cteBonus -
+      nestingPenalty -
+      selectStarPenalty,
+  );
 }
 
 function clauseOrderScoreForQuery(query: string) {
-  const order = ['with', 'select', 'from', 'where', 'group by', 'having', 'order by'];
+  const order = [
+    'with',
+    'select',
+    'from',
+    'where',
+    'group by',
+    'having',
+    'order by',
+  ];
   const indexes = order
     .map((clause) => ({ clause, index: query.indexOf(clause) }))
     .filter((entry) => entry.index >= 0);
   if (indexes.length < 2) return 65;
   const sorted = [...indexes].sort((left, right) => left.index - right.index);
-  const inOrder = sorted.every((entry, index) => entry.clause === indexes[index]?.clause);
+  const inOrder = sorted.every(
+    (entry, index) => entry.clause === indexes[index]?.clause,
+  );
   return inOrder ? 100 : 60;
 }
 
@@ -802,10 +1009,19 @@ function computeSimplicityScore(query: string) {
   const selectCount = (normalized.match(/\bselect\b/g) || []).length;
   const nestedPenalty = Math.max(0, selectCount - 1) * 12;
   const selectStarPenalty = /\bselect\s+\*/i.test(normalized) ? 15 : 0;
-  const longQueryPenalty = normalized.length > 900 ? 12 : normalized.length > 500 ? 6 : 0;
-  const repeatedCasePenalty = (normalized.match(/\bcase\b/g) || []).length > 1 ? 8 : 0;
+  const longQueryPenalty =
+    normalized.length > 900 ? 12 : normalized.length > 500 ? 6 : 0;
+  const repeatedCasePenalty =
+    (normalized.match(/\bcase\b/g) || []).length > 1 ? 8 : 0;
   const cteBonus = /\bwith\b/i.test(normalized) ? 6 : 0;
-  return clampScore(78 + cteBonus - nestedPenalty - selectStarPenalty - longQueryPenalty - repeatedCasePenalty);
+  return clampScore(
+    78 +
+      cteBonus -
+      nestedPenalty -
+      selectStarPenalty -
+      longQueryPenalty -
+      repeatedCasePenalty,
+  );
 }
 
 function computeQueryEfficiencyScore(params: {
@@ -819,13 +1035,31 @@ function computeQueryEfficiencyScore(params: {
   const normalized = params.query.toLowerCase();
   if (!normalized.trim()) return 0;
   const selectStarPenalty = /\bselect\s+\*/i.test(normalized) ? 10 : 0;
-  const repeatedScanPenalty = (normalized.match(/\bfrom\b/g) || []).length > 1 ? 8 : 0;
+  const repeatedScanPenalty =
+    (normalized.match(/\bfrom\b/g) || []).length > 1 ? 8 : 0;
   const cteBonus = /\bwith\b/i.test(normalized) ? 8 : 0;
   const earlyFilterBonus = /\bwhere\b/i.test(normalized) ? 10 : 0;
   const aggregateBonus = /\bgroup\s+by\b/i.test(normalized) ? 10 : 0;
-  const antiJoinBonus = /\bleft\s+join\b/i.test(normalized) || /not\s+exists/i.test(normalized) ? 8 : 0;
-  const base = average([params.structureScore, params.simplicityScore, params.aliasScore, params.formattingScore]);
-  return clampScore(base + cteBonus + earlyFilterBonus + aggregateBonus + antiJoinBonus + params.conceptScore * 0.05 - selectStarPenalty - repeatedScanPenalty);
+  const antiJoinBonus =
+    /\bleft\s+join\b/i.test(normalized) || /not\s+exists/i.test(normalized)
+      ? 8
+      : 0;
+  const base = average([
+    params.structureScore,
+    params.simplicityScore,
+    params.aliasScore,
+    params.formattingScore,
+  ]);
+  return clampScore(
+    base +
+      cteBonus +
+      earlyFilterBonus +
+      aggregateBonus +
+      antiJoinBonus +
+      params.conceptScore * 0.05 -
+      selectStarPenalty -
+      repeatedScanPenalty,
+  );
 }
 
 function detectHardcodingRisk(
@@ -838,25 +1072,38 @@ function detectHardcodingRisk(
 
   const expectedLiterals = expectedRows
     .flatMap((row) =>
-      expectedColumns.map((column) => row[column]).filter((value) => value !== null && value !== undefined),
+      expectedColumns
+        .map((column) => row[column])
+        .filter((value) => value !== null && value !== undefined),
     )
     .map((value) => String(value).trim().toLowerCase())
     .filter(Boolean);
-  const literalMatches = expectedLiterals.filter((literal) => normalized.includes(literal));
-  const numericLiteralCount = (normalized.match(/\b\d+(?:\.\d+)?\b/g) || []).length;
+  const literalMatches = expectedLiterals.filter((literal) =>
+    normalized.includes(literal),
+  );
+  const numericLiteralCount = (normalized.match(/\b\d+(?:\.\d+)?\b/g) || [])
+    .length;
   const quotedLiteralCount = (normalized.match(/'[^']*'/g) || []).length;
-  const structureSignals = (normalized.match(/\b(join|group\s+by|where|having|with)\b/g) || []).length;
+  const structureSignals = (
+    normalized.match(/\b(join|group\s+by|where|having|with)\b/g) || []
+  ).length;
 
   if (literalMatches.length >= 3) return 'High';
   if (literalMatches.length >= 2 && structureSignals <= 1) return 'High';
-  if ((numericLiteralCount + quotedLiteralCount) >= 5 && structureSignals <= 1) return 'Medium';
+  if (numericLiteralCount + quotedLiteralCount >= 5 && structureSignals <= 1)
+    return 'Medium';
   if (quotedLiteralCount >= 3 && !/\bjoin\b/i.test(normalized)) return 'Medium';
   return 'Low';
 }
 
 function labelForScore(
   score: number,
-  thresholds: { excellent: number; good: number; average: number; weak: number },
+  thresholds: {
+    excellent: number;
+    good: number;
+    average: number;
+    weak: number;
+  },
 ) {
   if (score >= thresholds.excellent) return 'Excellent';
   if (score >= thresholds.good) return 'Good';
@@ -902,17 +1149,32 @@ function buildDetectedMistakes(params: {
   query: string;
 }) {
   const mistakes = new Set<string>();
-  if (params.sqlResultError) mistakes.add(`Execution error: ${params.sqlResultError}`);
-  if (params.resultCorrectness < 100) mistakes.add('Visible output does not fully match the expected rows.');
-  if (params.businessLogicScore < 70) mistakes.add('One or more required business rules are not fully covered.');
-  if (params.sqlConceptScore < 70) mistakes.add('Some required SQL concepts are missing or weak.');
-  if (params.edgeCaseScore < 70) mistakes.add('Edge-case handling is incomplete.');
-  if (params.nullDuplicateHandlingScore < 70) mistakes.add('NULL or duplicate handling is incomplete.');
-  if (params.hardcodingRisk !== 'Low') mistakes.add(`Hardcoding risk is ${params.hardcodingRisk.toLowerCase()}.`);
-  if (/\bselect\s+\*/i.test(params.query)) mistakes.add('SELECT * is used, which makes the query less robust.');
-  if (!/\b(join|where|with)\b/i.test(params.query)) mistakes.add('The query lacks clear relational filtering or joining logic.');
-  params.missingBusinessRules.slice(0, 3).forEach((rule) => mistakes.add(`Missing business rule: ${rule}.`));
-  params.missingConcepts.slice(0, 3).forEach((concept) => mistakes.add(`Missing SQL concept: ${concept}.`));
+  if (params.sqlResultError)
+    mistakes.add(`Execution error: ${params.sqlResultError}`);
+  if (params.resultCorrectness < 100)
+    mistakes.add('Visible output does not fully match the expected rows.');
+  if (params.businessLogicScore < 70)
+    mistakes.add('One or more required business rules are not fully covered.');
+  if (params.sqlConceptScore < 70)
+    mistakes.add('Some required SQL concepts are missing or weak.');
+  if (params.edgeCaseScore < 70)
+    mistakes.add('Edge-case handling is incomplete.');
+  if (params.nullDuplicateHandlingScore < 70)
+    mistakes.add('NULL or duplicate handling is incomplete.');
+  if (params.hardcodingRisk !== 'Low')
+    mistakes.add(`Hardcoding risk is ${params.hardcodingRisk.toLowerCase()}.`);
+  if (/\bselect\s+\*/i.test(params.query))
+    mistakes.add('SELECT * is used, which makes the query less robust.');
+  if (!/\b(join|where|with)\b/i.test(params.query))
+    mistakes.add(
+      'The query lacks clear relational filtering or joining logic.',
+    );
+  params.missingBusinessRules
+    .slice(0, 3)
+    .forEach((rule) => mistakes.add(`Missing business rule: ${rule}.`));
+  params.missingConcepts
+    .slice(0, 3)
+    .forEach((concept) => mistakes.add(`Missing SQL concept: ${concept}.`));
   return [...mistakes];
 }
 
@@ -923,10 +1185,13 @@ function buildFailedCaseAnalysis(params: {
   resultCorrectness: number;
   comparison: SqlComparisonConfig;
 }) {
-  if (params.sqlResultError) return [`Query execution failed: ${params.sqlResultError}`];
-  if (!params.expectedRows.length) return ['No expected visible rows were provided.'];
+  if (params.sqlResultError)
+    return [`Query execution failed: ${params.sqlResultError}`];
+  if (!params.expectedRows.length)
+    return ['No expected visible rows were provided.'];
   if (!params.actualRows.length) return ['No result rows were returned.'];
-  if (params.resultCorrectness >= 100) return ['All visible expected rows matched the query output.'];
+  if (params.resultCorrectness >= 100)
+    return ['All visible expected rows matched the query output.'];
   if (!params.comparison.orderMatters) {
     return [
       `Visible output matched about ${params.resultCorrectness}% of the expected rows and columns.`,
@@ -934,7 +1199,10 @@ function buildFailedCaseAnalysis(params: {
   }
 
   const messages: string[] = [];
-  const maxRows = Math.max(params.expectedRows.length, params.actualRows.length);
+  const maxRows = Math.max(
+    params.expectedRows.length,
+    params.actualRows.length,
+  );
   for (let index = 0; index < maxRows; index += 1) {
     const expectedRow = params.expectedRows[index];
     const actualRow = params.actualRows[index];
@@ -948,13 +1216,22 @@ function buildFailedCaseAnalysis(params: {
     }
     if (!expectedRow || !actualRow) continue;
     const mismatchedColumns = Object.keys(expectedRow).filter(
-      (column) => !valuesEqual(actualRow[column], expectedRow[column], params.comparison.numericTolerance),
+      (column) =>
+        !valuesEqual(
+          actualRow[column],
+          expectedRow[column],
+          params.comparison.numericTolerance,
+        ),
     );
     if (mismatchedColumns.length) {
-      messages.push(`Row ${index + 1} mismatched on: ${mismatchedColumns.slice(0, 3).join(', ')}.`);
+      messages.push(
+        `Row ${index + 1} mismatched on: ${mismatchedColumns.slice(0, 3).join(', ')}.`,
+      );
     }
   }
-  return messages.length ? messages : ['Visible rows are close but not fully aligned.'];
+  return messages.length
+    ? messages
+    : ['Visible rows are close but not fully aligned.'];
 }
 
 function buildStrengths(params: {
@@ -967,13 +1244,20 @@ function buildStrengths(params: {
   hardcodingRisk: 'Low' | 'Medium' | 'High';
 }) {
   const strengths: string[] = [];
-  if (params.resultCorrectness >= 90) strengths.push('Visible output matches the expected rows closely.');
-  if (params.businessLogicScore >= 80) strengths.push('Business rules are covered well.');
-  if (params.sqlConceptScore >= 80) strengths.push('Core SQL concepts are applied effectively.');
-  if (params.edgeCaseScore >= 70) strengths.push('Edge-case handling is reasonably strong.');
-  if (params.queryEfficiencyScore >= 70) strengths.push('Query shape is reasonably efficient.');
-  if (params.readabilityScore >= 70) strengths.push('Query readability is solid.');
-  if (params.hardcodingRisk === 'Low') strengths.push('No obvious hardcoding signals were detected.');
+  if (params.resultCorrectness >= 90)
+    strengths.push('Visible output matches the expected rows closely.');
+  if (params.businessLogicScore >= 80)
+    strengths.push('Business rules are covered well.');
+  if (params.sqlConceptScore >= 80)
+    strengths.push('Core SQL concepts are applied effectively.');
+  if (params.edgeCaseScore >= 70)
+    strengths.push('Edge-case handling is reasonably strong.');
+  if (params.queryEfficiencyScore >= 70)
+    strengths.push('Query shape is reasonably efficient.');
+  if (params.readabilityScore >= 70)
+    strengths.push('Query readability is solid.');
+  if (params.hardcodingRisk === 'Low')
+    strengths.push('No obvious hardcoding signals were detected.');
   return strengths;
 }
 
@@ -990,14 +1274,24 @@ function buildWeaknesses(params: {
 }) {
   const weaknesses: string[] = [];
   if (params.sqlResultError) weaknesses.push('Execution failed.');
-  if (params.resultCorrectness < 70) weaknesses.push('Visible result matching needs work.');
-  if (params.businessLogicScore < 70) weaknesses.push('Required business logic coverage is incomplete.');
-  if (params.sqlConceptScore < 70) weaknesses.push('Some required SQL concepts are missing.');
-  if (params.edgeCaseScore < 70) weaknesses.push('Edge-case handling is incomplete.');
-  if (params.queryEfficiencyScore < 70) weaknesses.push('Query efficiency can be improved.');
-  if (params.readabilityScore < 70) weaknesses.push('Formatting, aliases, or query structure can be improved.');
-  if (params.nullDuplicateHandlingScore < 70) weaknesses.push('NULL and duplicate handling need more care.');
-  if (params.hardcodingRisk !== 'Low') weaknesses.push(`Hardcoding risk is ${params.hardcodingRisk.toLowerCase()}.`);
+  if (params.resultCorrectness < 70)
+    weaknesses.push('Visible result matching needs work.');
+  if (params.businessLogicScore < 70)
+    weaknesses.push('Required business logic coverage is incomplete.');
+  if (params.sqlConceptScore < 70)
+    weaknesses.push('Some required SQL concepts are missing.');
+  if (params.edgeCaseScore < 70)
+    weaknesses.push('Edge-case handling is incomplete.');
+  if (params.queryEfficiencyScore < 70)
+    weaknesses.push('Query efficiency can be improved.');
+  if (params.readabilityScore < 70)
+    weaknesses.push('Formatting, aliases, or query structure can be improved.');
+  if (params.nullDuplicateHandlingScore < 70)
+    weaknesses.push('NULL and duplicate handling need more care.');
+  if (params.hardcodingRisk !== 'Low')
+    weaknesses.push(
+      `Hardcoding risk is ${params.hardcodingRisk.toLowerCase()}.`,
+    );
   return weaknesses;
 }
 
@@ -1015,11 +1309,15 @@ function buildRecommendation(params: {
   }
 
   const focus: string[] = [];
-  if (params.missingBusinessRules.length) focus.push(`cover ${params.missingBusinessRules[0]}`);
-  if (params.missingConcepts.length) focus.push(`add ${params.missingConcepts[0]}`);
+  if (params.missingBusinessRules.length)
+    focus.push(`cover ${params.missingBusinessRules[0]}`);
+  if (params.missingConcepts.length)
+    focus.push(`add ${params.missingConcepts[0]}`);
   if (params.edgeCaseScore < 70) focus.push('tighten edge-case handling');
-  if (params.readabilityScore < 70) focus.push('improve formatting, aliases, and structure');
-  if (params.queryEfficiencyScore < 70) focus.push('reduce repeated scans and simplify joins');
+  if (params.readabilityScore < 70)
+    focus.push('improve formatting, aliases, and structure');
+  if (params.queryEfficiencyScore < 70)
+    focus.push('reduce repeated scans and simplify joins');
   if (params.hardcodingRisk !== 'Low') focus.push('remove hardcoded literals');
 
   if (!focus.length) {

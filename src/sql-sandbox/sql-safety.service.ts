@@ -35,7 +35,9 @@ export class SqlSafetyService {
 
     const sanitized = this.stripCommentsAndStrings(normalized);
 
-    if (!/^(select|with|insert|update|delete|alter)\b/i.test(sanitized.trim())) {
+    if (
+      !/^(select|with|insert|update|delete|alter)\b/i.test(sanitized.trim())
+    ) {
       throw new BadRequestException(
         'Only SELECT/WITH/INSERT/UPDATE/DELETE/ALTER queries are allowed',
       );

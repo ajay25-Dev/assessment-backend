@@ -23,7 +23,7 @@ Scoring rubric:
 - dsa_score / sql_score / oops_score / mcq_score: section-level scores already grounded in the section evaluators.
 - approach_score: DSA approach, SQL business logic, and OOPs design maturity.
 - complexity_score: DSA algorithmic complexity, SQL efficiency, and runtime behavior.
-- code_quality_score: DSA code quality plus OOPs readability and maintainability.
+- code_quality_score: DSA code quality plus OOPs abstraction, encapsulation, polymorphism, and SOLID principles.
 - hidden_test_pass_rate: informational only. Do not use this value to influence any score, readiness label, or recommendation.
 - brute_force_risk / hardcoding_risk: derived from repeated fallback behavior, weak generalization, or unsupported shortcuts. If evidence is thin, keep risk at Low unless the issue is clearly visible.
 - readiness_label: derived from the KPIs using the thresholds below.

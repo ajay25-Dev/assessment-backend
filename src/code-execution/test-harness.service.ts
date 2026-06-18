@@ -154,7 +154,11 @@ export class TestHarnessService {
   }
 
   private normalizeTags(values: string[]) {
-    return [...new Set(values.map((value) => this.normalizeTag(value)).filter(Boolean))];
+    return [
+      ...new Set(
+        values.map((value) => this.normalizeTag(value)).filter(Boolean),
+      ),
+    ];
   }
 
   private oopsHarness(
@@ -189,7 +193,7 @@ export class TestHarnessService {
     const normalizedSource = String(sourceCode || '');
     const normalizedTests = this.normalizedTestCases(testCases);
     const results = normalizedTests.map((testCase, index) => {
-      const tags = this.normalizeTags((testCase.tags || []) as string[]);
+      const tags = this.normalizeTags(testCase.tags || []);
       const missingTags = tags.filter(
         (tag: string) => !this.oopsTagPass(normalizedSource, tag, questionId),
       );
@@ -239,13 +243,23 @@ export class TestHarnessService {
       return hasClassStructure && /(payment|checkout)/i.test(source);
     }
     if (tagKey === 'exporter-abstraction') {
-      return hasClassStructure && /(export|designfile|design file)/i.test(source);
+      return (
+        hasClassStructure && /(export|designfile|design file)/i.test(source)
+      );
     }
-    if (tagKey === 'encapsulation' || tagKey === 'encapsulated-state' || tagKey === 'private-state') {
-      return /private|protected|readonly|_state|getState|setState/i.test(source);
+    if (
+      tagKey === 'encapsulation' ||
+      tagKey === 'encapsulated-state' ||
+      tagKey === 'private-state'
+    ) {
+      return /private|protected|readonly|_state|getState|setState/i.test(
+        source,
+      );
     }
     if (tagKey === 'polymorphism') {
-      return /(implements|extends|override|virtual|polymorph|interface)/i.test(source);
+      return /(implements|extends|override|virtual|polymorph|interface)/i.test(
+        source,
+      );
     }
     if (tagKey === 'strategy-pattern') {
       return /(strategy|delegate)/i.test(source);
@@ -259,19 +273,41 @@ export class TestHarnessService {
     if (tagKey === 'registry-pattern') {
       return /(registry|register|map|dictionary)/i.test(source);
     }
-    if (tagKey === 'open-closed' || tagKey === 'extension-hook' || tagKey === 'new-workflow-without-engine-change' || tagKey === 'new-payment-mode-without-checkout-change' || tagKey === 'new-exporter-without-design-file-change') {
-      return /(factory|registry|register|extension|without\s+modifying|without\s+changing|new\s+.+without)/i.test(source);
+    if (
+      tagKey === 'open-closed' ||
+      tagKey === 'extension-hook' ||
+      tagKey === 'new-workflow-without-engine-change' ||
+      tagKey === 'new-payment-mode-without-checkout-change' ||
+      tagKey === 'new-exporter-without-design-file-change'
+    ) {
+      return /(factory|registry|register|extension|without\s+modifying|without\s+changing|new\s+.+without)/i.test(
+        source,
+      );
     }
-    if (tagKey === 'separation-of-concerns' || tagKey === 'single-responsibility' || tagKey === 'domain-service-boundary') {
-      return hasClassStructure && /(service|engine|workflow|checkout|export)/i.test(source);
+    if (
+      tagKey === 'separation-of-concerns' ||
+      tagKey === 'single-responsibility' ||
+      tagKey === 'domain-service-boundary'
+    ) {
+      return (
+        hasClassStructure &&
+        /(service|engine|workflow|checkout|export)/i.test(source)
+      );
     }
     if (tagKey === 'dependency-inversion') {
-      return /(interface|abstract)/i.test(source) && /(service|engine|checkout|export)/i.test(source);
+      return (
+        /(interface|abstract)/i.test(source) &&
+        /(service|engine|checkout|export)/i.test(source)
+      );
     }
     if (tagKey === 'invalid-transition-handling') {
       return /(invalid|reject|throw|error|fail)/i.test(source);
     }
-    if (tagKey === 'controlled-failure' || tagKey === 'result-object' || tagKey === 'clear-error') {
+    if (
+      tagKey === 'controlled-failure' ||
+      tagKey === 'result-object' ||
+      tagKey === 'clear-error'
+    ) {
       return /(result|response|outcome|status|success|failure)/i.test(source);
     }
     if (tagKey === 'unsupported-format-handling') {
@@ -280,17 +316,34 @@ export class TestHarnessService {
     if (tagKey === 'payment-processing-failure') {
       return /(decline|fail|error|reject)/i.test(source);
     }
-    if (tagKey === 'validation-with-strategy' || tagKey === 'validation-separation') {
-      return /validate/i.test(source) && /(strategy|payment|workflow|export)/i.test(source);
+    if (
+      tagKey === 'validation-with-strategy' ||
+      tagKey === 'validation-separation'
+    ) {
+      return (
+        /validate/i.test(source) &&
+        /(strategy|payment|workflow|export)/i.test(source)
+      );
     }
-    if (tagKey === 'code-readability' || tagKey === 'organization' || tagKey === 'concise' || tagKey === 'naming') {
+    if (
+      tagKey === 'code-readability' ||
+      tagKey === 'organization' ||
+      tagKey === 'concise' ||
+      tagKey === 'naming'
+    ) {
       return source.split(/\r?\n/).filter((line) => line.trim()).length >= 8;
     }
     if (tagKey === 'composition') {
       return /(delegate|compose|has-a|contains|uses)/i.test(source);
     }
-    if (tagKey === 'service-delegates-to-strategy' || tagKey === 'checkout-depends-on-abstraction' || tagKey === 'design-file-delegates-export') {
-      return /(delegate|strategy|exporter|paymentmethod|workflow)/i.test(source);
+    if (
+      tagKey === 'service-delegates-to-strategy' ||
+      tagKey === 'checkout-depends-on-abstraction' ||
+      tagKey === 'design-file-delegates-export'
+    ) {
+      return /(delegate|strategy|exporter|paymentmethod|workflow)/i.test(
+        source,
+      );
     }
     if (tagKey === 'explicit-export-settings') {
       return /(settings|options|resolution|page_size|units)/i.test(source);
@@ -308,7 +361,9 @@ export class TestHarnessService {
     }
     if (questionId === 'oops_canva_export') {
       if (tagKey === 'exporter-abstraction') {
-        return hasClassStructure && /(export|designfile|design file)/i.test(source);
+        return (
+          hasClassStructure && /(export|designfile|design file)/i.test(source)
+        );
       }
     }
 
@@ -335,7 +390,10 @@ export class TestHarnessService {
   }
 
   private removeJavaPublicTypeModifiers(sourceCode: string) {
-    return sourceCode.replace(/\bpublic\s+(?=(class|interface|enum)\s+(?!Main\b))/g, '');
+    return sourceCode.replace(
+      /\bpublic\s+(?=(class|interface|enum)\s+(?!Main\b))/g,
+      '',
+    );
   }
 
   private escapedJsonForJava(value: unknown) {

@@ -29,7 +29,9 @@ export class AuthService {
       .toLowerCase();
     const password = String(input.password || '');
     const fullName = String(input.fullName || '').trim();
-    const rollNumber = String(input.rollNumber || input.roll_number || '').trim();
+    const rollNumber = String(
+      input.rollNumber || input.roll_number || '',
+    ).trim();
 
     if (!email || !email.includes('@')) {
       throw new BadRequestException('A valid email is required');

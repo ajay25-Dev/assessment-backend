@@ -1895,9 +1895,9 @@
       "engine": "code",
       "type": "oops",
       "title": "Atlassian Jira Issue Workflow Engine",
-      "difficulty": "medium-hard",
+      "difficulty": "medium",
       "marks": 100,
-      "prompt": "Business Scenario\nAtlassian Jira is used by software teams to track work items such as Bugs, Tasks and Feature Requests. Each issue type can follow a different workflow. For example, a Bug may go from Open to In Progress to Fixed to Verified to Closed, while a Task may simply go from To Do to In Progress to Done. The platform needs a flexible workflow engine where new issue types can be added later without changing the core engine.\n\nProblem Statement\nDesign the core classes/interfaces for creating issues, moving an issue to its next valid state, rejecting invalid transitions, and returning the current state. Provide concise pseudocode or class code for at least two issue workflows. Do not include database, UI, networking, or authentication code.",
+      "prompt": "Business Scenario\nA small project-tracking tool lets teams create Bugs and Tasks. Each item has a simple workflow. A Bug moves from Open to In Progress to Fixed to Closed. A Task moves from To Do to In Progress to Done. The team wants the transition rules kept outside the Issue object so the code stays easy to read and basic new workflows can be added later.\n\nProblem Statement\nDesign the core classes/interfaces for creating an issue, moving it to its next valid state, rejecting an invalid transition, and returning the current state. Provide concise pseudocode or class code for Bug and Task workflows. Do not include database, UI, networking, or authentication code.",
       "function_signature": "IssueWorkflow / WorkflowEngine design",
       "expected_approach": [
         "Abstraction",
@@ -1961,26 +1961,25 @@
       ],
       "evaluator_context": {
         "domain_rules": [
-          "Bug issues follow Open -> In Progress -> Fixed -> Verified -> Closed.",
+          "Bug issues follow Open -> In Progress -> Fixed -> Closed.",
           "Tasks follow To Do -> In Progress -> Done.",
-          "Feature Requests follow Draft -> Review -> Approved -> In Development -> Released.",
           "Invalid transitions must be rejected with a clear error or failed result."
         ],
         "required_components": [
           "A common Issue abstraction or interface",
-          "Separate workflow behavior for at least two issue types",
+          "Separate workflow behavior for Bug and Task issues",
           "A WorkflowEngine or service that delegates transition rules",
           "A way to query current issue state"
         ],
         "design_constraints": [
-          "Adding a new issue type should not require editing existing engine transition code.",
-          "Avoid large if/else or switch blocks on issue type inside the core engine.",
+          "Adding a simple new issue workflow should require adding a workflow class or registration entry.",
+          "Avoid placing all transition rules inside one large if/else block in the core engine.",
           "Keep issue data encapsulated; external code should not mutate state directly."
         ],
         "acceptance_signals": [
-          "Uses State, Strategy, or equivalent polymorphic design.",
-          "Demonstrates at least two issue workflows with different transitions.",
-          "Shows how a new workflow can be registered or introduced with minimal change."
+          "Uses workflow classes or strategies for transition behavior.",
+          "Demonstrates Bug and Task workflows with different transitions.",
+          "Shows a simple way to introduce another workflow without rewriting the engine."
         ],
         "red_flags": [
           "Single procedural function with hard-coded issue type checks",
@@ -2001,9 +2000,10 @@
         "java": "// Design classes/interfaces for the workflow engine.\n",
         "cpp": "// Design classes/interfaces for the workflow engine.\n"
       },
-      "open_test_cases": [
+      "open_test_cases": [],
+      "hidden_test_cases": [
         {
-          "id": "open_1",
+          "id": "hidden_1",
           "input": "design issue/workflow abstractions",
           "expected": "PASS",
           "purpose": "Issue model and workflow engine abstractions are present.",
@@ -2014,7 +2014,7 @@
           ]
         },
         {
-          "id": "open_2",
+          "id": "hidden_2",
           "input": "reject invalid state transition",
           "expected": "PASS",
           "purpose": "Invalid transitions are blocked with a controlled failure.",
@@ -2025,7 +2025,7 @@
           ]
         },
         {
-          "id": "open_3",
+          "id": "hidden_3",
           "input": "bug and task workflows remain separate",
           "expected": "PASS",
           "purpose": "Different workflows are separated behind polymorphism.",
@@ -2036,7 +2036,7 @@
           ]
         },
         {
-          "id": "open_4",
+          "id": "hidden_4",
           "input": "register a new workflow without editing the engine",
           "expected": "PASS",
           "purpose": "New workflows can be added through a registry or factory.",
@@ -2048,7 +2048,7 @@
           ]
         },
         {
-          "id": "open_5",
+          "id": "hidden_5",
           "input": "report current issue state",
           "expected": "PASS",
           "purpose": "Current state can be queried and reported clearly.",
@@ -2057,9 +2057,7 @@
             "code-readability",
             "single-responsibility"
           ]
-        }
-      ],
-      "hidden_test_cases": [
+        },
         {
           "id": "hidden_6",
           "input": "inject workflow abstraction into engine",
@@ -2092,142 +2090,11 @@
             "open-closed",
             "factory-pattern"
           ]
-        },
-        {
-          "id": "hidden_9",
-          "input": "invalid transition returns failure result",
-          "expected": "PASS",
-          "purpose": "Invalid transitions return a clear result object or error.",
-          "tags": [
-            "invalid-transition-handling",
-            "result-object",
-            "controlled-failure"
-          ]
-        },
-        {
-          "id": "hidden_10",
-          "input": "core engine delegates transition rules",
-          "expected": "PASS",
-          "purpose": "Transition handling is delegated away from the core engine.",
-          "tags": [
-            "polymorphism",
-            "strategy-pattern",
-            "dependency-inversion"
-          ]
-        },
-        {
-          "id": "hidden_11",
-          "input": "separate identity from workflow rules",
-          "expected": "PASS",
-          "purpose": "Workflow responsibilities are separated from ticket identity.",
-          "tags": [
-            "separation-of-concerns",
-            "single-responsibility",
-            "code-readability"
-          ]
-        },
-        {
-          "id": "hidden_12",
-          "input": "add feature request workflow without switch edits",
-          "expected": "PASS",
-          "purpose": "Adding a workflow does not require editing existing switch logic.",
-          "tags": [
-            "new-workflow-without-engine-change",
-            "registry-pattern",
-            "open-closed"
-          ]
-        },
-        {
-          "id": "hidden_13",
-          "input": "encapsulated issue state access",
-          "expected": "PASS",
-          "purpose": "Issue data remains encapsulated and queryable.",
-          "tags": [
-            "class-design",
-            "encapsulation",
-            "validated-transition"
-          ]
-        },
-        {
-          "id": "hidden_14",
-          "input": "select workflow through abstraction",
-          "expected": "PASS",
-          "purpose": "Workflow selection uses abstraction rather than hard-coded branching.",
-          "tags": [
-            "state-pattern",
-            "service-delegates-to-strategy",
-            "dependency-inversion"
-          ]
-        },
-        {
-          "id": "hidden_15",
-          "input": "unsupported workflow returns controlled error",
-          "expected": "PASS",
-          "purpose": "Errors remain explicit for unsupported workflows.",
-          "tags": [
-            "invalid-transition-handling",
-            "result-object",
-            "controlled-failure"
-          ]
-        },
-        {
-          "id": "hidden_16",
-          "input": "polymorphic state transition",
-          "expected": "PASS",
-          "purpose": "Polymorphic transition logic is visible in the design.",
-          "tags": [
-            "polymorphism",
-            "strategy-pattern",
-            "extension-hook"
-          ]
-        },
-        {
-          "id": "hidden_17",
-          "input": "closed for modification, open for extension",
-          "expected": "PASS",
-          "purpose": "The engine stays closed for modification.",
-          "tags": [
-            "open-closed",
-            "factory-pattern",
-            "registry-pattern"
-          ]
-        },
-        {
-          "id": "hidden_18",
-          "input": "organized workflow classes",
-          "expected": "PASS",
-          "purpose": "Workflow responsibilities are organized cleanly.",
-          "tags": [
-            "separation-of-concerns",
-            "single-responsibility",
-            "code-readability"
-          ]
-        },
-        {
-          "id": "hidden_19",
-          "input": "guarded next state",
-          "expected": "PASS",
-          "purpose": "Guard conditions keep invalid next states out.",
-          "tags": [
-            "validated-transition",
-            "encapsulation",
-            "result-object"
-          ]
-        },
-        {
-          "id": "hidden_20",
-          "input": "class based readable workflow engine",
-          "expected": "PASS",
-          "purpose": "Overall design remains class-based and readable.",
-          "tags": [
-            "class-design",
-            "code-readability",
-            "single-responsibility"
-          ]
         }
       ],
       "test_cases": [
         {
+          "id": "hidden_1",
           "number": 1,
           "input": "design issue/workflow abstractions",
           "expected_output": "PASS",
@@ -2239,6 +2106,7 @@
           ]
         },
         {
+          "id": "hidden_2",
           "number": 2,
           "input": "reject invalid state transition",
           "expected_output": "PASS",
@@ -2250,6 +2118,7 @@
           ]
         },
         {
+          "id": "hidden_3",
           "number": 3,
           "input": "bug and task workflows remain separate",
           "expected_output": "PASS",
@@ -2261,6 +2130,7 @@
           ]
         },
         {
+          "id": "hidden_4",
           "number": 4,
           "input": "register a new workflow without editing the engine",
           "expected_output": "PASS",
@@ -2273,6 +2143,7 @@
           ]
         },
         {
+          "id": "hidden_5",
           "number": 5,
           "input": "report current issue state",
           "expected_output": "PASS",
@@ -2284,6 +2155,7 @@
           ]
         },
         {
+          "id": "hidden_6",
           "number": 6,
           "input": "inject workflow abstraction into engine",
           "expected_output": "PASS",
@@ -2295,6 +2167,7 @@
           ]
         },
         {
+          "id": "hidden_7",
           "number": 7,
           "input": "state object owns transitions",
           "expected_output": "PASS",
@@ -2306,6 +2179,7 @@
           ]
         },
         {
+          "id": "hidden_8",
           "number": 8,
           "input": "create workflow from issue type",
           "expected_output": "PASS",
@@ -2314,138 +2188,6 @@
             "workflow-abstraction",
             "open-closed",
             "factory-pattern"
-          ]
-        },
-        {
-          "number": 9,
-          "input": "invalid transition returns failure result",
-          "expected_output": "PASS",
-          "purpose": "Invalid transitions return a clear result object or error.",
-          "tags": [
-            "invalid-transition-handling",
-            "result-object",
-            "controlled-failure"
-          ]
-        },
-        {
-          "number": 10,
-          "input": "core engine delegates transition rules",
-          "expected_output": "PASS",
-          "purpose": "Transition handling is delegated away from the core engine.",
-          "tags": [
-            "polymorphism",
-            "strategy-pattern",
-            "dependency-inversion"
-          ]
-        },
-        {
-          "number": 11,
-          "input": "separate identity from workflow rules",
-          "expected_output": "PASS",
-          "purpose": "Workflow responsibilities are separated from ticket identity.",
-          "tags": [
-            "separation-of-concerns",
-            "single-responsibility",
-            "code-readability"
-          ]
-        },
-        {
-          "number": 12,
-          "input": "add feature request workflow without switch edits",
-          "expected_output": "PASS",
-          "purpose": "Adding a workflow does not require editing existing switch logic.",
-          "tags": [
-            "new-workflow-without-engine-change",
-            "registry-pattern",
-            "open-closed"
-          ]
-        },
-        {
-          "number": 13,
-          "input": "encapsulated issue state access",
-          "expected_output": "PASS",
-          "purpose": "Issue data remains encapsulated and queryable.",
-          "tags": [
-            "class-design",
-            "encapsulation",
-            "validated-transition"
-          ]
-        },
-        {
-          "number": 14,
-          "input": "select workflow through abstraction",
-          "expected_output": "PASS",
-          "purpose": "Workflow selection uses abstraction rather than hard-coded branching.",
-          "tags": [
-            "state-pattern",
-            "service-delegates-to-strategy",
-            "dependency-inversion"
-          ]
-        },
-        {
-          "number": 15,
-          "input": "unsupported workflow returns controlled error",
-          "expected_output": "PASS",
-          "purpose": "Errors remain explicit for unsupported workflows.",
-          "tags": [
-            "invalid-transition-handling",
-            "result-object",
-            "controlled-failure"
-          ]
-        },
-        {
-          "number": 16,
-          "input": "polymorphic state transition",
-          "expected_output": "PASS",
-          "purpose": "Polymorphic transition logic is visible in the design.",
-          "tags": [
-            "polymorphism",
-            "strategy-pattern",
-            "extension-hook"
-          ]
-        },
-        {
-          "number": 17,
-          "input": "closed for modification, open for extension",
-          "expected_output": "PASS",
-          "purpose": "The engine stays closed for modification.",
-          "tags": [
-            "open-closed",
-            "factory-pattern",
-            "registry-pattern"
-          ]
-        },
-        {
-          "number": 18,
-          "input": "organized workflow classes",
-          "expected_output": "PASS",
-          "purpose": "Workflow responsibilities are organized cleanly.",
-          "tags": [
-            "separation-of-concerns",
-            "single-responsibility",
-            "code-readability"
-          ]
-        },
-        {
-          "number": 19,
-          "input": "guarded next state",
-          "expected_output": "PASS",
-          "purpose": "Guard conditions keep invalid next states out.",
-          "tags": [
-            "validated-transition",
-            "encapsulation",
-            "result-object"
-          ]
-        },
-        {
-          "number": 20,
-          "input": "class based readable workflow engine",
-          "expected_output": "PASS",
-          "purpose": "Overall design remains class-based and readable.",
-          "tags": [
-            "class-design",
-            "code-readability",
-            "single-responsibility"
           ]
         }
       ]
@@ -2456,9 +2198,9 @@
       "engine": "code",
       "type": "oops",
       "title": "Razorpay Multi-Mode Payment Processing System",
-      "difficulty": "medium-hard",
+      "difficulty": "medium",
       "marks": 100,
-      "prompt": "Business Scenario\nRazorpay allows merchants to accept payments through different modes such as Card, UPI and Wallet. Each payment mode has its own validation and processing rules. For example, Card payments need card detail validation, UPI payments need UPI ID validation, and Wallet payments need sufficient balance. The checkout flow should remain simple and should not change whenever a new payment mode is added.\n\nProblem Statement\nDesign the core classes/interfaces for validating a payment, processing it, returning success/failure, and adding new modes without modifying checkout logic. Provide concise pseudocode or class code for at least three payment modes. Do not include external gateways, persistence, UI, or authentication code.",
+      "prompt": "Business Scenario\nA checkout service accepts payments through Card, UPI, and Wallet. Each mode has a small validation rule before payment is processed. Card needs valid card details, UPI needs a valid UPI ID, and Wallet needs enough balance. The checkout service should call a common payment interface instead of containing all mode-specific rules itself.\n\nProblem Statement\nDesign the core classes/interfaces for validating a payment, processing it, and returning a success/failure result. Provide concise pseudocode or class code for Card, UPI, and Wallet payment modes. Do not include external gateways, persistence, UI, or authentication code.",
       "function_signature": "PaymentMethod / CheckoutService design",
       "expected_approach": [
         "Interface",
@@ -2536,8 +2278,8 @@
           "Validation and processing methods with success/failure result"
         ],
         "design_constraints": [
-          "Adding a new payment mode should not require modifying CheckoutService.",
-          "Do not place all payment rules inside one if/else chain.",
+          "CheckoutService should work with a payment abstraction rather than direct card, UPI, or wallet classes.",
+          "Do not place all payment rules inside one large if/else chain.",
           "Payment-specific validation should live with the payment strategy.",
           "Checkout flow should orchestrate payment without knowing internal mode rules."
         ],
@@ -2545,7 +2287,7 @@
           "Demonstrates polymorphic process or pay method.",
           "Uses dependency inversion for CheckoutService.",
           "Returns consistent payment result objects or status values.",
-          "Handles validation failure separately from payment processing failure."
+          "Handles validation failure and payment processing failure clearly."
         ],
         "red_flags": [
           "CheckoutService switches on payment type for every rule",
@@ -2566,9 +2308,10 @@
         "java": "// Design payment abstractions and checkout flow.\n",
         "cpp": "// Design payment abstractions and checkout flow.\n"
       },
-      "open_test_cases": [
+      "open_test_cases": [],
+      "hidden_test_cases": [
         {
-          "id": "open_1",
+          "id": "hidden_1",
           "input": "design payment abstractions",
           "expected": "PASS",
           "purpose": "Payment method abstraction and checkout service are present.",
@@ -2579,7 +2322,7 @@
           ]
         },
         {
-          "id": "open_2",
+          "id": "hidden_2",
           "input": "validate then process payment",
           "expected": "PASS",
           "purpose": "Validation happens before processing with a result object.",
@@ -2590,7 +2333,7 @@
           ]
         },
         {
-          "id": "open_3",
+          "id": "hidden_3",
           "input": "checkout uses payment abstraction",
           "expected": "PASS",
           "purpose": "Checkout depends on abstractions and not concrete modes.",
@@ -2601,7 +2344,7 @@
           ]
         },
         {
-          "id": "open_4",
+          "id": "hidden_4",
           "input": "add BNPL without changing checkout",
           "expected": "PASS",
           "purpose": "New payment modes are added through registry or factory.",
@@ -2613,7 +2356,7 @@
           ]
         },
         {
-          "id": "open_5",
+          "id": "hidden_5",
           "input": "show processing failure clearly",
           "expected": "PASS",
           "purpose": "Processing failures are surfaced clearly.",
@@ -2622,9 +2365,7 @@
             "error-handling",
             "code-readability"
           ]
-        }
-      ],
-      "hidden_test_cases": [
+        },
         {
           "id": "hidden_6",
           "input": "card validation failure path",
@@ -2657,142 +2398,11 @@
             "controlled-failure",
             "result-object"
           ]
-        },
-        {
-          "id": "hidden_9",
-          "input": "checkout delegates to payment method",
-          "expected": "PASS",
-          "purpose": "Checkout delegates the payment rule to the method object.",
-          "tags": [
-            "checkout-depends-on-abstraction",
-            "service-delegates-to-strategy",
-            "dependency-inversion"
-          ]
-        },
-        {
-          "id": "hidden_10",
-          "input": "add gift card without checkout edits",
-          "expected": "PASS",
-          "purpose": "Adding a new payment mode does not require checkout edits.",
-          "tags": [
-            "new-payment-mode-without-checkout-change",
-            "open-closed",
-            "factory-pattern"
-          ]
-        },
-        {
-          "id": "hidden_11",
-          "input": "encapsulated payment details",
-          "expected": "PASS",
-          "purpose": "Payment state or internal details remain encapsulated.",
-          "tags": [
-            "encapsulation",
-            "private-state",
-            "payment-abstraction"
-          ]
-        },
-        {
-          "id": "hidden_12",
-          "input": "split payment flow into classes",
-          "expected": "PASS",
-          "purpose": "Payment flow is split into focused classes.",
-          "tags": [
-            "single-responsibility",
-            "separation-of-concerns",
-            "code-readability"
-          ]
-        },
-        {
-          "id": "hidden_13",
-          "input": "validation delegated to strategy",
-          "expected": "PASS",
-          "purpose": "Validation logic is delegated to the strategy.",
-          "tags": [
-            "validation-with-strategy",
-            "service-delegates-to-strategy",
-            "result-object"
-          ]
-        },
-        {
-          "id": "hidden_14",
-          "input": "explicit failure response",
-          "expected": "PASS",
-          "purpose": "Failure responses stay explicit and clear.",
-          "tags": [
-            "clear-error",
-            "controlled-failure",
-            "payment-processing-failure"
-          ]
-        },
-        {
-          "id": "hidden_15",
-          "input": "strategy and factory patterns",
-          "expected": "PASS",
-          "purpose": "Strategy and factory patterns are visible.",
-          "tags": [
-            "strategy-pattern",
-            "factory-pattern",
-            "registry-pattern"
-          ]
-        },
-        {
-          "id": "hidden_16",
-          "input": "inject abstraction into checkout",
-          "expected": "PASS",
-          "purpose": "The checkout service is injected with an abstraction.",
-          "tags": [
-            "dependency-inversion",
-            "checkout-depends-on-abstraction",
-            "class-design"
-          ]
-        },
-        {
-          "id": "hidden_17",
-          "input": "future payment mode extension",
-          "expected": "PASS",
-          "purpose": "Open-closed design is maintained for future modes.",
-          "tags": [
-            "open-closed",
-            "new-payment-mode-without-checkout-change",
-            "payment-abstraction"
-          ]
-        },
-        {
-          "id": "hidden_18",
-          "input": "class based polymorphic payment design",
-          "expected": "PASS",
-          "purpose": "The design remains class-based and polymorphic.",
-          "tags": [
-            "class-design",
-            "polymorphism",
-            "payment-abstraction"
-          ]
-        },
-        {
-          "id": "hidden_19",
-          "input": "error handling for validation and processing",
-          "expected": "PASS",
-          "purpose": "Error handling is explicit for validation and processing.",
-          "tags": [
-            "error-handling",
-            "validation-with-strategy",
-            "result-object"
-          ]
-        },
-        {
-          "id": "hidden_20",
-          "input": "readable and separated payment design",
-          "expected": "PASS",
-          "purpose": "The design is readable and separated clearly.",
-          "tags": [
-            "code-readability",
-            "separation-of-concerns",
-            "single-responsibility"
-          ]
         }
       ],
       "test_cases": [
         {
+          "id": "hidden_1",
           "number": 1,
           "input": "design payment abstractions",
           "expected_output": "PASS",
@@ -2804,6 +2414,7 @@
           ]
         },
         {
+          "id": "hidden_2",
           "number": 2,
           "input": "validate then process payment",
           "expected_output": "PASS",
@@ -2815,6 +2426,7 @@
           ]
         },
         {
+          "id": "hidden_3",
           "number": 3,
           "input": "checkout uses payment abstraction",
           "expected_output": "PASS",
@@ -2826,6 +2438,7 @@
           ]
         },
         {
+          "id": "hidden_4",
           "number": 4,
           "input": "add BNPL without changing checkout",
           "expected_output": "PASS",
@@ -2838,6 +2451,7 @@
           ]
         },
         {
+          "id": "hidden_5",
           "number": 5,
           "input": "show processing failure clearly",
           "expected_output": "PASS",
@@ -2849,6 +2463,7 @@
           ]
         },
         {
+          "id": "hidden_6",
           "number": 6,
           "input": "card validation failure path",
           "expected_output": "PASS",
@@ -2860,6 +2475,7 @@
           ]
         },
         {
+          "id": "hidden_7",
           "number": 7,
           "input": "upi validation failure path",
           "expected_output": "PASS",
@@ -2871,6 +2487,7 @@
           ]
         },
         {
+          "id": "hidden_8",
           "number": 8,
           "input": "wallet balance failure path",
           "expected_output": "PASS",
@@ -2879,138 +2496,6 @@
             "wallet-insufficient-balance",
             "controlled-failure",
             "result-object"
-          ]
-        },
-        {
-          "number": 9,
-          "input": "checkout delegates to payment method",
-          "expected_output": "PASS",
-          "purpose": "Checkout delegates the payment rule to the method object.",
-          "tags": [
-            "checkout-depends-on-abstraction",
-            "service-delegates-to-strategy",
-            "dependency-inversion"
-          ]
-        },
-        {
-          "number": 10,
-          "input": "add gift card without checkout edits",
-          "expected_output": "PASS",
-          "purpose": "Adding a new payment mode does not require checkout edits.",
-          "tags": [
-            "new-payment-mode-without-checkout-change",
-            "open-closed",
-            "factory-pattern"
-          ]
-        },
-        {
-          "number": 11,
-          "input": "encapsulated payment details",
-          "expected_output": "PASS",
-          "purpose": "Payment state or internal details remain encapsulated.",
-          "tags": [
-            "encapsulation",
-            "private-state",
-            "payment-abstraction"
-          ]
-        },
-        {
-          "number": 12,
-          "input": "split payment flow into classes",
-          "expected_output": "PASS",
-          "purpose": "Payment flow is split into focused classes.",
-          "tags": [
-            "single-responsibility",
-            "separation-of-concerns",
-            "code-readability"
-          ]
-        },
-        {
-          "number": 13,
-          "input": "validation delegated to strategy",
-          "expected_output": "PASS",
-          "purpose": "Validation logic is delegated to the strategy.",
-          "tags": [
-            "validation-with-strategy",
-            "service-delegates-to-strategy",
-            "result-object"
-          ]
-        },
-        {
-          "number": 14,
-          "input": "explicit failure response",
-          "expected_output": "PASS",
-          "purpose": "Failure responses stay explicit and clear.",
-          "tags": [
-            "clear-error",
-            "controlled-failure",
-            "payment-processing-failure"
-          ]
-        },
-        {
-          "number": 15,
-          "input": "strategy and factory patterns",
-          "expected_output": "PASS",
-          "purpose": "Strategy and factory patterns are visible.",
-          "tags": [
-            "strategy-pattern",
-            "factory-pattern",
-            "registry-pattern"
-          ]
-        },
-        {
-          "number": 16,
-          "input": "inject abstraction into checkout",
-          "expected_output": "PASS",
-          "purpose": "The checkout service is injected with an abstraction.",
-          "tags": [
-            "dependency-inversion",
-            "checkout-depends-on-abstraction",
-            "class-design"
-          ]
-        },
-        {
-          "number": 17,
-          "input": "future payment mode extension",
-          "expected_output": "PASS",
-          "purpose": "Open-closed design is maintained for future modes.",
-          "tags": [
-            "open-closed",
-            "new-payment-mode-without-checkout-change",
-            "payment-abstraction"
-          ]
-        },
-        {
-          "number": 18,
-          "input": "class based polymorphic payment design",
-          "expected_output": "PASS",
-          "purpose": "The design remains class-based and polymorphic.",
-          "tags": [
-            "class-design",
-            "polymorphism",
-            "payment-abstraction"
-          ]
-        },
-        {
-          "number": 19,
-          "input": "error handling for validation and processing",
-          "expected_output": "PASS",
-          "purpose": "Error handling is explicit for validation and processing.",
-          "tags": [
-            "error-handling",
-            "validation-with-strategy",
-            "result-object"
-          ]
-        },
-        {
-          "number": 20,
-          "input": "readable and separated payment design",
-          "expected_output": "PASS",
-          "purpose": "The design is readable and separated clearly.",
-          "tags": [
-            "code-readability",
-            "separation-of-concerns",
-            "single-responsibility"
           ]
         }
       ]
@@ -3021,9 +2506,9 @@
       "engine": "code",
       "type": "oops",
       "title": "Canva Design Export System",
-      "difficulty": "medium-hard",
+      "difficulty": "medium",
       "marks": 100,
-      "prompt": "Business Scenario\nCanva allows users to create designs such as posters, presentations, documents and social media creatives. After creating a design, users can export it in different formats such as PDF, PNG and 3D preview. Each format has different export rules. For example, PDF export may need document metadata, PNG export may need image resolution, and 3D preview export may need model-specific settings. The core design file should not contain all export logic because new formats may be added in the future.\n\nProblem Statement\nDesign the core classes/interfaces for exporting a design file into different formats, returning success/failure, handling unsupported formats, and adding new exporters without changing the design file class. Provide concise pseudocode or class code for at least three exporters. Do not include file storage, rendering engines, UI, or authentication code.",
+      "prompt": "Business Scenario\nA simple design editor lets users export a design as PDF, PNG, or JPG. Each format needs a small setting: PDF uses document metadata, PNG uses image resolution, and JPG uses image quality. The DesignFile class should store design details, while export-specific logic should live in separate exporter classes.\n\nProblem Statement\nDesign the core classes/interfaces for exporting a design file into PDF, PNG, and JPG, returning success/failure, and handling unsupported formats. Provide concise pseudocode or class code for the design file, export service, and three exporters. Do not include file storage, rendering engines, UI, or authentication code.",
       "function_signature": "DesignFile / Exporter design",
       "expected_approach": [
         "Exporter abstraction",
@@ -3049,7 +2534,7 @@
         "exporter",
         "pdf-exporter",
         "png-exporter",
-        "preview-exporter",
+        "jpg-exporter",
         "export-service"
       ],
       "required_abstractions": [
@@ -3092,19 +2577,19 @@
         "domain_rules": [
           "PDF export should use document metadata.",
           "PNG export should use raster resolution settings.",
-          "3D preview export should use model-specific or mesh-specific settings.",
+          "JPG export should use image quality settings.",
           "Unsupported formats must return a controlled failure instead of crashing."
         ],
         "required_components": [
           "A DesignFile domain object that does not implement every format directly",
           "An Exporter interface or abstract base",
-          "Concrete exporters for at least three formats",
-          "An ExportService, registry, or factory for selecting exporters",
+          "Concrete exporters for PDF, PNG and JPG",
+          "An ExportService or simple registry for selecting exporters",
           "A standard export result with status, format, and message or output path"
         ],
         "design_constraints": [
-          "Adding a new format should require adding a new exporter, not modifying DesignFile.",
-          "Avoid format-specific if/else chains in the DesignFile class.",
+          "Adding a new format should require adding a new exporter or registration entry, not changing DesignFile.",
+          "Avoid one large format-specific if/else chain in the DesignFile class.",
           "Keep export settings explicit rather than hidden global state.",
           "Separate validation of unsupported formats from export execution."
         ],
@@ -3133,9 +2618,10 @@
         "java": "// Design export classes and services.\n",
         "cpp": "// Design export classes and services.\n"
       },
-      "open_test_cases": [
+      "open_test_cases": [],
+      "hidden_test_cases": [
         {
-          "id": "open_1",
+          "id": "hidden_1",
           "input": "design file and exporter abstractions",
           "expected": "PASS",
           "purpose": "Design file and exporter abstractions are present.",
@@ -3146,7 +2632,7 @@
           ]
         },
         {
-          "id": "open_2",
+          "id": "hidden_2",
           "input": "delegate export through service",
           "expected": "PASS",
           "purpose": "Export is delegated through composition and services.",
@@ -3157,7 +2643,7 @@
           ]
         },
         {
-          "id": "open_3",
+          "id": "hidden_3",
           "input": "unsupported format should fail safely",
           "expected": "PASS",
           "purpose": "Unsupported formats fail in a controlled way.",
@@ -3168,7 +2654,7 @@
           ]
         },
         {
-          "id": "open_4",
+          "id": "hidden_4",
           "input": "add SVG exporter without changing design file",
           "expected": "PASS",
           "purpose": "New exporters are added via registry or factory.",
@@ -3180,7 +2666,7 @@
           ]
         },
         {
-          "id": "open_5",
+          "id": "hidden_5",
           "input": "exporter selection through abstraction",
           "expected": "PASS",
           "purpose": "Exporter selection depends on abstractions.",
@@ -3189,9 +2675,7 @@
             "dependency-inversion",
             "exporter-abstraction"
           ]
-        }
-      ],
-      "hidden_test_cases": [
+        },
         {
           "id": "hidden_6",
           "input": "pdf export settings and metadata",
@@ -3216,150 +2700,19 @@
         },
         {
           "id": "hidden_8",
-          "input": "dwg export settings and layers",
+          "input": "jpg export settings and image quality",
           "expected": "PASS",
-          "purpose": "DWG export behavior is explicit.",
+          "purpose": "JPG export behavior is explicit.",
           "tags": [
             "explicit-export-settings",
             "composition",
             "exporter-abstraction"
-          ]
-        },
-        {
-          "id": "hidden_9",
-          "input": "3d export settings and mesh data",
-          "expected": "PASS",
-          "purpose": "3D export behavior is explicit.",
-          "tags": [
-            "explicit-export-settings",
-            "strategy-pattern",
-            "exporter-abstraction"
-          ]
-        },
-        {
-          "id": "hidden_10",
-          "input": "graceful unsupported format error",
-          "expected": "PASS",
-          "purpose": "Unsupported formats remain graceful.",
-          "tags": [
-            "unsupported-format-handling",
-            "error-handling",
-            "clear-error"
-          ]
-        },
-        {
-          "id": "hidden_11",
-          "input": "future exporter extension",
-          "expected": "PASS",
-          "purpose": "Future exporters are added without design file edits.",
-          "tags": [
-            "new-exporter-without-design-file-change",
-            "factory-pattern",
-            "registry-pattern"
-          ]
-        },
-        {
-          "id": "hidden_12",
-          "input": "export service delegation",
-          "expected": "PASS",
-          "purpose": "Export service delegates to exporter strategies.",
-          "tags": [
-            "design-file-delegates-export",
-            "service-delegates-to-strategy",
-            "composition"
-          ]
-        },
-        {
-          "id": "hidden_13",
-          "input": "clean export service boundary",
-          "expected": "PASS",
-          "purpose": "Service boundaries stay clean.",
-          "tags": [
-            "separation-of-concerns",
-            "domain-service-boundary",
-            "class-design"
-          ]
-        },
-        {
-          "id": "hidden_14",
-          "input": "explicit failure response",
-          "expected": "PASS",
-          "purpose": "Failure responses remain explicit.",
-          "tags": [
-            "result-object",
-            "controlled-failure",
-            "unsupported-format-handling"
-          ]
-        },
-        {
-          "id": "hidden_15",
-          "input": "open closed registry export design",
-          "expected": "PASS",
-          "purpose": "Open-closed and registry patterns are visible.",
-          "tags": [
-            "open-closed",
-            "registry-pattern",
-            "extension-hook"
-          ]
-        },
-        {
-          "id": "hidden_16",
-          "input": "polymorphic exporters",
-          "expected": "PASS",
-          "purpose": "Polymorphic exporter behavior is visible.",
-          "tags": [
-            "polymorphism",
-            "exporter-abstraction",
-            "strategy-pattern"
-          ]
-        },
-        {
-          "id": "hidden_17",
-          "input": "inverted exporter dependency",
-          "expected": "PASS",
-          "purpose": "Dependency inversion is respected.",
-          "tags": [
-            "dependency-inversion",
-            "class-design",
-            "separation-of-concerns"
-          ]
-        },
-        {
-          "id": "hidden_18",
-          "input": "clear export error handling",
-          "expected": "PASS",
-          "purpose": "Error handling is clear for unsupported and failing exports.",
-          "tags": [
-            "error-handling",
-            "unsupported-format-handling",
-            "clear-error"
-          ]
-        },
-        {
-          "id": "hidden_19",
-          "input": "readable export design",
-          "expected": "PASS",
-          "purpose": "The code stays readable and organized.",
-          "tags": [
-            "code-readability",
-            "composition",
-            "organization"
-          ]
-        },
-        {
-          "id": "hidden_20",
-          "input": "single responsibility design file",
-          "expected": "PASS",
-          "purpose": "Single responsibility is preserved.",
-          "tags": [
-            "single-responsibility",
-            "new-exporter-without-design-file-change",
-            "open-closed"
           ]
         }
       ],
       "test_cases": [
         {
+          "id": "hidden_1",
           "number": 1,
           "input": "design file and exporter abstractions",
           "expected_output": "PASS",
@@ -3371,6 +2724,7 @@
           ]
         },
         {
+          "id": "hidden_2",
           "number": 2,
           "input": "delegate export through service",
           "expected_output": "PASS",
@@ -3382,6 +2736,7 @@
           ]
         },
         {
+          "id": "hidden_3",
           "number": 3,
           "input": "unsupported format should fail safely",
           "expected_output": "PASS",
@@ -3393,6 +2748,7 @@
           ]
         },
         {
+          "id": "hidden_4",
           "number": 4,
           "input": "add SVG exporter without changing design file",
           "expected_output": "PASS",
@@ -3405,6 +2761,7 @@
           ]
         },
         {
+          "id": "hidden_5",
           "number": 5,
           "input": "exporter selection through abstraction",
           "expected_output": "PASS",
@@ -3416,6 +2773,7 @@
           ]
         },
         {
+          "id": "hidden_6",
           "number": 6,
           "input": "pdf export settings and metadata",
           "expected_output": "PASS",
@@ -3427,6 +2785,7 @@
           ]
         },
         {
+          "id": "hidden_7",
           "number": 7,
           "input": "png export settings and resolution",
           "expected_output": "PASS",
@@ -3438,146 +2797,15 @@
           ]
         },
         {
+          "id": "hidden_8",
           "number": 8,
-          "input": "dwg export settings and layers",
+          "input": "jpg export settings and image quality",
           "expected_output": "PASS",
-          "purpose": "DWG export behavior is explicit.",
+          "purpose": "JPG export behavior is explicit.",
           "tags": [
             "explicit-export-settings",
             "composition",
             "exporter-abstraction"
-          ]
-        },
-        {
-          "number": 9,
-          "input": "3d export settings and mesh data",
-          "expected_output": "PASS",
-          "purpose": "3D export behavior is explicit.",
-          "tags": [
-            "explicit-export-settings",
-            "strategy-pattern",
-            "exporter-abstraction"
-          ]
-        },
-        {
-          "number": 10,
-          "input": "graceful unsupported format error",
-          "expected_output": "PASS",
-          "purpose": "Unsupported formats remain graceful.",
-          "tags": [
-            "unsupported-format-handling",
-            "error-handling",
-            "clear-error"
-          ]
-        },
-        {
-          "number": 11,
-          "input": "future exporter extension",
-          "expected_output": "PASS",
-          "purpose": "Future exporters are added without design file edits.",
-          "tags": [
-            "new-exporter-without-design-file-change",
-            "factory-pattern",
-            "registry-pattern"
-          ]
-        },
-        {
-          "number": 12,
-          "input": "export service delegation",
-          "expected_output": "PASS",
-          "purpose": "Export service delegates to exporter strategies.",
-          "tags": [
-            "design-file-delegates-export",
-            "service-delegates-to-strategy",
-            "composition"
-          ]
-        },
-        {
-          "number": 13,
-          "input": "clean export service boundary",
-          "expected_output": "PASS",
-          "purpose": "Service boundaries stay clean.",
-          "tags": [
-            "separation-of-concerns",
-            "domain-service-boundary",
-            "class-design"
-          ]
-        },
-        {
-          "number": 14,
-          "input": "explicit failure response",
-          "expected_output": "PASS",
-          "purpose": "Failure responses remain explicit.",
-          "tags": [
-            "result-object",
-            "controlled-failure",
-            "unsupported-format-handling"
-          ]
-        },
-        {
-          "number": 15,
-          "input": "open closed registry export design",
-          "expected_output": "PASS",
-          "purpose": "Open-closed and registry patterns are visible.",
-          "tags": [
-            "open-closed",
-            "registry-pattern",
-            "extension-hook"
-          ]
-        },
-        {
-          "number": 16,
-          "input": "polymorphic exporters",
-          "expected_output": "PASS",
-          "purpose": "Polymorphic exporter behavior is visible.",
-          "tags": [
-            "polymorphism",
-            "exporter-abstraction",
-            "strategy-pattern"
-          ]
-        },
-        {
-          "number": 17,
-          "input": "inverted exporter dependency",
-          "expected_output": "PASS",
-          "purpose": "Dependency inversion is respected.",
-          "tags": [
-            "dependency-inversion",
-            "class-design",
-            "separation-of-concerns"
-          ]
-        },
-        {
-          "number": 18,
-          "input": "clear export error handling",
-          "expected_output": "PASS",
-          "purpose": "Error handling is clear for unsupported and failing exports.",
-          "tags": [
-            "error-handling",
-            "unsupported-format-handling",
-            "clear-error"
-          ]
-        },
-        {
-          "number": 19,
-          "input": "readable export design",
-          "expected_output": "PASS",
-          "purpose": "The code stays readable and organized.",
-          "tags": [
-            "code-readability",
-            "composition",
-            "organization"
-          ]
-        },
-        {
-          "number": 20,
-          "input": "single responsibility design file",
-          "expected_output": "PASS",
-          "purpose": "Single responsibility is preserved.",
-          "tags": [
-            "single-responsibility",
-            "new-exporter-without-design-file-change",
-            "open-closed"
           ]
         }
       ]

@@ -24,21 +24,23 @@ describe('DsaEvaluationService', () => {
   }
 
   it('derives complexity deterministically and uses AI-returned approach tags', async () => {
-    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
-      if (request.schemaName === 'dsa_approach_tag_extraction') {
-        return {
-          detected_tags: [
-            'prerequisite-bitmask',
-            'cycle-detection',
-            'bitmask-dp',
-            'subset-transition',
-            'deadline-aware-selection',
-          ],
-        };
-      }
+    const generateStructuredJson = jest.fn(
+      async (request: { schemaName: string }) => {
+        if (request.schemaName === 'dsa_approach_tag_extraction') {
+          return {
+            detected_tags: [
+              'prerequisite-bitmask',
+              'cycle-detection',
+              'bitmask-dp',
+              'subset-transition',
+              'deadline-aware-selection',
+            ],
+          };
+        }
 
-      throw new Error(`Unexpected schema ${request.schemaName}`);
-    });
+        throw new Error(`Unexpected schema ${request.schemaName}`);
+      },
+    );
 
     const service = makeService(generateStructuredJson);
 
@@ -146,15 +148,17 @@ describe('DsaEvaluationService', () => {
   });
 
   it('marks hidden results as not available when only visible evidence exists', async () => {
-    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
-      if (request.schemaName === 'dsa_approach_tag_extraction') {
-        return {
-          detected_tags: ['bitmask-dp', 'cycle-detection'],
-        };
-      }
+    const generateStructuredJson = jest.fn(
+      async (request: { schemaName: string }) => {
+        if (request.schemaName === 'dsa_approach_tag_extraction') {
+          return {
+            detected_tags: ['bitmask-dp', 'cycle-detection'],
+          };
+        }
 
-      throw new Error(`Unexpected schema ${request.schemaName}`);
-    });
+        throw new Error(`Unexpected schema ${request.schemaName}`);
+      },
+    );
 
     const service = makeService(generateStructuredJson);
 
@@ -180,7 +184,8 @@ describe('DsaEvaluationService', () => {
       })),
       hidden_test_cases: Array.from({ length: 15 }, (_, index) => ({
         id: `hidden_${index + 6}`,
-        purpose: index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
+        purpose:
+          index === 4 ? 'Self dependency cycle' : `Hidden case ${index + 6}`,
       })),
     });
 
@@ -194,13 +199,15 @@ describe('DsaEvaluationService', () => {
   });
 
   it('fails when AI does not return any approach tags', async () => {
-    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
-      if (request.schemaName === 'dsa_approach_tag_extraction') {
-        return { detected_tags: [] };
-      }
+    const generateStructuredJson = jest.fn(
+      async (request: { schemaName: string }) => {
+        if (request.schemaName === 'dsa_approach_tag_extraction') {
+          return { detected_tags: [] };
+        }
 
-      throw new Error(`Unexpected schema ${request.schemaName}`);
-    });
+        throw new Error(`Unexpected schema ${request.schemaName}`);
+      },
+    );
 
     const service = makeService(generateStructuredJson);
 

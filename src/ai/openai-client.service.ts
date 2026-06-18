@@ -92,7 +92,9 @@ export class OpenAiClientService {
     }
 
     const outputText = this.extractOutputText(payload);
-    this.logger.log(`OpenAI structured response text: ${outputText.slice(0, 500)}`);
+    this.logger.log(
+      `OpenAI structured response text: ${outputText.slice(0, 500)}`,
+    );
     const parsed = this.parseJson(outputText);
     this.assertMatchesSchema(parsed, request.schema);
 
