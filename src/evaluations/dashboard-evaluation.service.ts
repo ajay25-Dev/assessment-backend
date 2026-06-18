@@ -90,12 +90,7 @@ export class DashboardEvaluationService {
       dsaEvaluations,
     );
     const bruteForceRisk = this.bruteForceRisk(dsaEvaluations, sectionScores);
-    const hardcodingRisk = this.hardcodingRisk(
-      dsaEvaluations,
-      sqlEvaluations,
-      oopsEvaluations,
-      sectionScores,
-    );
+    const hardcodingRisk = this.hardcodingRisk(dsaEvaluations, sectionScores);
     const compilationBehaviour = this.compilationBehaviour(
       dsaEvaluations,
       oopsEvaluations,
@@ -409,26 +404,23 @@ export class DashboardEvaluationService {
     dsaEvaluations: EvaluationOutput[],
     scores: Record<'DSA' | 'SQL' | 'OOPs' | 'MCQ', number>,
   ): RiskLevel {
-    const explicit = this.aggregateRisk(dsaEvaluations, 'brute_force_risk');
-    if (explicit === 'High' || scores.DSA < 35) return 'High';
-    if (explicit === 'Medium' || scores.DSA < 60) return 'Medium';
+    const signalBased = this.signalBasedRisk(dsaEvaluations, 'brute_force_signal');
+    if (signalBased) return signalBased;
+    const legacy = this.aggregateRisk(dsaEvaluations, 'brute_force_risk');
+    if (legacy === 'High' || scores.DSA < 35) return 'High';
+    if (legacy === 'Medium' || scores.DSA < 60) return 'Medium';
     return 'Low';
   }
 
   private hardcodingRisk(
     dsaEvaluations: EvaluationOutput[],
-    sqlEvaluations: EvaluationOutput[],
-    oopsEvaluations: EvaluationOutput[],
     scores: Record<'DSA' | 'SQL' | 'OOPs' | 'MCQ', number>,
   ): RiskLevel {
-    const explicit = this.aggregateRisk(
-      [...dsaEvaluations, ...sqlEvaluations, ...oopsEvaluations],
-      'hardcoding_risk',
-    );
-    if (explicit === 'High' || scores.SQL < 35 || scores.OOPs < 35)
-      return 'High';
-    if (explicit === 'Medium' || scores.SQL < 60 || scores.OOPs < 60)
-      return 'Medium';
+    const signalBased = this.signalBasedRisk(dsaEvaluations, 'hardcoding_signal');
+    if (signalBased) return signalBased;
+    const legacy = this.aggregateRisk(dsaEvaluations, 'hardcoding_risk');
+    if (legacy === 'High' || scores.DSA < 35) return 'High';
+    if (legacy === 'Medium' || scores.DSA < 60) return 'Medium';
     return 'Low';
   }
 
@@ -757,6 +749,29 @@ export class DashboardEvaluationService {
     return 'Low';
   }
 
+  private signalBasedRisk(
+    evaluations: EvaluationOutput[],
+    key: 'brute_force_signal' | 'hardcoding_signal',
+  ): RiskLevel | null {
+    const hiddenAvailable = evaluations.every((item) =>
+      Number.isFinite(Number(item.hidden_test_case_score)),
+    );
+    if (!hiddenAvailable) return null;
+
+    const signals = evaluations
+      .map((item) => this.normalizeSignal(item[key]))
+      .filter((signal): signal is 'Yes' | 'No' => Boolean(signal));
+
+    if (signals.length !== evaluations.length || !signals.length) return null;
+
+    const yesCount = signals.filter((signal) => signal === 'Yes').length;
+    const noCount = signals.length - yesCount;
+
+    if (yesCount > 2) return 'High';
+    if (noCount > 2) return 'Low';
+    return 'Medium';
+  }
+
   private averageField(
     evaluations: EvaluationOutput[],
     key: string,
@@ -793,6 +808,13 @@ export class DashboardEvaluationService {
     if (risk === 'high') return 'High';
     if (risk === 'medium') return 'Medium';
     return 'Low';
+  }
+
+  private normalizeSignal(value: unknown): 'Yes' | 'No' | null {
+    const signal = this.textValue(value).toLowerCase();
+    if (signal === 'yes') return 'Yes';
+    if (signal === 'no') return 'No';
+    return null;
   }
 
   private strongestArea(

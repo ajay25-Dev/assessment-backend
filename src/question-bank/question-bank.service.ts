@@ -2,6 +2,38 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
+type AssessmentSecurityPolicy = {
+  tab_switch_protection_enabled: boolean;
+  max_tab_switch_events: number;
+  auto_submit_on_max_events: boolean;
+  camera_proctoring_enabled: boolean;
+  max_camera_events: number;
+  auto_submit_on_camera_events: boolean;
+  copy_paste_block_enabled: boolean;
+  inspect_mode_block_enabled: boolean;
+  restart_timer_on_login: boolean;
+};
+
+type AssessmentBankShape = {
+  assessment?: {
+    security?: unknown;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+const defaultAssessmentSecurityPolicy: AssessmentSecurityPolicy = {
+  tab_switch_protection_enabled: true,
+  max_tab_switch_events: 2,
+  auto_submit_on_max_events: true,
+  camera_proctoring_enabled: true,
+  max_camera_events: 2,
+  auto_submit_on_camera_events: true,
+  copy_paste_block_enabled: true,
+  inspect_mode_block_enabled: true,
+  restart_timer_on_login: true,
+};
+
 type BankQuestion = {
   id?: string;
   section?: string;
@@ -84,6 +116,49 @@ export class QuestionBankService {
     }
   }
 
+  getAssessmentSecurityPolicy(bank?: AssessmentBankShape | null) {
+    const security = this.recordValue(bank?.assessment?.security) || {};
+
+    return {
+      tab_switch_protection_enabled: this.booleanValue(
+        security.tab_switch_protection_enabled,
+        defaultAssessmentSecurityPolicy.tab_switch_protection_enabled,
+      ),
+      max_tab_switch_events: this.numberValue(
+        security.max_tab_switch_events,
+        defaultAssessmentSecurityPolicy.max_tab_switch_events,
+      ),
+      auto_submit_on_max_events: this.booleanValue(
+        security.auto_submit_on_max_events,
+        defaultAssessmentSecurityPolicy.auto_submit_on_max_events,
+      ),
+      camera_proctoring_enabled: this.booleanValue(
+        security.camera_proctoring_enabled,
+        defaultAssessmentSecurityPolicy.camera_proctoring_enabled,
+      ),
+      max_camera_events: this.numberValue(
+        security.max_camera_events,
+        defaultAssessmentSecurityPolicy.max_camera_events,
+      ),
+      auto_submit_on_camera_events: this.booleanValue(
+        security.auto_submit_on_camera_events,
+        defaultAssessmentSecurityPolicy.auto_submit_on_camera_events,
+      ),
+      copy_paste_block_enabled: this.booleanValue(
+        security.copy_paste_block_enabled,
+        defaultAssessmentSecurityPolicy.copy_paste_block_enabled,
+      ),
+      inspect_mode_block_enabled: this.booleanValue(
+        security.inspect_mode_block_enabled,
+        defaultAssessmentSecurityPolicy.inspect_mode_block_enabled,
+      ),
+      restart_timer_on_login: this.booleanValue(
+        security.restart_timer_on_login,
+        defaultAssessmentSecurityPolicy.restart_timer_on_login,
+      ),
+    };
+  }
+
   async getImportPreview() {
     const bank = await this.getBank();
     const assessment = bank.assessment as
@@ -111,12 +186,17 @@ export class QuestionBankService {
   }
 
   async getPublicBank() {
-    const bank = (await this.getBank()) as {
+    const bank = (await this.getBank()) as AssessmentBankShape & {
       questions?: Array<Record<string, unknown>>;
     };
+    const assessment = this.recordValue(bank.assessment) || {};
 
     return {
       ...bank,
+      assessment: {
+        ...assessment,
+        security: this.getAssessmentSecurityPolicy(bank),
+      },
       questions: await Promise.all(
         (bank.questions || []).map(async (question) => {
           const normalizedQuestion = {
@@ -415,6 +495,21 @@ export class QuestionBankService {
       .replace(/â€˜|â€™/g, "'")
       .replace(/â€“|â€”/g, '-')
       .trim();
+  }
+
+  private booleanValue(value: unknown, fallback: boolean) {
+    return typeof value === 'boolean' ? value : fallback;
+  }
+
+  private numberValue(value: unknown, fallback: number) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private recordValue(value: unknown) {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
   }
 
   private parseSampleDataTables(

@@ -1,9 +1,62 @@
+import { JsonObject } from '../ai/ai.types';
 import { EvaluationResult } from './evaluation.types';
 
 type JsonRecord = Record<string, unknown>;
 type SqlComparisonConfig = {
   orderMatters: boolean;
   numericTolerance: number;
+};
+
+type SqlCalculationTrace = {
+  result_correctness: {
+    expected_columns: string[];
+    actual_columns: string[];
+    expected_rows: JsonRecord[];
+    actual_rows: JsonRecord[];
+    order_matters: boolean;
+    numeric_tolerance: number;
+  };
+  business_logic: {
+    required_business_rules: string[];
+    matched_business_rules: string[];
+    missing_business_rules: string[];
+  };
+  sql_concepts: {
+    configured_expected_sql_concept_tags: string[];
+    ai_returned_concept_tags: string[];
+    matched_sql_concept_tags: string[];
+    missing_concepts: string[];
+  };
+  edge_cases: {
+    configured_edge_cases: string[];
+    matched_edge_cases: string[];
+    missing_edge_cases: string[];
+  };
+  query_efficiency: {
+    formatting_score: number;
+    alias_score: number;
+    structure_score: number;
+    simplicity_score: number;
+    signals: string[];
+  };
+  readability: {
+    formatting_score: number;
+    alias_score: number;
+    structure_score: number;
+    simplicity_score: number;
+  };
+  null_duplicate_handling: {
+    configured_null_rules: string[];
+    configured_duplicate_rules: string[];
+    matched_null_rules: string[];
+    missing_null_rules: string[];
+    matched_duplicate_rules: string[];
+    missing_duplicate_rules: string[];
+  };
+  overall: {
+    score_weights: Record<string, number>;
+    score_formula: string;
+  };
 };
 
 type TagCoverageResult = {
@@ -157,6 +210,7 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
   const record = assertRecord(input);
   const questionId = textValue(record.question_id);
   const questionTitle = textValue(record.question_title, questionId || 'SQL Question');
+  const patterns = questionPatterns(questionId);
   const submittedQuery = textValue(record.submitted_query);
   const sqlResultError = textValue(record.sql_result_error) || textValue(record.error);
   const runtimeObservation = textValue(record.runtime_observation) || textValue(record.sql_result_summary);
@@ -171,6 +225,18 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
   const actualRows = normalizeActualRows(record.sql_result_rows, actualColumns);
   const comparison = comparisonConfig(record.result_match);
   const detectedSqlConceptTags = stringList(record.detected_sql_concept_tags);
+  const configuredBusinessRules = stringList(record.required_business_rules).length
+    ? stringList(record.required_business_rules)
+    : Object.keys(patterns.business);
+  const configuredEdgeCases = stringList(record.edge_cases).length
+    ? stringList(record.edge_cases)
+    : Object.keys(patterns.edgeCases);
+  const configuredNullRules = stringList(record.null_rules).length
+    ? stringList(record.null_rules)
+    : Object.keys(patterns.nullRules);
+  const configuredDuplicateRules = stringList(record.duplicate_rules).length
+    ? stringList(record.duplicate_rules)
+    : Object.keys(patterns.duplicateRules);
 
   const resultCorrectness = sqlResultError
     ? 0
@@ -184,8 +250,8 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
   const { score: businessLogicScore, missing: missingBusinessRules } =
     scoreRuleSet({
       query: submittedQuery,
-      ruleSet: questionPatterns(questionId).business,
-      fallbackRules: stringList(record.required_business_rules),
+      ruleSet: patterns.business,
+      fallbackRules: configuredBusinessRules,
       weightForEvidence: 0.7,
       correctnessScore: resultCorrectness,
     });
@@ -197,7 +263,7 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
     ? scoreTagCoverage(fallbackConceptTags, detectedSqlConceptTags)
     : scoreRuleSet({
         query: submittedQuery,
-        ruleSet: questionPatterns(questionId).concepts || GENERIC_CONCEPT_PATTERNS,
+        ruleSet: patterns.concepts || GENERIC_CONCEPT_PATTERNS,
         fallbackRules: fallbackConceptTags,
         weightForEvidence: 1,
         correctnessScore: 0,
@@ -205,24 +271,24 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
 
   const edgeCaseMatch = scoreRuleSet({
     query: submittedQuery,
-    ruleSet: questionPatterns(questionId).edgeCases,
-    fallbackRules: stringList(record.edge_cases),
+    ruleSet: patterns.edgeCases,
+    fallbackRules: configuredEdgeCases,
     weightForEvidence: 1,
     correctnessScore: 0,
   });
 
   const nullRules = scoreRuleSet({
     query: submittedQuery,
-    ruleSet: questionPatterns(questionId).nullRules,
-    fallbackRules: stringList(record.null_rules),
+    ruleSet: patterns.nullRules,
+    fallbackRules: configuredNullRules,
     weightForEvidence: 1,
     correctnessScore: 0,
   });
 
   const duplicateRules = scoreRuleSet({
     query: submittedQuery,
-    ruleSet: questionPatterns(questionId).duplicateRules,
-    fallbackRules: stringList(record.duplicate_rules),
+    ruleSet: patterns.duplicateRules,
+    fallbackRules: configuredDuplicateRules,
     weightForEvidence: 1,
     correctnessScore: 0,
   });
@@ -237,6 +303,7 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
   const aliasScore = computeAliasScore(submittedQuery);
   const structureScore = computeStructureScore(submittedQuery);
   const simplicityScore = computeSimplicityScore(submittedQuery);
+  const queryEfficiencySignals = buildQueryEfficiencySignals(submittedQuery);
   const readabilityScore = Math.round(
     average([formattingScore, aliasScore, structureScore, simplicityScore]),
   );
@@ -284,6 +351,9 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
 
   const expectedConceptsUsed = conceptMatch.matched;
   const missingConcepts = conceptMatch.missing;
+  const matchedBusinessRules = configuredBusinessRules.filter(
+    (rule) => !missingBusinessRules.includes(rule),
+  );
   const detectedMistakes = buildDetectedMistakes({
     sqlResultError,
     resultCorrectness,
@@ -334,6 +404,67 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
     hardcodingRisk,
   });
 
+  const trace: SqlCalculationTrace = {
+    result_correctness: {
+      expected_columns: expectedColumns,
+      actual_columns: actualColumns,
+      expected_rows: expectedRows,
+      actual_rows: actualRows,
+      order_matters: comparison.orderMatters,
+      numeric_tolerance: comparison.numericTolerance,
+    },
+    business_logic: {
+      required_business_rules: configuredBusinessRules,
+      matched_business_rules: matchedBusinessRules,
+      missing_business_rules: missingBusinessRules,
+    },
+    sql_concepts: {
+      configured_expected_sql_concept_tags: fallbackConceptTags,
+      ai_returned_concept_tags: detectedSqlConceptTags,
+      matched_sql_concept_tags: expectedConceptsUsed,
+      missing_concepts: missingConcepts,
+    },
+    edge_cases: {
+      configured_edge_cases: configuredEdgeCases,
+      matched_edge_cases: edgeCaseMatch.matched,
+      missing_edge_cases: edgeCaseMatch.missing,
+    },
+    query_efficiency: {
+      formatting_score: formattingScore,
+      alias_score: aliasScore,
+      structure_score: structureScore,
+      simplicity_score: simplicityScore,
+      signals: queryEfficiencySignals,
+    },
+    readability: {
+      formatting_score: formattingScore,
+      alias_score: aliasScore,
+      structure_score: structureScore,
+      simplicity_score: simplicityScore,
+    },
+    null_duplicate_handling: {
+      configured_null_rules: configuredNullRules,
+      configured_duplicate_rules: configuredDuplicateRules,
+      matched_null_rules: nullRules.matched,
+      missing_null_rules: nullRules.missing,
+      matched_duplicate_rules: duplicateRules.matched,
+      missing_duplicate_rules: duplicateRules.missing,
+    },
+    overall: {
+      score_weights: {
+        result_correctness: 30,
+        business_logic: 20,
+        sql_concept: 15,
+        edge_case: 10,
+        query_efficiency: 10,
+        readability: 5,
+        null_duplicate_handling: 10,
+      },
+      score_formula:
+        '(result correctness x 30 + business logic x 20 + SQL concepts x 15 + edge cases x 10 + query efficiency x 10 + readability x 5 + NULL/duplicate handling x 10) / 100',
+    },
+  };
+
   return {
     section: 'SQL',
     prompt_version: 'sql-deterministic.v1',
@@ -368,6 +499,7 @@ export function evaluateSqlSubmission(input: unknown): EvaluationResult {
       key_weaknesses: keyWeaknesses,
       improvement_recommendation: improvementRecommendation,
       placement_readiness_label: placementReadinessLabel,
+      calculation_trace: trace as unknown as JsonObject,
     },
   };
 }
@@ -895,4 +1027,20 @@ function buildRecommendation(params: {
   }
 
   return `Refine the query to ${focus.slice(0, 3).join(', ')}, then rerun it against the visible dataset.`;
+}
+
+function buildQueryEfficiencySignals(query: string) {
+  const normalized = String(query || '').toLowerCase();
+  const signals: string[] = [];
+  if (!normalized.trim()) return signals;
+  if (/\bwith\b/i.test(normalized)) signals.push('CTE bonus');
+  if (/\bwhere\b/i.test(normalized)) signals.push('Early filter bonus');
+  if (/\bgroup\s+by\b/i.test(normalized)) signals.push('Aggregation bonus');
+  if (/\bleft\s+join\b/i.test(normalized) || /not\s+exists/i.test(normalized)) {
+    signals.push('Anti-join bonus');
+  }
+  if (/\bselect\s+\*/i.test(normalized)) signals.push('SELECT * penalty');
+  const repeatedFromCount = (normalized.match(/\bfrom\b/g) || []).length;
+  if (repeatedFromCount > 1) signals.push('Repeated scan penalty');
+  return signals;
 }

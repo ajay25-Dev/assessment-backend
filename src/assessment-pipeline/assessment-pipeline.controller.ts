@@ -10,6 +10,11 @@ export class AssessmentPipelineController {
     return this.pipeline.finalize(body);
   }
 
+  @Post('session')
+  bootstrapSession(@Body() body: unknown) {
+    return this.pipeline.bootstrapSession(body);
+  }
+
   @Post('dsa/submit')
   persistDsaQuestionSubmission(@Body() body: unknown) {
     return this.pipeline.persistDsaQuestionSubmission(body);

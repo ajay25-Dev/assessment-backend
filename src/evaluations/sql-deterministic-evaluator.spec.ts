@@ -164,6 +164,16 @@ describe('evaluateSqlSubmission', () => {
     );
     expect(outputRecord.query_quality_label).toMatch(/Excellent|Good|Average/);
     expect(typeof outputRecord.placement_readiness_label).toBe('string');
+    const trace = outputRecord.calculation_trace as Record<string, any>;
+    expect(trace?.result_correctness?.expected_columns).toEqual(
+      expect.arrayContaining([
+        'account_id',
+        'account_name',
+        'plan_type',
+      ]),
+    );
+    expect(Array.isArray(trace?.business_logic?.required_business_rules)).toBe(true);
+    expect(Array.isArray(trace?.query_efficiency?.signals)).toBe(true);
   });
 
   it('drops the score to zero when the SQL execution reports an error', () => {

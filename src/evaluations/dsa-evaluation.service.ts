@@ -27,7 +27,12 @@ export class DsaEvaluationService extends BaseEvaluatorService {
     this.logger.log('Starting DSA evaluation');
     const record = this.asRecord(input);
     const complexitySelection = this.deriveComplexitySelection(record);
-    const detectedApproachTags = await this.extractApproachTags(record);
+    const detectedApproachTags = await this.extractApproachTags(record).catch((error) => {
+      this.logger.warn(
+        `DSA approach tag extraction failed, falling back to deterministic scoring: ${this.errorMessage(error)}`,
+      );
+      return [] as string[];
+    });
 
     this.logger.log(
       `DSA complexity derived: timeRank=${complexitySelection.student_time_complexity_rank}, spaceRank=${complexitySelection.student_space_complexity_rank}`,
@@ -49,9 +54,10 @@ export class DsaEvaluationService extends BaseEvaluatorService {
     const allowedApproachTags = this.normalizeTags(this.stringList(record.expected_approach));
 
     if (!allowedApproachTags.length) {
-      throw new BadRequestException(
-        'expected_approach must contain at least one allowed approach tag',
+      this.logger.warn(
+        'Skipping DSA approach tag extraction because expected_approach is empty',
       );
+      return [];
     }
 
     const output = await this.evaluateWithPrompt({
@@ -237,5 +243,10 @@ export class DsaEvaluationService extends BaseEvaluatorService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .replace(/-+/g, '-');
+  }
+
+  private errorMessage(error: unknown) {
+    if (error instanceof Error) return error.message;
+    return String(error);
   }
 }

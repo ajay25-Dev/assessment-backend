@@ -74,6 +74,14 @@ export const dsaEvaluationOutputSchema = strictObject({
   correctness_score: score,
   open_test_case_score: score,
   hidden_test_case_score: scoreOrText,
+  brute_force_signal: {
+    type: 'string',
+    enum: ['Yes', 'No'],
+  },
+  hardcoding_signal: {
+    type: 'string',
+    enum: ['Yes', 'No'],
+  },
   expected_code_score: score,
   matched_expected_code: stringArray,
   missing_expected_code: stringArray,

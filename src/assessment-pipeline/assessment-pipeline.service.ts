@@ -64,13 +64,16 @@ type FinalizeInput = {
   student_email?: string;
   assessment_id?: string;
   started_at?: string;
+  session_started_at?: string;
+  session_reset_count?: number;
+  timer_policy?: 'restart_on_login' | 'resume_on_login';
   submitted_at?: string;
   duration_minutes?: number;
   tab_events?: number;
   camera_events?: number;
   submission_mode?: 'manual' | 'auto';
   integrity_status?: 'disqualified' | null;
-  integrity_source?: 'tab_switch' | 'camera' | null;
+  integrity_source?: 'tab_switch' | 'camera' | 'copy_paste' | 'inspect_mode' | 'logout' | 'browser_back' | null;
   integrity_message?: string | null;
   integrity_event_count?: number | null;
   answers?: Record<string, FinalizeAnswer>;
@@ -138,8 +141,50 @@ type Bank = {
     title?: string;
     duration_minutes?: number;
     scoring_weights?: Record<string, number>;
+    security?: {
+      tab_switch_protection_enabled?: boolean;
+      max_tab_switch_events?: number;
+      auto_submit_on_max_events?: boolean;
+      camera_proctoring_enabled?: boolean;
+      max_camera_events?: number;
+      auto_submit_on_camera_events?: boolean;
+      copy_paste_block_enabled?: boolean;
+      inspect_mode_block_enabled?: boolean;
+      restart_timer_on_login?: boolean;
+    };
   };
   questions?: BankQuestion[];
+};
+
+type AssessmentSecurityPolicy = {
+  tab_switch_protection_enabled: boolean;
+  max_tab_switch_events: number;
+  auto_submit_on_max_events: boolean;
+  camera_proctoring_enabled: boolean;
+  max_camera_events: number;
+  auto_submit_on_camera_events: boolean;
+  copy_paste_block_enabled: boolean;
+  inspect_mode_block_enabled: boolean;
+  restart_timer_on_login: boolean;
+};
+
+type AssessmentSessionInput = {
+  student_id?: string;
+  student_email?: string;
+  assessment_id?: string;
+};
+
+type AssessmentSessionState = {
+  attempt_id: string;
+  assessment_id: string;
+  duration_minutes: number;
+  remaining_seconds: number;
+  security: AssessmentSecurityPolicy;
+  started_at: string;
+  status: string;
+  timer_policy: 'restart_on_login' | 'resume_on_login';
+  can_resume: boolean;
+  session_reset_count: number;
 };
 
 type SectionSummary = {
@@ -197,6 +242,111 @@ export class AssessmentPipelineService {
       attempt_id: attemptId,
       status: 'finalized',
     };
+  }
+
+  async bootstrapSession(rawInput: unknown): Promise<AssessmentSessionState> {
+    const input = this.parseSessionInput(rawInput);
+    const bank = (await this.questionBank.getBank()) as Bank;
+    const assessmentId = input.assessment_id || bank.assessment?.id;
+    if (!input.student_id) {
+      throw new BadRequestException('student_id is required');
+    }
+    if (!assessmentId) {
+      throw new BadRequestException('assessment_id is required');
+    }
+
+    const durationMinutes =
+      bank.assessment?.duration_minutes || 180;
+    const security = this.questionBank.getAssessmentSecurityPolicy(bank);
+    const now = new Date().toISOString();
+    const latestAttempt = await this.findLatestAssessmentAttempt(
+      input.student_id,
+      assessmentId,
+    );
+
+    if (latestAttempt && this.isFinalAttemptStatus(latestAttempt.status)) {
+      const finalState = this.buildSessionState(
+        String(latestAttempt.id),
+        assessmentId,
+        durationMinutes,
+        security,
+        this.textOutput(latestAttempt.started_at || now),
+        this.textOutput(latestAttempt.status || 'submitted'),
+        false,
+        this.numberOutput(
+          this.recordValue(latestAttempt.client_metadata)?.session_reset_count,
+          0,
+        ),
+        'resume_on_login',
+      );
+      return {
+        ...finalState,
+        remaining_seconds: 0,
+        can_resume: false,
+      };
+    }
+
+    const latestMetadata = latestAttempt
+      ? this.recordValue(latestAttempt.client_metadata) || {}
+      : {};
+    const hasInProgressAttempt = latestAttempt
+      ? !this.isFinalAttemptStatus(latestAttempt.status)
+      : false;
+    const existingStartedAt = this.textOutput(
+      latestMetadata.session_started_at ||
+        latestAttempt?.started_at ||
+        now,
+    );
+    const sessionStartedAt = hasInProgressAttempt
+      ? existingStartedAt
+      : security.restart_timer_on_login
+        ? now
+        : existingStartedAt;
+    const sessionResetCount = latestAttempt?.id
+      ? this.numberOutput(latestMetadata.session_reset_count, 0) +
+        (hasInProgressAttempt ? 1 : 0)
+      : 0;
+    const attemptId = await this.upsertAssessmentAttempt(
+      {
+        student_id: input.student_id,
+        student_email: input.student_email,
+        assessment_id: assessmentId,
+        started_at: sessionStartedAt,
+        submission_mode: 'manual',
+        integrity_status: null,
+        integrity_source: null,
+        integrity_message: null,
+        integrity_event_count: null,
+        session_started_at: sessionStartedAt,
+        session_reset_count: sessionResetCount,
+        timer_policy: hasInProgressAttempt
+          ? 'resume_on_login'
+          : security.restart_timer_on_login
+            ? 'restart_on_login'
+            : 'resume_on_login',
+      },
+      bank,
+      now,
+      durationMinutes,
+      'in_progress',
+    );
+
+    const canResume = sessionResetCount < 2;
+    return this.buildSessionState(
+      attemptId,
+      assessmentId,
+      durationMinutes,
+      security,
+      sessionStartedAt,
+      canResume ? 'in_progress' : 'disqualified',
+      canResume,
+      sessionResetCount,
+      hasInProgressAttempt
+        ? 'resume_on_login'
+        : security.restart_timer_on_login
+          ? 'restart_on_login'
+          : 'resume_on_login',
+    );
   }
 
   async persistDsaQuestionSubmission(rawInput: unknown) {
@@ -478,6 +628,19 @@ export class AssessmentPipelineService {
         );
       }
     }
+
+    return input;
+  }
+
+  private parseSessionInput(rawInput: unknown): AssessmentSessionInput {
+    if (!rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) {
+      throw new BadRequestException('Session payload must be a JSON object');
+    }
+
+    const input = rawInput as AssessmentSessionInput;
+    input.student_id = String(input.student_id || '').trim();
+    input.student_email = String(input.student_email || '').trim();
+    input.assessment_id = String(input.assessment_id || '').trim();
 
     return input;
   }
@@ -980,6 +1143,9 @@ export class AssessmentPipelineService {
       | 'student_email'
       | 'assessment_id'
       | 'started_at'
+      | 'session_started_at'
+      | 'session_reset_count'
+      | 'timer_policy'
       | 'submitted_at'
       | 'duration_minutes'
       | 'submission_mode'
@@ -998,11 +1164,12 @@ export class AssessmentPipelineService {
     if (!sourceAssessmentId) {
       throw new BadRequestException('assessment_id is required');
     }
+    const securityPolicy = this.questionBank.getAssessmentSecurityPolicy(bank);
 
     const { data: existingAttempt, error: existingAttemptError } =
       await supabase
         .from('student_assessment_attempts')
-        .select('id,status,client_metadata')
+        .select('id,status,started_at,client_metadata')
         .eq('student_id', input.student_id)
         .contains('client_metadata', {
           source_assessment_id: sourceAssessmentId,
@@ -1019,6 +1186,26 @@ export class AssessmentPipelineService {
 
     if (existingAttempt?.id) {
       const existingStatus = String(existingAttempt.status || '');
+      const existingMetadata =
+        this.recordValue(existingAttempt.client_metadata) || {};
+      const existingOriginalStartedAt = this.textOutput(
+        existingMetadata.original_started_at ||
+          existingMetadata.session_started_at ||
+          existingAttempt.started_at ||
+          input.started_at ||
+          submittedAt,
+      );
+      const sessionStartedAt =
+        input.session_started_at ||
+        input.started_at ||
+        existingMetadata.session_started_at ||
+        existingAttempt.started_at ||
+        submittedAt;
+      const timerPolicy =
+        input.timer_policy ||
+        (securityPolicy.restart_timer_on_login
+          ? 'restart_on_login'
+          : 'resume_on_login');
       if (
         targetStatus === 'in_progress' &&
         ['submitted', 'auto_submitted', 'disqualified'].includes(existingStatus)
@@ -1032,7 +1219,7 @@ export class AssessmentPipelineService {
         .from('student_assessment_attempts')
         .update({
           status: targetStatus,
-          started_at: input.started_at || submittedAt,
+          started_at: sessionStartedAt,
           submitted_at:
             targetStatus === 'in_progress'
               ? null
@@ -1041,7 +1228,7 @@ export class AssessmentPipelineService {
           tab_visibility_events: (input as { tab_events?: number }).tab_events || 0,
           last_seen_at: submittedAt,
           client_metadata: {
-            ...(this.recordValue(existingAttempt.client_metadata) || {}),
+            ...existingMetadata,
             source_assessment_id: sourceAssessmentId,
             student_email: input.student_email,
             submission_mode: input.submission_mode || 'manual',
@@ -1050,6 +1237,13 @@ export class AssessmentPipelineService {
             integrity_source: input.integrity_source || null,
             integrity_message: input.integrity_message || null,
             integrity_event_count: input.integrity_event_count || null,
+            assessment_security_policy: securityPolicy,
+            timer_policy: timerPolicy,
+            session_started_at: sessionStartedAt,
+            original_started_at: existingOriginalStartedAt,
+            session_reset_count:
+              input.session_reset_count ??
+              this.numberOutput(existingMetadata.session_reset_count, 0),
           },
         })
         .eq('id', existingAttempt.id);
@@ -1069,7 +1263,7 @@ export class AssessmentPipelineService {
         student_id: input.student_id,
         assessment_id: this.uuidOrNull(sourceAssessmentId),
         status: targetStatus,
-        started_at: input.started_at || submittedAt,
+        started_at: input.session_started_at || input.started_at || submittedAt,
         submitted_at: targetStatus === 'in_progress' ? null : submittedAt,
         duration_minutes: durationMinutes,
         tab_visibility_events: (input as { tab_events?: number }).tab_events || 0,
@@ -1083,6 +1277,17 @@ export class AssessmentPipelineService {
           integrity_source: input.integrity_source || null,
           integrity_message: input.integrity_message || null,
           integrity_event_count: input.integrity_event_count || null,
+          assessment_security_policy: securityPolicy,
+          timer_policy:
+            input.timer_policy ||
+            (securityPolicy.restart_timer_on_login
+              ? 'restart_on_login'
+              : 'resume_on_login'),
+          session_started_at:
+            input.session_started_at || input.started_at || submittedAt,
+          original_started_at:
+            input.session_started_at || input.started_at || submittedAt,
+          session_reset_count: input.session_reset_count || 0,
         },
       })
       .select('id')
@@ -1988,6 +2193,72 @@ export class AssessmentPipelineService {
           'Improve explanation and code structure',
         ],
       },
+    };
+  }
+
+  private async findLatestAssessmentAttempt(
+    studentId: string,
+    assessmentId: string,
+  ) {
+    const { data, error } = await this.getSupabase()
+      .from('student_assessment_attempts')
+      .select('id,status,started_at,client_metadata')
+      .eq('student_id', studentId)
+      .contains('client_metadata', {
+        source_assessment_id: assessmentId,
+      })
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Could not load assessment session state: ${error.message}`,
+      );
+    }
+
+    return data as
+      | {
+          id?: string;
+          status?: string | null;
+          started_at?: string | null;
+          client_metadata?: Record<string, unknown> | null;
+        }
+      | null;
+  }
+
+  private isFinalAttemptStatus(status?: string | null) {
+    return ['submitted', 'auto_submitted', 'disqualified'].includes(
+      String(status || ''),
+    );
+  }
+
+  private buildSessionState(
+    attemptId: string,
+    assessmentId: string,
+    durationMinutes: number,
+    security: AssessmentSecurityPolicy,
+    startedAt: string,
+    status: string,
+    canResume: boolean,
+    sessionResetCount: number,
+    timerPolicy: 'restart_on_login' | 'resume_on_login',
+  ): AssessmentSessionState {
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000),
+    );
+    return {
+      attempt_id: attemptId,
+      assessment_id: assessmentId,
+      duration_minutes: durationMinutes,
+      remaining_seconds: Math.max(0, durationMinutes * 60 - elapsedSeconds),
+      security,
+      started_at: startedAt,
+      status,
+      timer_policy: timerPolicy,
+      can_resume: canResume,
+      session_reset_count: Math.max(0, sessionResetCount),
     };
   }
 

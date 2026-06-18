@@ -16,7 +16,10 @@
       "auto_submit_on_max_events": true,
       "camera_proctoring_enabled": true,
       "max_camera_events": 2,
-      "auto_submit_on_camera_events": true
+      "auto_submit_on_camera_events": true,
+      "copy_paste_block_enabled": true,
+      "inspect_mode_block_enabled": true,
+      "restart_timer_on_login": true
     },
     "sections": [
       {
@@ -274,7 +277,8 @@
           "purpose": "Small jobs before long job can still be optimal",
           "tags": [
             "ordering",
-            "greedy-trap"
+            "greedy-trap",
+            "brute-force"
           ]
         },
         {
@@ -310,11 +314,12 @@
         {
           "id": "hidden_19",
           "input": "n=5, dependencies=[[2,0],[2,1],[4,3]], durations=[1,1,3,2,1], deadlines=[1,2,5,3,6]",
-          "expected": "4",
+          "expected": "3",
           "purpose": "Mixed dependency and deadline pressure",
           "tags": [
             "mixed-dependency",
-            "deadline-boundary"
+            "deadline-boundary",
+            "brute-force"
           ]
         },
         {
@@ -324,7 +329,8 @@
           "purpose": "Sequential deadlines can all be met exactly",
           "tags": [
             "ordering",
-            "exact-deadline"
+            "exact-deadline",
+            "hardcoding"
           ]
         }
       ],
@@ -617,7 +623,8 @@
           "purpose": "Delivery exactly at deadline is valid",
           "tags": [
             "exact-deadline",
-            "boundary"
+            "boundary",
+            "hardcoding"
           ]
         },
         {
@@ -647,7 +654,8 @@
           "purpose": "Five-package bitmask DP case",
           "tags": [
             "bitmask-dp",
-            "stress"
+            "stress",
+            "brute-force"
           ]
         },
         {
@@ -928,7 +936,8 @@
           "purpose": "Case sensitivity",
           "tags": [
             "case-sensitive",
-            "hash-format"
+            "hash-format",
+            "hardcoding"
           ]
         },
         {
@@ -1018,7 +1027,8 @@
           "purpose": "Stress-like overlap",
           "tags": [
             "stress",
-            "range-overlap"
+            "range-overlap",
+            "brute-force"
           ]
         },
         {
@@ -1203,7 +1213,7 @@
       "title": "Branching Versioned Key-Value Store",
       "difficulty": "hard",
       "marks": 100,
-      "prompt": "Real-World Scenario\nA design platform allows users to create alternative versions of the same project. A new version can be created from any previous version. Each new version changes exactly one design parameter while inheriting all other parameters from its base version.\n\nProblem Statement\nDesign a branching versioned key-value store. Version 0 is empty. set(baseVersion, key, value) creates a new version from baseVersion, updates key to value in that new version, and returns the new version number. get(version, key) returns the value of key visible in that version. If the key does not exist in that version, return \"NULL\".",
+      "prompt": "Real-World Scenario\nA design platform allows users to create alternative versions of the same project. A new version can be created from any previous version. Each new version changes exactly one design parameter while inheriting all other parameters from its base version.\n\nProblem Statement\nImplement a branching versioned key-value store as a class named VersionedStore. Version 0 is empty. set(baseVersion, key, value) creates a new version from baseVersion, updates key to value in that new version, and returns the new version number. get(version, key) returns the value of key visible in that version. If the key does not exist in that version, return \"NULL\".",
       "constraints": [
         "1 <= number of operations <= 5000",
         "0 <= baseVersion <= latestCreatedVersion",
@@ -1234,10 +1244,10 @@
         "array"
       ],
       "allowed_languages": [
+        "cpp",
         "python",
         "javascript",
         "java",
-        "cpp",
         "c"
       ],
       "starter_code": {
@@ -1359,7 +1369,8 @@
           "purpose": "Parent remains immutable",
           "tags": [
             "immutability",
-            "parent-chain"
+            "parent-chain",
+            "hardcoding"
           ]
         },
         {

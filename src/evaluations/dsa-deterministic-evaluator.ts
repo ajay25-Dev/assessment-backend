@@ -35,6 +35,22 @@ type TestSummary = {
   hiddenAvailable: boolean;
 };
 
+type RiskSignal = 'Yes' | 'No';
+
+type RiskSignalSummary = {
+  signal: RiskSignal;
+  taggedTests: string[];
+  taggedCount: number;
+  failedCount: number;
+  passedCount: number;
+};
+
+type StructuredTestResultSlice = {
+  openResults: Array<{ passed?: boolean } | null | undefined>;
+  hiddenResults: Array<{ passed?: boolean } | null | undefined>;
+  hiddenAvailable: boolean;
+};
+
 type CodeQualityScores = {
   readabilityScore: number;
   modularityScore: number;
@@ -179,6 +195,12 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
     structuredResults,
     summary,
   });
+  const riskSignals = evaluateRiskSignals({
+    openTests,
+    hiddenTests,
+    structuredResults,
+    summary,
+  });
 
   const openTestCaseScore = scoreRatio(testSummary.openPassed, testSummary.openTotal);
   const hiddenTestCaseScore = testSummary.hiddenAvailable
@@ -269,6 +291,8 @@ export function evaluateDsaSubmission(input: unknown): EvaluationResult {
       ai_returned_approach_tags: approachAnalysis.aiReturnedApproachTags,
       open_test_case_score: openTestCaseScore,
       hidden_test_case_score: hiddenTestCaseScore,
+      brute_force_signal: riskSignals.bruteForce.signal,
+      hardcoding_signal: riskSignals.hardcoding.signal,
       correctness_score: correctnessScore,
       expected_time_complexity: expectedTimeComplexity,
       expected_time_complexity_rank: expectedTimeComplexityRank,
@@ -483,24 +507,19 @@ function buildTestSummary(params: {
 
   if (params.structuredResults?.test_results?.length) {
     const results = params.structuredResults.test_results;
-    const openCount = openTotal || Math.min(results.length, 5);
-    const hiddenResults =
-      hiddenTotal && results.length >= openCount + hiddenTotal
-        ? results.slice(openCount, openCount + hiddenTotal)
-        : [];
-    const hiddenAvailable = hiddenTotal > 0 && hiddenResults.length === hiddenTotal;
+    const slices = splitStructuredTestResults(params);
     return {
-      openPassed: countPassed(results.slice(0, openCount)),
-      openTotal: openCount || null,
-      hiddenPassed: hiddenAvailable ? countPassed(hiddenResults) : null,
-      hiddenTotal: hiddenAvailable ? hiddenTotal : hiddenTotal || null,
+      openPassed: countPassed(slices.openResults),
+      openTotal: slices.openResults.length || null,
+      hiddenPassed: slices.hiddenAvailable ? countPassed(slices.hiddenResults) : null,
+      hiddenTotal: slices.hiddenAvailable ? hiddenTotal : hiddenTotal || null,
       totalPassed:
         params.structuredResults.passed ??
         countPassed(results) ??
         results.length ??
         null,
       totalTests: params.structuredResults.total ?? results.length ?? null,
-      hiddenAvailable,
+      hiddenAvailable: slices.hiddenAvailable,
     };
   }
 
@@ -524,6 +543,28 @@ function buildTestSummary(params: {
     totalPassed: null,
     totalTests: null,
     hiddenAvailable: false,
+  };
+}
+
+function splitStructuredTestResults(params: {
+  openTests: TestCase[];
+  hiddenTests: TestCase[];
+  structuredResults: StructuredTestResults | null;
+  summary: { passed: number; total: number } | null;
+}): StructuredTestResultSlice {
+  const results = params.structuredResults?.test_results || [];
+  const openCount = params.openTests.length || params.summary?.total || 0;
+  const hiddenResults =
+    params.hiddenTests.length && results.length >= openCount + params.hiddenTests.length
+      ? results.slice(openCount, openCount + params.hiddenTests.length)
+      : [];
+  const hiddenAvailable =
+    params.hiddenTests.length > 0 && hiddenResults.length === params.hiddenTests.length;
+
+  return {
+    openResults: results.slice(0, openCount),
+    hiddenResults,
+    hiddenAvailable,
   };
 }
 
@@ -977,6 +1018,85 @@ function buildFailedCaseAnalysis(
     analysis.push(`Missed edge cases: ${edgeCaseEvaluation.missedEdgeCases.join(', ')}.`);
   }
   return analysis.length ? analysis : ['No major failure pattern detected from the available evidence.'];
+}
+
+function evaluateRiskSignals(params: {
+  openTests: TestCase[];
+  hiddenTests: TestCase[];
+  structuredResults: StructuredTestResults | null;
+  summary: { passed: number; total: number } | null;
+}) {
+  const slices = splitStructuredTestResults(params);
+  if (!slices.hiddenAvailable) {
+    return {
+      bruteForce: emptyRiskSignalSummary(),
+      hardcoding: emptyRiskSignalSummary(),
+    };
+  }
+
+  return {
+    bruteForce: evaluateTaggedRiskSignal(
+      params.hiddenTests,
+      slices.hiddenResults,
+      'brute-force',
+    ),
+    hardcoding: evaluateTaggedRiskSignal(
+      params.hiddenTests,
+      slices.hiddenResults,
+      'hardcoding',
+    ),
+  };
+}
+
+function emptyRiskSignalSummary(): RiskSignalSummary {
+  return {
+    signal: 'No',
+    taggedTests: [],
+    taggedCount: 0,
+    failedCount: 0,
+    passedCount: 0,
+  };
+}
+
+function evaluateTaggedRiskSignal(
+  hiddenTests: TestCase[],
+  hiddenResults: Array<{ passed?: boolean } | null | undefined>,
+  targetTag: string,
+): RiskSignalSummary {
+  const normalizedTarget = normalizeRiskTag(targetTag);
+  const taggedIndexes = hiddenTests
+    .map((test, index) => ({ test, index }))
+    .filter(({ test }) => hasRiskTag(test, normalizedTarget))
+    .map(({ index }) => index);
+
+  if (!taggedIndexes.length) {
+    return emptyRiskSignalSummary();
+  }
+
+  const passedCount = taggedIndexes.filter((index) => hiddenResults[index]?.passed).length;
+  const failedCount = taggedIndexes.length - passedCount;
+
+  return {
+    signal: failedCount > 0 ? 'Yes' : 'No',
+    taggedTests: taggedIndexes.map((index) => describeTestCase(hiddenTests[index], index)),
+    taggedCount: taggedIndexes.length,
+    failedCount,
+    passedCount,
+  };
+}
+
+function hasRiskTag(test: TestCase, targetTag: string) {
+  const tags = stringList(test.tags).map(normalizeRiskTag);
+  return tags.includes(targetTag);
+}
+
+function normalizeRiskTag(value: string) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
 }
 
 function buildSummary(
