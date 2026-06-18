@@ -1,4 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { OpenAiClientService } from '../ai/openai-client.service';
+import {
+  DSA_APPROACH_PROMPT,
+  DSA_APPROACH_PROMPT_VERSION,
+} from '../ai/prompts/dsa-approach.v1';
+import { dsaApproachOutputSchema } from '../ai/schemas/evaluation-output.schemas';
+import { BaseEvaluatorService } from './base-evaluator.service';
 import { evaluateDsaSubmission } from './dsa-deterministic-evaluator';
 
 type DsaComplexityOutput = {
@@ -9,20 +16,24 @@ type DsaComplexityOutput = {
 type JsonRecord = Record<string, unknown>;
 
 @Injectable()
-export class DsaEvaluationService {
+export class DsaEvaluationService extends BaseEvaluatorService {
   private readonly logger = new Logger(DsaEvaluationService.name);
+
+  constructor(aiClient: OpenAiClientService) {
+    super(aiClient);
+  }
 
   async evaluate(input: unknown) {
     this.logger.log('Starting DSA evaluation');
     const record = this.asRecord(input);
     const complexitySelection = this.deriveComplexitySelection(record);
-    const detectedApproachTags = this.deriveApproachTags(record);
+    const detectedApproachTags = await this.extractApproachTags(record);
 
     this.logger.log(
       `DSA complexity derived: timeRank=${complexitySelection.student_time_complexity_rank}, spaceRank=${complexitySelection.student_space_complexity_rank}`,
     );
     this.logger.log(
-      `DSA approach tags derived: ${detectedApproachTags.length ? detectedApproachTags.join(', ') : 'none'}`,
+      `DSA approach tags returned by AI: ${detectedApproachTags.length ? detectedApproachTags.join(', ') : 'none'}`,
     );
 
     return evaluateDsaSubmission({
@@ -32,6 +43,38 @@ export class DsaEvaluationService {
         complexitySelection.student_space_complexity_rank,
       detected_approach_tags: detectedApproachTags,
     });
+  }
+
+  private async extractApproachTags(record: JsonRecord) {
+    const allowedApproachTags = this.normalizeTags(this.stringList(record.expected_approach));
+
+    if (!allowedApproachTags.length) {
+      throw new BadRequestException(
+        'expected_approach must contain at least one allowed approach tag',
+      );
+    }
+
+    const output = await this.evaluateWithPrompt({
+      section: 'DSA',
+      promptVersion: DSA_APPROACH_PROMPT_VERSION,
+      schemaName: 'dsa_approach_tag_extraction',
+      schema: dsaApproachOutputSchema,
+      systemPrompt: DSA_APPROACH_PROMPT,
+      input: {
+        question: [record.question_title, record.prompt].filter(Boolean).join('\n\n'),
+        submitted_code: String(record.submitted_code || ''),
+        submitted_code_lines: this.numberedCodeLines(String(record.submitted_code || '')),
+        allowed_expected_approach_tags: allowedApproachTags,
+      },
+    });
+
+    this.logger.log(`Raw DSA approach tag output: ${JSON.stringify(output.output)}`);
+    const parsed = this.asApproachTagsOutput(output.output, allowedApproachTags);
+    this.logger.log(
+      `Validated DSA approach tag output: detectedTags=${parsed.detected_tags.length}`,
+    );
+
+    return parsed.detected_tags;
   }
 
   private deriveComplexitySelection(record: JsonRecord): DsaComplexityOutput {
@@ -123,35 +166,6 @@ export class DsaEvaluationService {
     };
   }
 
-  private deriveApproachTags(record: JsonRecord) {
-    const submittedCode = String(record.submitted_code || '');
-    const normalizedCode = this.normalizeText(submittedCode);
-    const lowerCode = submittedCode.toLowerCase();
-    const expectedApproach = this.stringList(record.expected_approach);
-
-    return expectedApproach.filter((tag) =>
-      this.tagMatchesCode(tag, normalizedCode, lowerCode),
-    );
-  }
-
-  private tagMatchesCode(tag: string, normalizedCode: string, lowerCode: string) {
-    const normalizedTag = this.normalizeTag(tag);
-    if (!normalizedTag) return false;
-
-    const parts = normalizedTag.split('-').filter(Boolean);
-    if (!parts.length) return false;
-
-    const matchesPart = (part: string) =>
-      normalizedCode.includes(part) || lowerCode.includes(part);
-
-    if (parts.length === 1) {
-      return matchesPart(parts[0]);
-    }
-
-    const matchedParts = parts.filter((part) => matchesPart(part)).length;
-    return matchedParts >= Math.max(1, Math.ceil(parts.length * 0.6));
-  }
-
   private asRecord(value: unknown) {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as JsonRecord)
@@ -162,6 +176,40 @@ export class DsaEvaluationService {
     return Array.isArray(value)
       ? value.map((item) => String(item).trim()).filter(Boolean)
       : [];
+  }
+
+  private numberedCodeLines(code: string) {
+    return code
+      .split(/\r?\n/)
+      .map((line, index) => ({ line, index }))
+      .filter(({ line }) => line.trim().length > 0)
+      .map(({ line, index }) => `${index + 1}: ${line.trimEnd()}`);
+  }
+
+  private normalizeTags(value: string[]) {
+    return [...new Set(value.map((item) => this.normalizeTag(item)).filter(Boolean))];
+  }
+
+  private asApproachTagsOutput(value: unknown, allowedApproachTags: string[]) {
+    const record = this.asRecord(value);
+    const detectedTags = this.normalizeTags(this.stringList(record.detected_tags));
+
+    if (!detectedTags.length) {
+      throw new BadRequestException('DSA approach tag extraction returned no detected_tags');
+    }
+
+    const allowedSet = new Set(allowedApproachTags);
+    const invalidTags = detectedTags.filter((tag) => !allowedSet.has(tag));
+
+    if (invalidTags.length) {
+      throw new BadRequestException(
+        `DSA approach tag extraction returned tags outside the allowed set: ${invalidTags.join(', ')}`,
+      );
+    }
+
+    return {
+      detected_tags: detectedTags,
+    };
   }
 
   private containsAny(text: string, patterns: RegExp[]) {

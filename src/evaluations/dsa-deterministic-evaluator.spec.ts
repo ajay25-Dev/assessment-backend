@@ -189,7 +189,7 @@ describe('evaluateDsaSubmission', () => {
     expect(output.space_complexity_score).toBe(100);
   });
 
-  it('scores time and space complexity from normalized ranks rather than execution metrics', () => {
+  it('scores time and space complexity from raw detailed ranks rather than execution metrics', () => {
     const result = evaluateDsaSubmission({
       question_id: 'dsa_servicenow_incident_dependency',
       question_title: 'Incident SLA Scheduling with Dependencies',
@@ -227,17 +227,17 @@ describe('evaluateDsaSubmission', () => {
     expect(output.expected_time_complexity_score_rank).toBe(3);
     expect(output.student_time_complexity_score_rank).toBe(2);
     expect(output.time_complexity_score_rank_gap).toBe(-1);
-    expect(output.time_complexity_score).toBe(67);
+    expect(output.time_complexity_score).toBe(100);
     expect(output.expected_space_complexity_rank).toBe(35);
     expect(output.student_space_complexity_rank).toBe(37);
     expect(output.space_complexity_rank_gap).toBe(2);
     expect(output.expected_space_complexity_score_rank).toBe(4);
     expect(output.student_space_complexity_score_rank).toBe(3);
     expect(output.space_complexity_score_rank_gap).toBe(-1);
-    expect(output.space_complexity_score).toBe(75);
+    expect(output.space_complexity_score).toBe(100);
   });
 
-  it('maps ranks into the requested normalized score table', () => {
+  it('maps ranks into the requested rank tables and raw capped ratio', () => {
     expect(resolveComplexityRank('O(1)')).toBe(1);
     expect(resolveComplexityRank('O(n * 2^n)')).toBe(36);
     expect(resolveComplexityRank('O(2^n * n)')).toBe(36);
@@ -251,11 +251,12 @@ describe('evaluateDsaSubmission', () => {
     expect(complexityScoreRankFromDetailedRank(39)).toBe(1);
     expect(complexityScoreRankFromDetailedRank(50)).toBe(0);
     expect(complexityScoreFromRanks(10, 10)).toBe(100);
-    expect(complexityScoreFromRanks(10, 11)).toBe(91);
+    expect(complexityScoreFromRanks(10, 11)).toBe(100);
     expect(complexityScoreFromRanks(10, 9)).toBe(90);
     expect(complexityScoreFromRanks(3, 1)).toBe(33);
     expect(complexityScoreFromRanks(3, 2)).toBe(67);
     expect(complexityScoreFromRanks(7, 6)).toBe(86);
+    expect(complexityScoreFromRanks(36, 38)).toBe(100);
   });
 
   it('uses injected AI approach tags when present', () => {
