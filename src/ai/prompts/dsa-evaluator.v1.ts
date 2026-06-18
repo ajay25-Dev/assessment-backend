@@ -27,14 +27,14 @@ Scoring rubric:
  - expected_time_complexity_score_rank: normalized 10-tier scoring rank for the target runtime complexity, where 10 is best and 1 is worst.
  - student_time_complexity_score_rank: normalized 10-tier scoring rank for the observed runtime complexity.
  - time_complexity_score_rank_gap: student_time_complexity_score_rank - expected_time_complexity_score_rank.
- - time_complexity_score: backend-calculated normalized score using round(100 * student_time_complexity_score_rank / expected_time_complexity_score_rank), capped at 100.
+ - time_complexity_score: backend-calculated normalized score using round(100 * min(student_time_complexity_score_rank, expected_time_complexity_score_rank) / max(student_time_complexity_score_rank, expected_time_complexity_score_rank)).
  - expected_space_complexity_rank: raw detailed rank for the target memory complexity, where 1 is best and 50 is worst.
  - student_space_complexity_rank: raw detailed rank for the observed solution memory complexity.
  - space_complexity_rank_gap: student_space_complexity_rank - expected_space_complexity_rank.
  - expected_space_complexity_score_rank: normalized 10-tier scoring rank for the target memory complexity, where 10 is best and 1 is worst.
  - student_space_complexity_score_rank: normalized 10-tier scoring rank for the observed memory complexity.
  - space_complexity_score_rank_gap: student_space_complexity_score_rank - expected_space_complexity_score_rank.
- - space_complexity_score: backend-calculated normalized score using round(100 * student_space_complexity_score_rank / expected_space_complexity_score_rank), capped at 100.
+ - space_complexity_score: backend-calculated normalized score using round(100 * min(student_space_complexity_score_rank, expected_space_complexity_score_rank) / max(student_space_complexity_score_rank, expected_space_complexity_score_rank)).
 - edge_case_score: null/empty input handling, boundary conditions, duplicates, overflow, and unusual cases.
 - overall_question_score: simple average of correctness_score, open_test_case_score, hidden_test_case_score, approach_score, time_complexity_score, space_complexity_score, and edge_case_score when available.
 

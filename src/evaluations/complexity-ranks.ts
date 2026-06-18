@@ -64,5 +64,7 @@ export function complexityScoreRankFromDetailedRank(rank: number) {
 export function complexityScoreFromRanks(expectedRank: number, studentRank: number) {
   if (!Number.isFinite(expectedRank) || !Number.isFinite(studentRank)) return 0;
   if (expectedRank <= 0 || studentRank <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round((studentRank / expectedRank) * 100)));
+  const better = Math.min(expectedRank, studentRank);
+  const worse = Math.max(expectedRank, studentRank);
+  return Math.max(0, Math.min(100, Math.round((better / worse) * 100)));
 }
