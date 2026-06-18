@@ -19,8 +19,8 @@ describe('SqlSafetyService', () => {
   });
 
   it('allows sandbox mutation and alter statements', () => {
-    expect(service.assertSafeSelect("INSERT INTO users(id) VALUES (1);")).toBe(
-      "INSERT INTO users(id) VALUES (1)",
+    expect(service.assertSafeSelect('INSERT INTO users(id) VALUES (1);')).toBe(
+      'INSERT INTO users(id) VALUES (1)',
     );
     expect(service.assertSafeSelect("UPDATE users SET name = 'A';")).toBe(
       "UPDATE users SET name = 'A'",

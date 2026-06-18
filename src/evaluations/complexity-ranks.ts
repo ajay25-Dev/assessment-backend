@@ -14,8 +14,20 @@ export function loadComplexityRanks() {
 
   const candidates = [
     join(__dirname, 'data', 'complexity-rankings.json'),
-    join(process.cwd(), 'src', 'evaluations', 'data', 'complexity-rankings.json'),
-    join(process.cwd(), 'dist', 'evaluations', 'data', 'complexity-rankings.json'),
+    join(
+      process.cwd(),
+      'src',
+      'evaluations',
+      'data',
+      'complexity-rankings.json',
+    ),
+    join(
+      process.cwd(),
+      'dist',
+      'evaluations',
+      'data',
+      'complexity-rankings.json',
+    ),
   ];
 
   for (const candidate of candidates) {
@@ -61,8 +73,14 @@ export function complexityScoreRankFromDetailedRank(rank: number) {
   return 0;
 }
 
-export function complexityScoreFromRanks(expectedRank: number, studentRank: number) {
+export function complexityScoreFromRanks(
+  expectedRank: number,
+  studentRank: number,
+) {
   if (!Number.isFinite(expectedRank) || !Number.isFinite(studentRank)) return 0;
   if (expectedRank <= 0 || studentRank <= 0) return 0;
-  return Math.max(0, Math.min(100, Math.round((studentRank / expectedRank) * 100)));
+  return Math.max(
+    0,
+    Math.min(100, Math.round((studentRank / expectedRank) * 100)),
+  );
 }

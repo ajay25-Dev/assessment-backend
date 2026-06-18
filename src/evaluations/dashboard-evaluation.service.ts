@@ -275,18 +275,23 @@ export class DashboardEvaluationService {
       'sql_concept_score',
       scores.SQL,
     );
-    const oopsDesign = this.averageField(
-      oopsEvaluations,
-      'class_design_score',
-      scores.OOPs,
-    );
     const oopsAbstraction = this.averageField(
       oopsEvaluations,
       'abstraction_score',
       scores.OOPs,
     );
+    const oopsPolymorphism = this.averageField(
+      oopsEvaluations,
+      'polymorphism_score',
+      scores.OOPs,
+    );
     return this.clampScore(
-      (dsaApproach + sqlLogic + sqlConcept + oopsDesign + oopsAbstraction) / 5,
+      (dsaApproach +
+        sqlLogic +
+        sqlConcept +
+        oopsAbstraction +
+        oopsPolymorphism) /
+        5,
     );
   }
 
@@ -306,12 +311,12 @@ export class DashboardEvaluationService {
       'null_duplicate_handling_score',
       scores.SQL,
     );
-    const oopsEdge = this.averageField(
+    const oopsEncapsulation = this.averageField(
       oopsEvaluations,
-      'error_handling_score',
+      'encapsulation_score',
       scores.OOPs,
     );
-    return this.clampScore((dsaEdge + sqlEdge + oopsEdge) / 3);
+    return this.clampScore((dsaEdge + sqlEdge + oopsEncapsulation) / 3);
   }
 
   private complexityScore(
@@ -354,23 +359,33 @@ export class DashboardEvaluationService {
       'code_quality_score',
       scores.DSA,
     );
-    const oopsReadability = this.averageField(
+    const oopsEncapsulation = this.averageField(
       oopsEvaluations,
-      'code_readability_score',
+      'encapsulation_score',
       scores.OOPs,
     );
-    const oopsStructure = this.averageField(
+    const oopsAbstraction = this.averageField(
       oopsEvaluations,
-      'separation_of_concerns_score',
+      'abstraction_score',
       scores.OOPs,
     );
-    const oopsDesign = this.averageField(
+    const oopsPolymorphism = this.averageField(
+      oopsEvaluations,
+      'polymorphism_score',
+      scores.OOPs,
+    );
+    const oopsSolid = this.averageField(
       oopsEvaluations,
       'solid_principles_score',
       scores.OOPs,
     );
     return this.clampScore(
-      (dsaQuality + oopsReadability + oopsStructure + oopsDesign) / 4,
+      (dsaQuality +
+        oopsAbstraction +
+        oopsEncapsulation +
+        oopsPolymorphism +
+        oopsSolid) /
+        5,
     );
   }
 
@@ -404,7 +419,10 @@ export class DashboardEvaluationService {
     dsaEvaluations: EvaluationOutput[],
     scores: Record<'DSA' | 'SQL' | 'OOPs' | 'MCQ', number>,
   ): RiskLevel {
-    const signalBased = this.signalBasedRisk(dsaEvaluations, 'brute_force_signal');
+    const signalBased = this.signalBasedRisk(
+      dsaEvaluations,
+      'brute_force_signal',
+    );
     if (signalBased) return signalBased;
     const legacy = this.aggregateRisk(dsaEvaluations, 'brute_force_risk');
     if (legacy === 'High' || scores.DSA < 35) return 'High';
@@ -416,7 +434,10 @@ export class DashboardEvaluationService {
     dsaEvaluations: EvaluationOutput[],
     scores: Record<'DSA' | 'SQL' | 'OOPs' | 'MCQ', number>,
   ): RiskLevel {
-    const signalBased = this.signalBasedRisk(dsaEvaluations, 'hardcoding_signal');
+    const signalBased = this.signalBasedRisk(
+      dsaEvaluations,
+      'hardcoding_signal',
+    );
     if (signalBased) return signalBased;
     const legacy = this.aggregateRisk(dsaEvaluations, 'hardcoding_risk');
     if (legacy === 'High' || scores.DSA < 35) return 'High';
@@ -495,9 +516,21 @@ export class DashboardEvaluationService {
       params.codeQualityScore * 0.14;
 
     const riskPenalty =
-      (params.bruteForceRisk === 'High' ? 12 : params.bruteForceRisk === 'Medium' ? 6 : 0) +
-      (params.hardcodingRisk === 'High' ? 12 : params.hardcodingRisk === 'Medium' ? 6 : 0) +
-      (params.compilationBehaviour === 'Failed' ? 8 : params.compilationBehaviour === 'Warnings' ? 3 : 0);
+      (params.bruteForceRisk === 'High'
+        ? 12
+        : params.bruteForceRisk === 'Medium'
+          ? 6
+          : 0) +
+      (params.hardcodingRisk === 'High'
+        ? 12
+        : params.hardcodingRisk === 'Medium'
+          ? 6
+          : 0) +
+      (params.compilationBehaviour === 'Failed'
+        ? 8
+        : params.compilationBehaviour === 'Warnings'
+          ? 3
+          : 0);
 
     const independenceBonus = Math.round(params.independenceScore * 0.08);
 
@@ -591,9 +624,9 @@ export class DashboardEvaluationService {
             ]
           : section === 'OOPs'
             ? [
-                'Rebuild the design around clearer classes and responsibilities.',
-                'Strengthen abstraction and separation of concerns.',
-                'Check maintainability and extensibility decisions.',
+                'Rebuild the design around encapsulated state and behavior.',
+                'Add clear interfaces or abstract contracts before concrete variants.',
+                'Review SOLID responsibility and dependency decisions.',
               ]
             : [
                 'Revisit the core theory behind the missed MCQs.',
@@ -720,11 +753,12 @@ export class DashboardEvaluationService {
         : `business logic ${logic}/100 and efficiency ${efficiency}/100 need work.`;
     }
     if (section === 'OOPs') {
-      const design = this.numberValue(evaluation.class_design_score);
-      const readability = this.numberValue(evaluation.code_readability_score);
+      const abstraction = this.numberValue(evaluation.abstraction_score);
+      const encapsulation = this.numberValue(evaluation.encapsulation_score);
+      const solid = this.numberValue(evaluation.solid_principles_score);
       return positive
-        ? `design ${design}/100 and readability ${readability}/100 are strong.`
-        : `design ${design}/100 and readability ${readability}/100 need work.`;
+        ? `abstraction ${abstraction}/100, encapsulation ${encapsulation}/100, and SOLID ${solid}/100 are strong.`
+        : `abstraction ${abstraction}/100, encapsulation ${encapsulation}/100, and SOLID ${solid}/100 need work.`;
     }
     const mcq = this.numberValue(evaluation.overall_mcq_score);
     return positive
@@ -845,8 +879,8 @@ export class DashboardEvaluationService {
     }
     if (weakestSection === 'OOPs') {
       return score < 45
-        ? 'Object modelling, abstraction, and class design'
-        : 'SOLID design, extensibility, and structure';
+        ? 'Abstraction, encapsulation, polymorphism, and SOLID principles'
+        : 'SOLID design, abstraction, and polymorphic structure';
     }
     return score < 45
       ? 'Fundamental CS revision and accuracy drills'

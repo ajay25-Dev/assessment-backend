@@ -73,7 +73,14 @@ type FinalizeInput = {
   camera_events?: number;
   submission_mode?: 'manual' | 'auto';
   integrity_status?: 'disqualified' | null;
-  integrity_source?: 'tab_switch' | 'camera' | 'copy_paste' | 'inspect_mode' | 'logout' | 'browser_back' | null;
+  integrity_source?:
+    | 'tab_switch'
+    | 'camera'
+    | 'copy_paste'
+    | 'inspect_mode'
+    | 'logout'
+    | 'browser_back'
+    | null;
   integrity_message?: string | null;
   integrity_event_count?: number | null;
   answers?: Record<string, FinalizeAnswer>;
@@ -255,8 +262,7 @@ export class AssessmentPipelineService {
       throw new BadRequestException('assessment_id is required');
     }
 
-    const durationMinutes =
-      bank.assessment?.duration_minutes || 180;
+    const durationMinutes = bank.assessment?.duration_minutes || 180;
     const security = this.questionBank.getAssessmentSecurityPolicy(bank);
     const now = new Date().toISOString();
     const latestAttempt = await this.findLatestAssessmentAttempt(
@@ -293,9 +299,7 @@ export class AssessmentPipelineService {
       ? !this.isFinalAttemptStatus(latestAttempt.status)
       : false;
     const existingStartedAt = this.textOutput(
-      latestMetadata.session_started_at ||
-        latestAttempt?.started_at ||
-        now,
+      latestMetadata.session_started_at || latestAttempt?.started_at || now,
     );
     const sessionStartedAt = hasInProgressAttempt
       ? existingStartedAt
@@ -359,7 +363,9 @@ export class AssessmentPipelineService {
       throw new BadRequestException(`Unknown question_id ${input.question_id}`);
     }
     if (question.section !== 'DSA' || question.engine !== 'code') {
-      throw new BadRequestException(`${question.id} is not a DSA coding question`);
+      throw new BadRequestException(
+        `${question.id} is not a DSA coding question`,
+      );
     }
 
     const submittedAt = input.submitted_at || new Date().toISOString();
@@ -387,8 +393,10 @@ export class AssessmentPipelineService {
       compiler_result_summary: answer.resultMessage || '',
       execution_time_ms: this.parseExecutionTimeMs(answer.executionTime),
       execution_memory_kb: this.nullableNumber(answer.executionMemory),
-      testResults: input.test_results || answer.testResults || answer.test_results || null,
-      test_results: input.test_results || answer.testResults || answer.test_results || null,
+      testResults:
+        input.test_results || answer.testResults || answer.test_results || null,
+      test_results:
+        input.test_results || answer.testResults || answer.test_results || null,
       open_test_cases: question.open_test_cases || [],
       hidden_test_cases: question.hidden_test_cases || [],
       all_doc_test_cases: question.test_cases || [],
@@ -414,7 +422,12 @@ export class AssessmentPipelineService {
       'in_progress',
     );
 
-    await this.persistQuestionAttemptSnapshot(attemptId, question, input, submittedAt);
+    await this.persistQuestionAttemptSnapshot(
+      attemptId,
+      question,
+      input,
+      submittedAt,
+    );
     await this.persistQuestionEvaluationSnapshot(
       attemptId,
       question,
@@ -442,7 +455,9 @@ export class AssessmentPipelineService {
       throw new BadRequestException(`Unknown question_id ${input.question_id}`);
     }
     if (question.section !== section) {
-      throw new BadRequestException(`${question.id} is not a ${section} question`);
+      throw new BadRequestException(
+        `${question.id} is not a ${section} question`,
+      );
     }
     if (section === 'DSA') {
       return this.persistDsaQuestionSubmission(rawInput);
@@ -476,7 +491,12 @@ export class AssessmentPipelineService {
       'in_progress',
     );
 
-    await this.persistQuestionAttemptSnapshot(attemptId, question, input, submittedAt);
+    await this.persistQuestionAttemptSnapshot(
+      attemptId,
+      question,
+      input,
+      submittedAt,
+    );
     await this.persistQuestionEvaluationSnapshot(
       attemptId,
       question,
@@ -501,7 +521,11 @@ export class AssessmentPipelineService {
   ) {
     const stage = this.parseFinalizeStage(rawStage);
     const input = this.parseInput(rawInput);
-    await this.ensureAttemptOwnership(attemptId, input.student_id || '', input.assessment_id);
+    await this.ensureAttemptOwnership(
+      attemptId,
+      input.student_id || '',
+      input.assessment_id,
+    );
     const bank = (await this.questionBank.getBank()) as Bank;
     const questions = bank.questions || [];
     const questionsById = new Map(
@@ -773,11 +797,16 @@ export class AssessmentPipelineService {
       schema_ref: question.schema_ref,
       expected_columns: question.expected_columns || [],
       visible_expected_rows: question.visible_expected_rows || [],
-      result_match: question.result_match || { order_matters: false, numeric_tolerance: 0.01 },
+      result_match: question.result_match || {
+        order_matters: false,
+        numeric_tolerance: 0.01,
+      },
       required_business_rules: question.required_business_rules || [],
       expected_sql_concepts: question.expected_sql_concepts || [],
       expected_sql_concept_tags:
-        question.expected_sql_concept_tags || question.expected_sql_concepts || [],
+        question.expected_sql_concept_tags ||
+        question.expected_sql_concepts ||
+        [],
       edge_cases: question.edge_cases || [],
       null_rules: question.null_rules || [],
       duplicate_rules: question.duplicate_rules || [],
@@ -785,7 +814,9 @@ export class AssessmentPipelineService {
       status: answer?.status || 'unvisited',
       run_count: answer?.runs || 0,
       submit_count: answer?.submissions || 0,
-      execution_ms: this.nullableNumber(sqlRun.execution_ms ?? answer?.sqlExecutionMs),
+      execution_ms: this.nullableNumber(
+        sqlRun.execution_ms ?? answer?.sqlExecutionMs,
+      ),
       sql_result_summary:
         this.textOutput(answer?.resultMessage || '') ||
         this.textOutput(sqlRun.error || '') ||
@@ -813,7 +844,10 @@ export class AssessmentPipelineService {
 
     for (const question of sectionQuestions) {
       const answer = input.answers?.[question.id] || {};
-      const sqlRun = await this.runSqlVisibleQuery(question.id, answer.value || '');
+      const sqlRun = await this.runSqlVisibleQuery(
+        question.id,
+        answer.value || '',
+      );
       const detail = this.buildSqlEvaluationDetail(question, answer, sqlRun);
       details.push(detail);
       const fallback = this.fallbackQuestionEvaluation('SQL', detail);
@@ -825,9 +859,7 @@ export class AssessmentPipelineService {
           output: {
             ...fallback.output,
             evaluation_error:
-              error instanceof Error
-                ? error.message
-                : 'SQL evaluation failed',
+              error instanceof Error ? error.message : 'SQL evaluation failed',
           },
         });
       }
@@ -880,7 +912,9 @@ export class AssessmentPipelineService {
       };
     });
 
-    const score = this.average(answers.map((answer) => Number(answer.overall_question_score || 0)));
+    const score = this.average(
+      answers.map((answer) => Number(answer.overall_question_score || 0)),
+    );
     const payload = {
       student_id: input.student_id,
       total_questions: sectionQuestions.length,
@@ -1035,8 +1069,16 @@ export class AssessmentPipelineService {
         compiler_result_summary: answer.resultMessage || '',
         execution_time_ms: this.parseExecutionTimeMs(answer.executionTime),
         execution_memory_kb: this.nullableNumber(answer.executionMemory),
-        testResults: input.test_results || answer.testResults || answer.test_results || null,
-        test_results: input.test_results || answer.testResults || answer.test_results || null,
+        testResults:
+          input.test_results ||
+          answer.testResults ||
+          answer.test_results ||
+          null,
+        test_results:
+          input.test_results ||
+          answer.testResults ||
+          answer.test_results ||
+          null,
         open_test_cases: question.open_test_cases || [],
         hidden_test_cases: question.hidden_test_cases || [],
         all_doc_test_cases: question.test_cases || [],
@@ -1064,12 +1106,15 @@ export class AssessmentPipelineService {
           overall_question_score: score,
           overall_mcq_score: score,
           score_basis: 'selected_options_match',
-          placement_readiness_label: score === 100 ? 'Strong Ready' : 'Needs Revision',
+          placement_readiness_label:
+            score === 100 ? 'Strong Ready' : 'Needs Revision',
         },
       };
     }
 
-    throw new BadRequestException(`${section} question submission is not supported`);
+    throw new BadRequestException(
+      `${section} question submission is not supported`,
+    );
   }
 
   private isFinalizeAiEvaluationEnabled() {
@@ -1157,7 +1202,11 @@ export class AssessmentPipelineService {
     bank: Bank,
     submittedAt: string,
     durationMinutes: number,
-    targetStatus: 'in_progress' | 'submitted' | 'auto_submitted' | 'disqualified',
+    targetStatus:
+      | 'in_progress'
+      | 'submitted'
+      | 'auto_submitted'
+      | 'disqualified',
   ) {
     const supabase = this.getSupabase();
     const sourceAssessmentId = input.assessment_id || bank.assessment?.id;
@@ -1220,19 +1269,18 @@ export class AssessmentPipelineService {
         .update({
           status: targetStatus,
           started_at: sessionStartedAt,
-          submitted_at:
-            targetStatus === 'in_progress'
-              ? null
-              : submittedAt,
+          submitted_at: targetStatus === 'in_progress' ? null : submittedAt,
           duration_minutes: durationMinutes,
-          tab_visibility_events: (input as { tab_events?: number }).tab_events || 0,
+          tab_visibility_events:
+            (input as { tab_events?: number }).tab_events || 0,
           last_seen_at: submittedAt,
           client_metadata: {
             ...existingMetadata,
             source_assessment_id: sourceAssessmentId,
             student_email: input.student_email,
             submission_mode: input.submission_mode || 'manual',
-            camera_events: (input as { camera_events?: number }).camera_events || 0,
+            camera_events:
+              (input as { camera_events?: number }).camera_events || 0,
             integrity_status: input.integrity_status || null,
             integrity_source: input.integrity_source || null,
             integrity_message: input.integrity_message || null,
@@ -1266,13 +1314,15 @@ export class AssessmentPipelineService {
         started_at: input.session_started_at || input.started_at || submittedAt,
         submitted_at: targetStatus === 'in_progress' ? null : submittedAt,
         duration_minutes: durationMinutes,
-        tab_visibility_events: (input as { tab_events?: number }).tab_events || 0,
+        tab_visibility_events:
+          (input as { tab_events?: number }).tab_events || 0,
         last_seen_at: submittedAt,
         client_metadata: {
           source_assessment_id: sourceAssessmentId,
           student_email: input.student_email,
           submission_mode: input.submission_mode || 'manual',
-          camera_events: (input as { camera_events?: number }).camera_events || 0,
+          camera_events:
+            (input as { camera_events?: number }).camera_events || 0,
           integrity_status: input.integrity_status || null,
           integrity_source: input.integrity_source || null,
           integrity_message: input.integrity_message || null,
@@ -1553,15 +1603,21 @@ export class AssessmentPipelineService {
     }
 
     const attemptAssessmentId = this.textOutput(
-      (attempt as {
-        assessment_id?: unknown;
-        client_metadata?: { source_assessment_id?: unknown } | null;
-      }).client_metadata?.source_assessment_id ||
+      (
+        attempt as {
+          assessment_id?: unknown;
+          client_metadata?: { source_assessment_id?: unknown } | null;
+        }
+      ).client_metadata?.source_assessment_id ||
         (attempt as { assessment_id?: unknown }).assessment_id ||
         '',
     );
 
-    if (assessmentId && attemptAssessmentId && attemptAssessmentId !== assessmentId) {
+    if (
+      assessmentId &&
+      attemptAssessmentId &&
+      attemptAssessmentId !== assessmentId
+    ) {
       throw new NotFoundException('Assessment attempt not found');
     }
   }
@@ -1640,7 +1696,11 @@ export class AssessmentPipelineService {
       const answer = input.answers?.[question.id] || {};
       const query = String(answer.value || '').trim();
       if (!query.length) continue;
-      const sqlRun = await this.runSqlVisibleQuery(question.id, query, attemptId);
+      const sqlRun = await this.runSqlVisibleQuery(
+        question.id,
+        query,
+        attemptId,
+      );
       rows.push({
         attempt_id: attemptId,
         question_id: question.id,
@@ -1651,16 +1711,22 @@ export class AssessmentPipelineService {
         columns: Array.isArray(sqlRun.columns) ? sqlRun.columns : [],
         rows: Array.isArray(sqlRun.rows) ? sqlRun.rows : [],
         row_count: this.nullableNumber(sqlRun.row_count) || 0,
-        execution_ms: this.nullableNumber(sqlRun.execution_ms ?? answer.sqlExecutionMs),
+        execution_ms: this.nullableNumber(
+          sqlRun.execution_ms ?? answer.sqlExecutionMs,
+        ),
         error_text:
-          this.textOutput(sqlRun.error || '') || this.textOutput(answer.resultMessage || ''),
+          this.textOutput(sqlRun.error || '') ||
+          this.textOutput(answer.resultMessage || ''),
         comparison_result: {
           final_snapshot: true,
           run_count: answer.runs || 0,
           submit_count: answer.submissions || 0,
           result_message:
-            this.textOutput(sqlRun.error || '') || this.textOutput(answer.resultMessage || ''),
-          execution_ms: this.nullableNumber(sqlRun.execution_ms ?? answer.sqlExecutionMs),
+            this.textOutput(sqlRun.error || '') ||
+            this.textOutput(answer.resultMessage || ''),
+          execution_ms: this.nullableNumber(
+            sqlRun.execution_ms ?? answer.sqlExecutionMs,
+          ),
         },
       });
     }
@@ -2031,7 +2097,9 @@ export class AssessmentPipelineService {
       Object.entries(grouped).map(([section, scores]) => [
         section,
         scores.length
-          ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+          ? Math.round(
+              scores.reduce((sum, score) => sum + score, 0) / scores.length,
+            )
           : 0,
       ]),
     ) as Partial<Record<Section, number>>;
@@ -2076,56 +2144,50 @@ export class AssessmentPipelineService {
       model: 'deterministic',
       output:
         section === 'SQL'
-        ? {
-                ...base,
-                result_correctness_score: score,
-                business_logic_score: score,
-                sql_concept_score: score,
-                edge_case_score: score,
-                query_efficiency_score: score,
-                formatting_score: score,
-                alias_score: score,
-                structure_score: score,
-                simplicity_score: score,
-                readability_score: score,
-                null_duplicate_handling_score: score,
-                query_quality_label: hasAnswer ? 'Average' : 'Incorrect',
-                ai_returned_concept_tags: [],
-                expected_sql_concept_tags: [],
-                expected_concepts_used: [],
-                missing_concepts: [],
-                detected_mistakes: [],
-                missing_business_rules: [],
-                failed_case_analysis: [],
-                runtime_observation: this.textOutput(detail.sql_result_summary),
-                key_strengths: [],
-                key_weaknesses: hasAnswer ? [] : ['No query submitted'],
-                improvement_recommendation:
-                  'Review joins, filters, NULLs, duplicates, and expected output.',
-              }
-            : {
-                ...base,
-                class_design_score: score,
-                abstraction_score: score,
-                encapsulation_score: score,
-                polymorphism_score: score,
-                extensibility_score: score,
-                separation_of_concerns_score: score,
-                solid_principles_score: score,
-                error_handling_score: score,
-                code_readability_score: score,
-                design_pattern_awareness_score: score,
-                design_maturity_label: hasAnswer ? 'Average' : 'Procedural',
-                identified_classes: [],
-                identified_interfaces_or_abstractions: [],
-                design_patterns_detected: [],
-                missing_components: [],
-                red_flags: hasAnswer ? [] : ['No design submitted'],
-                key_strengths: [],
-                key_weaknesses: hasAnswer ? [] : ['No answer submitted'],
-                improvement_recommendation:
-                  'Improve class boundaries, abstractions, and extensibility.',
-              },
+          ? {
+              ...base,
+              result_correctness_score: score,
+              business_logic_score: score,
+              sql_concept_score: score,
+              edge_case_score: score,
+              query_efficiency_score: score,
+              formatting_score: score,
+              alias_score: score,
+              structure_score: score,
+              simplicity_score: score,
+              readability_score: score,
+              null_duplicate_handling_score: score,
+              query_quality_label: hasAnswer ? 'Average' : 'Incorrect',
+              ai_returned_concept_tags: [],
+              expected_sql_concept_tags: [],
+              expected_concepts_used: [],
+              missing_concepts: [],
+              detected_mistakes: [],
+              missing_business_rules: [],
+              failed_case_analysis: [],
+              runtime_observation: this.textOutput(detail.sql_result_summary),
+              key_strengths: [],
+              key_weaknesses: hasAnswer ? [] : ['No query submitted'],
+              improvement_recommendation:
+                'Review joins, filters, NULLs, duplicates, and expected output.',
+            }
+          : {
+              ...base,
+              abstraction_score: score,
+              encapsulation_score: score,
+              polymorphism_score: score,
+              solid_principles_score: score,
+              design_maturity_label: hasAnswer ? 'Average' : 'Procedural',
+              identified_classes: [],
+              identified_interfaces_or_abstractions: [],
+              design_patterns_detected: [],
+              missing_components: [],
+              red_flags: hasAnswer ? [] : ['No design submitted'],
+              key_strengths: [],
+              key_weaknesses: hasAnswer ? [] : ['No answer submitted'],
+              improvement_recommendation:
+                'Improve class boundaries, abstractions, and extensibility.',
+            },
     };
   }
 
@@ -2217,14 +2279,12 @@ export class AssessmentPipelineService {
       );
     }
 
-    return data as
-      | {
-          id?: string;
-          status?: string | null;
-          started_at?: string | null;
-          client_metadata?: Record<string, unknown> | null;
-        }
-      | null;
+    return data as {
+      id?: string;
+      status?: string | null;
+      started_at?: string | null;
+      client_metadata?: Record<string, unknown> | null;
+    } | null;
   }
 
   private isFinalAttemptStatus(status?: string | null) {

@@ -323,12 +323,12 @@ export class QuestionBankService {
 
       if (question.section === 'OOPs') {
         if (
-          question.test_cases?.length !== 20 ||
-          question.open_test_cases?.length !== 5 ||
-          question.hidden_test_cases?.length !== 15
+          question.test_cases?.length !== 8 ||
+          question.open_test_cases?.length !== 0 ||
+          question.hidden_test_cases?.length !== 8
         ) {
           throw new InternalServerErrorException(
-            `${question.id} must include 20 test cases, 5 open cases and 15 hidden cases`,
+            `${question.id} must include 8 test cases, 0 open cases and 8 hidden cases`,
           );
         }
         this.assertOopsContext(question);
@@ -377,7 +377,8 @@ export class QuestionBankService {
     }
 
     const invalid = tags.filter(
-      (tag) => typeof tag !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag),
+      (tag) =>
+        typeof tag !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(tag),
     );
 
     if (invalid.length) {
@@ -807,8 +808,7 @@ export class QuestionBankService {
   private assertSlugArray(questionId: string, key: string, values: unknown[]) {
     const invalid = values.filter(
       (value) =>
-        typeof value !== 'string' ||
-        !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
+        typeof value !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value),
     );
 
     if (invalid.length) {

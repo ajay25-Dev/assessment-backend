@@ -8,8 +8,16 @@ describe('QuestionBankService', () => {
         section: string;
         id: string;
         test_cases?: unknown[];
-        open_test_cases?: Array<{ input?: string; expected?: string; tags?: string[] }>;
-        hidden_test_cases?: Array<{ input?: string; expected?: string; tags?: string[] }>;
+        open_test_cases?: Array<{
+          input?: string;
+          expected?: string;
+          tags?: string[];
+        }>;
+        hidden_test_cases?: Array<{
+          input?: string;
+          expected?: string;
+          tags?: string[];
+        }>;
         expected_approach?: string[];
         ideal_time?: number;
         ideal_space?: number;
@@ -104,9 +112,9 @@ describe('QuestionBankService', () => {
         .filter((question) => question.section === 'OOPs')
         .every(
           (question) =>
-            question.test_cases?.length === 20 &&
-            question.open_test_cases?.length === 5 &&
-            question.hidden_test_cases?.length === 15,
+            question.test_cases?.length === 8 &&
+            question.open_test_cases?.length === 0 &&
+            question.hidden_test_cases?.length === 8,
         ),
     ).toBe(true);
   });
@@ -197,7 +205,9 @@ describe('QuestionBankService', () => {
 
     expect(
       bank.questions.find(
-        (question) => question.section === 'SQL' && question.id === 'sql_salesforce_renewal_expansion',
+        (question) =>
+          question.section === 'SQL' &&
+          question.id === 'sql_salesforce_renewal_expansion',
       )?.visible_expected_rows?.length,
     ).toBe(2);
 
@@ -270,15 +280,23 @@ describe('QuestionBankService', () => {
         requiredScoringFields.forEach((key) => {
           expect(Array.isArray(question[key])).toBe(true);
           expect(question[key]?.length).toBeGreaterThan(0);
-          question[key]?.forEach((tag: string) => expect(tag).toMatch(slugPattern));
+          question[key]?.forEach((tag: string) =>
+            expect(tag).toMatch(slugPattern),
+          );
         });
-        expect(question.test_cases?.length).toBe(20);
-        expect(question.open_test_cases?.length).toBe(5);
-        expect(question.hidden_test_cases?.length).toBe(15);
-        [...(question.test_cases || []), ...(question.open_test_cases || []), ...(question.hidden_test_cases || [])].forEach((testCase: { tags?: string[] }) => {
+        expect(question.test_cases?.length).toBe(8);
+        expect(question.open_test_cases?.length).toBe(0);
+        expect(question.hidden_test_cases?.length).toBe(8);
+        [
+          ...(question.test_cases || []),
+          ...(question.open_test_cases || []),
+          ...(question.hidden_test_cases || []),
+        ].forEach((testCase: { tags?: string[] }) => {
           expect(Array.isArray(testCase.tags)).toBe(true);
           expect(testCase.tags?.length).toBeGreaterThan(0);
-          testCase.tags?.forEach((tag: string) => expect(tag).toMatch(slugPattern));
+          testCase.tags?.forEach((tag: string) =>
+            expect(tag).toMatch(slugPattern),
+          );
         });
         question.optional_oops_tags?.forEach((tag) =>
           expect(tag).toMatch(slugPattern),

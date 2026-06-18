@@ -27,12 +27,14 @@ export class DsaEvaluationService extends BaseEvaluatorService {
     this.logger.log('Starting DSA evaluation');
     const record = this.asRecord(input);
     const complexitySelection = this.deriveComplexitySelection(record);
-    const detectedApproachTags = await this.extractApproachTags(record).catch((error) => {
-      this.logger.warn(
-        `DSA approach tag extraction failed, falling back to deterministic scoring: ${this.errorMessage(error)}`,
-      );
-      return [] as string[];
-    });
+    const detectedApproachTags = await this.extractApproachTags(record).catch(
+      (error) => {
+        this.logger.warn(
+          `DSA approach tag extraction failed, falling back to deterministic scoring: ${this.errorMessage(error)}`,
+        );
+        return [] as string[];
+      },
+    );
 
     this.logger.log(
       `DSA complexity derived: timeRank=${complexitySelection.student_time_complexity_rank}, spaceRank=${complexitySelection.student_space_complexity_rank}`,
@@ -43,7 +45,8 @@ export class DsaEvaluationService extends BaseEvaluatorService {
 
     return evaluateDsaSubmission({
       ...record,
-      student_time_complexity_rank: complexitySelection.student_time_complexity_rank,
+      student_time_complexity_rank:
+        complexitySelection.student_time_complexity_rank,
       student_space_complexity_rank:
         complexitySelection.student_space_complexity_rank,
       detected_approach_tags: detectedApproachTags,
@@ -51,7 +54,9 @@ export class DsaEvaluationService extends BaseEvaluatorService {
   }
 
   private async extractApproachTags(record: JsonRecord) {
-    const allowedApproachTags = this.normalizeTags(this.stringList(record.expected_approach));
+    const allowedApproachTags = this.normalizeTags(
+      this.stringList(record.expected_approach),
+    );
 
     if (!allowedApproachTags.length) {
       this.logger.warn(
@@ -67,15 +72,24 @@ export class DsaEvaluationService extends BaseEvaluatorService {
       schema: dsaApproachOutputSchema,
       systemPrompt: DSA_APPROACH_PROMPT,
       input: {
-        question: [record.question_title, record.prompt].filter(Boolean).join('\n\n'),
+        question: [record.question_title, record.prompt]
+          .filter(Boolean)
+          .join('\n\n'),
         submitted_code: String(record.submitted_code || ''),
-        submitted_code_lines: this.numberedCodeLines(String(record.submitted_code || '')),
+        submitted_code_lines: this.numberedCodeLines(
+          String(record.submitted_code || ''),
+        ),
         allowed_expected_approach_tags: allowedApproachTags,
       },
     });
 
-    this.logger.log(`Raw DSA approach tag output: ${JSON.stringify(output.output)}`);
-    const parsed = this.asApproachTagsOutput(output.output, allowedApproachTags);
+    this.logger.log(
+      `Raw DSA approach tag output: ${JSON.stringify(output.output)}`,
+    );
+    const parsed = this.asApproachTagsOutput(
+      output.output,
+      allowedApproachTags,
+    );
     this.logger.log(
       `Validated DSA approach tag output: detectedTags=${parsed.detected_tags.length}`,
     );
@@ -115,7 +129,10 @@ export class DsaEvaluationService extends BaseEvaluatorService {
       /\btopolog\b/,
       /\bcycle\b/,
     ]);
-    const hasSort = this.containsAny(normalizedCode, [/\bsort\b/, /\bsorted\b/]);
+    const hasSort = this.containsAny(normalizedCode, [
+      /\bsort\b/,
+      /\bsorted\b/,
+    ]);
     const hasHashing = this.containsAny(normalizedCode, [
       /\bmap\b/,
       /\bset\b/,
@@ -159,7 +176,13 @@ export class DsaEvaluationService extends BaseEvaluatorService {
       };
     }
 
-    if (this.containsAny(normalizedCode, [/\brecurs\b/, /\bdfs\b/, /\bbacktrack\b/])) {
+    if (
+      this.containsAny(normalizedCode, [
+        /\brecurs\b/,
+        /\bdfs\b/,
+        /\bbacktrack\b/,
+      ])
+    ) {
       return {
         student_time_complexity_rank: 16,
         student_space_complexity_rank: 16,
@@ -193,15 +216,21 @@ export class DsaEvaluationService extends BaseEvaluatorService {
   }
 
   private normalizeTags(value: string[]) {
-    return [...new Set(value.map((item) => this.normalizeTag(item)).filter(Boolean))];
+    return [
+      ...new Set(value.map((item) => this.normalizeTag(item)).filter(Boolean)),
+    ];
   }
 
   private asApproachTagsOutput(value: unknown, allowedApproachTags: string[]) {
     const record = this.asRecord(value);
-    const detectedTags = this.normalizeTags(this.stringList(record.detected_tags));
+    const detectedTags = this.normalizeTags(
+      this.stringList(record.detected_tags),
+    );
 
     if (!detectedTags.length) {
-      throw new BadRequestException('DSA approach tag extraction returned no detected_tags');
+      throw new BadRequestException(
+        'DSA approach tag extraction returned no detected_tags',
+      );
     }
 
     const allowedSet = new Set(allowedApproachTags);

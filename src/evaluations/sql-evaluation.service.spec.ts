@@ -9,15 +9,17 @@ describe('SqlEvaluationService', () => {
   }
 
   it('extracts SQL concept tags from the AI and scores against them', async () => {
-    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
-      if (request.schemaName === 'sql_concept_tag_extraction') {
-        return {
-          detected_tags: ['join', 'group-by', 'date-filter'],
-        };
-      }
+    const generateStructuredJson = jest.fn(
+      async (request: { schemaName: string }) => {
+        if (request.schemaName === 'sql_concept_tag_extraction') {
+          return {
+            detected_tags: ['join', 'group-by', 'date-filter'],
+          };
+        }
 
-      throw new Error(`Unexpected schema ${request.schemaName}`);
-    });
+        throw new Error(`Unexpected schema ${request.schemaName}`);
+      },
+    );
 
     const service = makeService(generateStructuredJson);
 
@@ -74,13 +76,15 @@ describe('SqlEvaluationService', () => {
   });
 
   it('falls back to deterministic matching when the AI tag extraction fails', async () => {
-    const generateStructuredJson = jest.fn(async (request: { schemaName: string }) => {
-      if (request.schemaName === 'sql_concept_tag_extraction') {
-        throw new Error('tag extraction failed');
-      }
+    const generateStructuredJson = jest.fn(
+      async (request: { schemaName: string }) => {
+        if (request.schemaName === 'sql_concept_tag_extraction') {
+          throw new Error('tag extraction failed');
+        }
 
-      throw new Error(`Unexpected schema ${request.schemaName}`);
-    });
+        throw new Error(`Unexpected schema ${request.schemaName}`);
+      },
+    );
 
     const service = makeService(generateStructuredJson);
 
