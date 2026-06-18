@@ -992,7 +992,7 @@ ${this.normalizedTestCases(testCases)
   };
   vector<string> rows;
   int passed = 0;
-  Solution solution;
+  ${questionId === 'dsa_autodesk_versioned_kv' ? 'VersionedStore store;' : 'Solution solution;'}
   for (size_t i = 0; i < cases.size(); ++i) {
     string actual;
     bool ok = false;

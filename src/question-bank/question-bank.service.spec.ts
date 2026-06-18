@@ -45,6 +45,19 @@ describe('QuestionBankService', () => {
           red_flags?: unknown[];
         };
       }>;
+      assessment?: {
+        security?: {
+          tab_switch_protection_enabled?: boolean;
+          max_tab_switch_events?: number;
+          auto_submit_on_max_events?: boolean;
+          camera_proctoring_enabled?: boolean;
+          max_camera_events?: number;
+          auto_submit_on_camera_events?: boolean;
+          copy_paste_block_enabled?: boolean;
+          inspect_mode_block_enabled?: boolean;
+          restart_timer_on_login?: boolean;
+        };
+      };
     };
     const counts = bank.questions.reduce<Record<string, number>>(
       (summary, question) => {
@@ -64,6 +77,17 @@ describe('QuestionBankService', () => {
       SQL: 20,
       OOPs: 20,
       MCQ: 20,
+    });
+    expect(bank.assessment?.security).toMatchObject({
+      tab_switch_protection_enabled: true,
+      max_tab_switch_events: 2,
+      auto_submit_on_max_events: true,
+      camera_proctoring_enabled: true,
+      max_camera_events: 2,
+      auto_submit_on_camera_events: true,
+      copy_paste_block_enabled: true,
+      inspect_mode_block_enabled: true,
+      restart_timer_on_login: true,
     });
     expect(
       bank.questions
