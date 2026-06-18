@@ -116,7 +116,7 @@ describe('evaluateDsaSubmission', () => {
     expect(output.space_complexity_score).toBe(100);
     expect(output.edge_case_score).toBe(100);
     expect(output.total_tests_passed).toBe('5 / 15');
-    expect(output.overall_question_score).toBe(86);
+    expect(output.overall_question_score).toBe(87);
   });
 
   it('marks hidden results as not available when only visible evidence exists', () => {
@@ -251,7 +251,7 @@ describe('evaluateDsaSubmission', () => {
     expect(complexityScoreRankFromDetailedRank(39)).toBe(1);
     expect(complexityScoreRankFromDetailedRank(50)).toBe(0);
     expect(complexityScoreFromRanks(10, 10)).toBe(100);
-    expect(complexityScoreFromRanks(10, 11)).toBe(100);
+    expect(complexityScoreFromRanks(10, 11)).toBe(91);
     expect(complexityScoreFromRanks(10, 9)).toBe(90);
     expect(complexityScoreFromRanks(3, 1)).toBe(33);
     expect(complexityScoreFromRanks(3, 2)).toBe(67);
