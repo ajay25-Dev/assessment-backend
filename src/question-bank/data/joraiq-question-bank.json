@@ -1879,238 +1879,20 @@
       ]
     },
     {
-      "id": "oops_atlassian_jira_workflow_simplified",
+      "id": "oops_fintech_payment_gateway_routing",
       "section": "OOPs",
       "engine": "code",
       "type": "oops",
-      "title": "Simplified Jira Issue Workflow Engine",
+      "title": "Payment Gateway Routing Scenario",
       "difficulty": "easy_medium",
       "marks": 100,
-      "prompt": "Business Scenario\nA small project-tracking tool lets teams create Bugs and Tasks. Each item has a simple workflow:\n- Bug: Open → InProgress → Fixed → Closed\n- Task: Todo → InProgress → Done\n\nProblem Statement\nDesign the core classes for:\n1. Creating an issue (Bug or Task)\n2. Moving it to its next valid state\n3. Rejecting invalid transitions\n4. Returning the current state\n\nSimplify by:\n- Use a State pattern where each state knows its valid transitions\n- Use a Factory to create issues with their initial state\n- Invalid transitions should return false\n- Keep state classes focused only on their transitions\n\nProvide concise pseudocode or class code for Bug and Task workflows. Do not include database, UI, networking, or authentication code.",
-      "function_signature": "Issue / State / IssueFactory design",
-      "expected_approach": [
-        "State Pattern",
-        "Factory Pattern",
-        "Encapsulation",
-        "Polymorphism"
-      ],
-      "expected_oops_tags": [
-        "class-design",
-        "state-pattern",
-        "factory-pattern",
-        "polymorphism",
-        "encapsulation",
-        "invalid-transition-handling"
-      ],
-      "required_classes": [
-        "state-interface",
-        "bug-open",
-        "bug-in-progress",
-        "bug-fixed",
-        "bug-closed",
-        "task-todo",
-        "task-in-progress",
-        "task-done",
-        "issue",
-        "issue-factory"
-      ],
-      "required_abstractions": [
-        "state-interface"
-      ],
-      "required_patterns": [
-        "state-pattern",
-        "factory-pattern"
-      ],
-      "required_solid_principles": [
-        "single-responsibility",
-        "open-closed"
-      ],
-      "required_error_cases": [
-        "invalid-transition-handling"
-      ],
-      "required_design_rules": [
-        "encapsulated-state",
-        "validated-transition",
-        "new-workflow-through-factory"
-      ],
-      "red_flag_tags": [
-        "procedural-switch-workflow",
-        "public-mutable-state",
-        "missing-invalid-transition-handling"
-      ],
-      "evaluator_context": {
-        "domain_rules": [
-          "Bug issues follow Open -> InProgress -> Fixed -> Closed.",
-          "Tasks follow Todo -> InProgress -> Done.",
-          "Invalid transitions must return false."
-        ],
-        "required_components": [
-          "IState interface with getName() and transitionTo()",
-          "Concrete state classes for each workflow step",
-          "Issue class that holds current state",
-          "IssueFactory with createBug() and createTask() methods"
-        ],
-        "design_constraints": [
-          "Adding a new workflow should require adding new state classes",
-          "Invalid transitions should return false",
-          "Keep state classes focused only on their transitions"
-        ],
-        "acceptance_signals": [
-          "Uses state classes for valid transitions",
-          "Uses a factory for initial issue creation",
-          "Rejects invalid transitions without mutating state"
-        ],
-        "red_flags": [
-          "Large if/else or switch blocks own all workflow behavior",
-          "Issue exposes mutable state directly",
-          "Invalid transitions are silently accepted"
-        ]
-      },
-      "allowed_languages": [
-        "python",
-        "javascript",
-        "java",
-        "cpp"
-      ],
-      "starter_code": {
-        "python": "# Design classes/interfaces for the simplified workflow engine.\n",
-        "javascript": "// Design classes/interfaces for the simplified workflow engine.\n",
-        "java": "// Design classes/interfaces for the simplified workflow engine.\n",
-        "cpp": "// Design classes/interfaces for the simplified workflow engine.\n"
-      },
-      "hidden_test_cases": [
-        {
-          "id": "hidden_1",
-          "input": "create bug, transition through all valid states",
-          "expected": "PASS",
-          "purpose": "Bug can move Open->InProgress->Fixed->Closed",
-          "tags": [
-            "state-pattern",
-            "class-design",
-            "polymorphism",
-            "validated-transition"
-          ]
-        },
-        {
-          "id": "hidden_2",
-          "input": "create task, transition through all valid states",
-          "expected": "PASS",
-          "purpose": "Task can move Todo->InProgress->Done",
-          "tags": [
-            "state-pattern",
-            "class-design",
-            "polymorphism",
-            "validated-transition"
-          ]
-        },
-        {
-          "id": "hidden_3",
-          "input": "invalid transition returns false",
-          "expected": "PASS",
-          "purpose": "Invalid transitions are rejected",
-          "tags": [
-            "invalid-transition-handling",
-            "controlled-failure",
-            "encapsulation"
-          ]
-        },
-        {
-          "id": "hidden_4",
-          "input": "factory creates correct initial states",
-          "expected": "PASS",
-          "purpose": "Bug starts at Open, Task starts at Todo",
-          "tags": [
-            "factory-pattern",
-            "open-closed",
-            "class-design"
-          ]
-        },
-        {
-          "id": "hidden_5",
-          "input": "get current state returns correct state",
-          "expected": "PASS",
-          "purpose": "Current state can be queried",
-          "tags": [
-            "encapsulated-state",
-            "controlled-state",
-            "code-readability"
-          ]
-        }
-      ],
-      "test_cases": [
-        {
-          "number": 1,
-          "input": "create bug, transition through all valid states",
-          "expected_output": "PASS",
-          "purpose": "Bug can move Open->InProgress->Fixed->Closed",
-          "tags": [
-            "state-pattern",
-            "class-design",
-            "polymorphism",
-            "validated-transition"
-          ]
-        },
-        {
-          "number": 2,
-          "input": "create task, transition through all valid states",
-          "expected_output": "PASS",
-          "purpose": "Task can move Todo->InProgress->Done",
-          "tags": [
-            "state-pattern",
-            "class-design",
-            "polymorphism",
-            "validated-transition"
-          ]
-        },
-        {
-          "number": 3,
-          "input": "invalid transition returns false",
-          "expected_output": "PASS",
-          "purpose": "Invalid transitions are rejected",
-          "tags": [
-            "invalid-transition-handling",
-            "controlled-failure",
-            "encapsulation"
-          ]
-        },
-        {
-          "number": 4,
-          "input": "factory creates correct initial states",
-          "expected_output": "PASS",
-          "purpose": "Bug starts at Open, Task starts at Todo",
-          "tags": [
-            "factory-pattern",
-            "open-closed",
-            "class-design"
-          ]
-        },
-        {
-          "number": 5,
-          "input": "get current state returns correct state",
-          "expected_output": "PASS",
-          "purpose": "Current state can be queried",
-          "tags": [
-            "encapsulated-state",
-            "controlled-state",
-            "code-readability"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "oops_razorpay_payments_simplified",
-      "section": "OOPs",
-      "engine": "code",
-      "type": "oops",
-      "title": "Simplified Payment Processing System",
-      "difficulty": "easy_medium",
-      "marks": 100,
-      "prompt": "Business Scenario\nA checkout service accepts payments through Card, UPI, and Wallet. Each mode has a simple validation rule:\n- Card: Validate card number (15-19 digits), expiry (MM/YY), CVV (3 digits)\n- UPI: Validate UPI ID contains '@'\n- Wallet: Validate sufficient balance\n\nProblem Statement\nDesign the core classes for:\n1. Validating a payment method\n2. Processing a payment\n3. Returning success/failure with transaction ID\n\nSimplify by:\n- Use a Strategy pattern with a common payment interface\n- Use a Result object for payment outcomes\n- Checkout service depends on the payment abstraction\n- No external gateways, just in-memory processing\n\nProvide concise pseudocode or class code for Card, UPI, and Wallet payment modes.",
-      "function_signature": "IPayment / CheckoutService design",
+      "prompt": "Scenario\nA fintech app supports payments through UPI, Credit Card, Wallet, and Net Banking. Each payment method has different validation and processing logic. The company wants to add new payment methods later without changing the core checkout code.\n\nTask\nDesign an OOP system that:\n1. Allows different payment methods.\n2. Validates payment before processing.\n3. Returns success/failure with a message.\n4. Supports adding a new payment method without modifying checkout logic.\n\nConcepts tested\nAbstraction, polymorphism, Strategy Pattern, and the Open/Closed Principle.\n\nProvide concise pseudocode or class code. Do not include database, UI, networking, or real payment gateway integration code.",
+      "function_signature": "PaymentMethod / PaymentResult / CheckoutService design",
       "expected_approach": [
         "Strategy Pattern",
-        "Dependency Inversion",
+        "Abstraction",
         "Polymorphism",
+        "Open/Closed Principle",
         "Result Object"
       ],
       "expected_oops_tags": [
@@ -2118,19 +1900,20 @@
         "payment-abstraction",
         "strategy-pattern",
         "polymorphism",
-        "dependency-inversion",
+        "open-closed",
         "result-object"
       ],
       "required_classes": [
-        "payment-interface",
-        "card-payment",
+        "payment-method-interface",
         "upi-payment",
+        "credit-card-payment",
         "wallet-payment",
+        "net-banking-payment",
         "payment-result",
         "checkout-service"
       ],
       "required_abstractions": [
-        "payment-interface"
+        "payment-method-interface"
       ],
       "required_patterns": [
         "strategy-pattern"
@@ -2141,46 +1924,46 @@
         "dependency-inversion"
       ],
       "required_error_cases": [
-        "card-validation-failure",
-        "upi-validation-failure",
-        "wallet-insufficient-balance"
+        "invalid-amount-handling",
+        "payment-validation-failure"
       ],
       "required_design_rules": [
         "checkout-depends-on-abstraction",
         "validation-before-processing",
-        "service-delegates-to-strategy"
+        "new-payment-method-without-checkout-change"
       ],
       "red_flag_tags": [
         "procedural-payment-switch",
         "checkout-knows-concrete-types",
-        "missing-validation"
+        "missing-validation",
+        "ambiguous-payment-result"
       ],
       "evaluator_context": {
         "domain_rules": [
-          "Card payments require card detail validation before processing.",
-          "UPI payments require VPA validation before processing.",
-          "Wallet payments require sufficient balance before debit."
+          "UPI, Credit Card, Wallet and Net Banking payments should share a common payment abstraction.",
+          "Each payment method must own its validation and processing logic.",
+          "Checkout must return a structured success/failure result with a message."
         ],
         "required_components": [
-          "IPayment interface with validate() and process(amount)",
-          "Concrete classes: CardPayment, UPIPayment, WalletPayment",
-          "PaymentResult class with success flag and message",
-          "CheckoutService that processes any payment type"
+          "PaymentMethod interface or abstract class with payment behavior.",
+          "Concrete payment classes such as UpiPayment and CreditCardPayment.",
+          "PaymentResult object with success flag and message.",
+          "CheckoutService that accepts a payment abstraction and delegates processing."
         ],
         "design_constraints": [
-          "Adding a new payment mode should only require a new class",
-          "CheckoutService should not know about specific payment types",
-          "Validation must happen before processing"
+          "Adding a new payment method should only require adding a new concrete class.",
+          "CheckoutService should not use conditionals over payment method names or types.",
+          "Validation should happen before processing inside the payment strategy."
         ],
         "acceptance_signals": [
-          "CheckoutService depends on a payment abstraction",
-          "Each payment mode encapsulates its own validation",
-          "Failures return a structured payment result"
+          "Uses polymorphism to route payments.",
+          "Returns clear failure for invalid amount or failed validation.",
+          "New payment methods can be plugged into checkout without modifying checkout logic."
         ],
         "red_flags": [
-          "CheckoutService uses type checks for each payment mode",
-          "Payment validation is skipped or duplicated in the service",
-          "Failures throw raw strings or return ambiguous values"
+          "Large if/else or switch inside CheckoutService for payment routing.",
+          "Payment methods expose public mutable internals instead of encapsulating validation.",
+          "Returns only booleans or strings without clear success/failure structure."
         ]
       },
       "allowed_languages": [
@@ -2195,233 +1978,232 @@
         "java": "// Design payment abstractions and checkout flow.\n",
         "cpp": "// Design payment abstractions and checkout flow.\n"
       },
+      "open_test_cases": [],
       "hidden_test_cases": [
         {
           "id": "hidden_1",
-          "input": "valid card payment processes successfully",
-          "expected": "PASS",
-          "purpose": "Valid card payment succeeds",
+          "input": "checkout with UPI payment and positive amount",
+          "purpose": "UPI payment validates and processes successfully",
           "tags": [
             "strategy-pattern",
             "payment-abstraction",
             "polymorphism",
-            "validation-with-strategy"
-          ]
+            "validation-before-processing"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_2",
-          "input": "invalid card number fails validation",
-          "expected": "PASS",
-          "purpose": "Card validation catches invalid card",
-          "tags": [
-            "validation-with-strategy",
-            "controlled-failure",
-            "card-validation-failure"
-          ]
-        },
-        {
-          "id": "hidden_3",
-          "input": "valid UPI payment processes successfully",
-          "expected": "PASS",
-          "purpose": "Valid UPI payment succeeds",
+          "input": "checkout with credit card payment and positive amount",
+          "purpose": "Credit card payment validates and processes successfully",
           "tags": [
             "strategy-pattern",
             "payment-abstraction",
             "polymorphism",
-            "interface"
-          ]
+            "service-delegation"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_3",
+          "input": "checkout with wallet payment and positive amount",
+          "purpose": "Wallet payment can be added as another payment strategy",
+          "tags": [
+            "open-closed",
+            "payment-abstraction",
+            "extensibility"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_4",
-          "input": "invalid UPI ID fails validation",
-          "expected": "PASS",
-          "purpose": "UPI validation catches invalid ID",
+          "input": "checkout with zero or negative amount",
+          "purpose": "Invalid amount is rejected before processing",
           "tags": [
-            "validation-with-strategy",
+            "validation-before-processing",
             "controlled-failure",
-            "upi-validation-failure"
-          ]
+            "result-object"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_5",
-          "input": "wallet with sufficient balance succeeds",
-          "expected": "PASS",
-          "purpose": "Wallet payment with sufficient balance",
+          "input": "add net banking payment without changing checkout service",
+          "purpose": "New payment method works through the same abstraction",
           "tags": [
-            "encapsulation",
-            "private-state",
-            "payment-processing-failure"
-          ]
+            "open-closed",
+            "dependency-inversion",
+            "extensibility"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_6",
-          "input": "wallet with insufficient balance fails",
-          "expected": "PASS",
-          "purpose": "Insufficient wallet balance is rejected",
+          "input": "checkout returns structured success flag and message",
+          "purpose": "Payment result communicates success or failure clearly",
           "tags": [
-            "wallet-insufficient-balance",
+            "result-object",
             "controlled-failure",
-            "result-object"
-          ]
+            "class-design"
+          ],
+          "expected": "PASS"
         }
       ],
       "test_cases": [
         {
           "number": 1,
-          "input": "valid card payment processes successfully",
+          "input": "checkout with UPI payment and positive amount",
           "expected_output": "PASS",
-          "purpose": "Valid card payment succeeds",
+          "purpose": "UPI payment validates and processes successfully",
           "tags": [
             "strategy-pattern",
             "payment-abstraction",
             "polymorphism",
-            "validation-with-strategy"
+            "validation-before-processing"
           ]
         },
         {
           "number": 2,
-          "input": "invalid card number fails validation",
+          "input": "checkout with credit card payment and positive amount",
           "expected_output": "PASS",
-          "purpose": "Card validation catches invalid card",
-          "tags": [
-            "validation-with-strategy",
-            "controlled-failure",
-            "card-validation-failure"
-          ]
-        },
-        {
-          "number": 3,
-          "input": "valid UPI payment processes successfully",
-          "expected_output": "PASS",
-          "purpose": "Valid UPI payment succeeds",
+          "purpose": "Credit card payment validates and processes successfully",
           "tags": [
             "strategy-pattern",
             "payment-abstraction",
             "polymorphism",
-            "interface"
+            "service-delegation"
+          ]
+        },
+        {
+          "number": 3,
+          "input": "checkout with wallet payment and positive amount",
+          "expected_output": "PASS",
+          "purpose": "Wallet payment can be added as another payment strategy",
+          "tags": [
+            "open-closed",
+            "payment-abstraction",
+            "extensibility"
           ]
         },
         {
           "number": 4,
-          "input": "invalid UPI ID fails validation",
+          "input": "checkout with zero or negative amount",
           "expected_output": "PASS",
-          "purpose": "UPI validation catches invalid ID",
+          "purpose": "Invalid amount is rejected before processing",
           "tags": [
-            "validation-with-strategy",
+            "validation-before-processing",
             "controlled-failure",
-            "upi-validation-failure"
+            "result-object"
           ]
         },
         {
           "number": 5,
-          "input": "wallet with sufficient balance succeeds",
+          "input": "add net banking payment without changing checkout service",
           "expected_output": "PASS",
-          "purpose": "Wallet payment with sufficient balance",
+          "purpose": "New payment method works through the same abstraction",
           "tags": [
-            "encapsulation",
-            "private-state",
-            "payment-processing-failure"
+            "open-closed",
+            "dependency-inversion",
+            "extensibility"
           ]
         },
         {
           "number": 6,
-          "input": "wallet with insufficient balance fails",
+          "input": "checkout returns structured success flag and message",
           "expected_output": "PASS",
-          "purpose": "Insufficient wallet balance is rejected",
+          "purpose": "Payment result communicates success or failure clearly",
           "tags": [
-            "wallet-insufficient-balance",
+            "result-object",
             "controlled-failure",
-            "result-object"
+            "class-design"
           ]
         }
       ]
     },
     {
-      "id": "oops_canva_export_simplified",
+      "id": "oops_food_delivery_order_state_machine",
       "section": "OOPs",
       "engine": "code",
       "type": "oops",
-      "title": "Simplified Design Export System",
+      "title": "Food Delivery Order State Machine",
       "difficulty": "easy_medium",
       "marks": 100,
-      "prompt": "Business Scenario\nA simple design editor lets users export a design as PDF, PNG, or JPG. Each format needs a different behavior:\n- PDF: Uses document metadata\n- PNG: Uses resolution settings\n- JPG: Uses quality settings\n\nProblem Statement\nDesign the core classes for:\n1. Storing design data\n2. Exporting to different formats\n3. Returning success/failure with file path\n4. Handling unsupported formats\n\nSimplify by:\n- Use a Strategy pattern with exporter interface\n- Use a simple registry for available exporters\n- DesignFile stores content and metadata\n- Export service delegates to the right exporter\n\nProvide concise pseudocode or class code for the design file, export service, and three exporters.",
-      "function_signature": "DesignFile / IExporter / ExportService design",
+      "prompt": "Scenario\nA food delivery app has orders moving through states:\nPLACED -> ACCEPTED -> PREPARING -> OUT_FOR_DELIVERY -> DELIVERED\n\nCancellation is allowed only before OUT_FOR_DELIVERY.\n\nTask\nDesign an OOP system that:\n1. Tracks order state.\n2. Allows only valid transitions.\n3. Rejects invalid transitions.\n4. Keeps transition rules outside the main Order class.\n\nConcepts tested\nEncapsulation, State Pattern, and responsibility separation.\n\nProvide concise pseudocode or class code. Do not include database, UI, networking, or restaurant assignment code.",
+      "function_signature": "OrderState / Order design",
       "expected_approach": [
-        "Strategy Pattern",
-        "Registry Pattern",
-        "Polymorphism",
-        "Composition"
+        "State Pattern",
+        "Encapsulation",
+        "Responsibility Separation",
+        "Polymorphism"
       ],
       "expected_oops_tags": [
         "class-design",
-        "exporter-abstraction",
-        "strategy-pattern",
-        "registry-pattern",
+        "state-pattern",
+        "encapsulation",
         "polymorphism",
-        "composition"
+        "validated-transition",
+        "separation-of-concerns"
       ],
       "required_classes": [
-        "exporter-interface",
-        "pdf-exporter",
-        "png-exporter",
-        "jpg-exporter",
-        "design-file",
-        "export-service",
-        "export-result"
+        "order-state-interface",
+        "placed-state",
+        "accepted-state",
+        "preparing-state",
+        "out-for-delivery-state",
+        "delivered-state",
+        "cancelled-state",
+        "order"
       ],
       "required_abstractions": [
-        "exporter-interface"
+        "order-state-interface"
       ],
       "required_patterns": [
-        "strategy-pattern",
-        "registry-pattern"
+        "state-pattern"
       ],
       "required_solid_principles": [
         "single-responsibility",
-        "open-closed",
-        "dependency-inversion"
+        "open-closed"
       ],
       "required_error_cases": [
-        "unsupported-format-handling"
+        "invalid-transition-handling",
+        "late-cancellation-rejection"
       ],
       "required_design_rules": [
-        "design-file-separate-from-export",
-        "export-service-delegates-to-strategy",
-        "new-exporter-through-registry"
+        "encapsulated-state",
+        "transition-rules-outside-order",
+        "validated-transition"
       ],
       "red_flag_tags": [
-        "export-logic-inside-design-file",
-        "format-switch-in-service",
-        "unsupported-format-crash"
+        "procedural-state-switch",
+        "public-mutable-state",
+        "missing-invalid-transition-handling",
+        "order-owns-all-transition-rules"
       ],
       "evaluator_context": {
         "domain_rules": [
-          "PDF export should use document metadata.",
-          "PNG export should use raster resolution settings.",
-          "JPG export should use image quality settings.",
-          "Unsupported formats must return an error message."
+          "Valid order progression is PLACED -> ACCEPTED -> PREPARING -> OUT_FOR_DELIVERY -> DELIVERED.",
+          "Cancellation is allowed only before OUT_FOR_DELIVERY.",
+          "Invalid transitions must be rejected without changing the current order state."
         ],
         "required_components": [
-          "IExporter interface with exportFile() and getFormat()",
-          "Concrete classes: PDFExporter, PNGExporter, JPGExporter",
-          "DesignFile class with content and metadata",
-          "ExportService with registration and export methods",
-          "ExportResult for success/failure reporting"
+          "OrderState interface or abstract class with state name and transition validation behavior.",
+          "Concrete state classes for PLACED, ACCEPTED, PREPARING, OUT_FOR_DELIVERY, DELIVERED and CANCELLED.",
+          "Order class that stores the current state and delegates transition checks."
         ],
         "design_constraints": [
-          "Adding a new format should only require a new exporter class",
-          "DesignFile should not contain export logic",
-          "Unsupported formats should return an error message"
+          "Transition rules should live in state classes, not in a large Order conditional.",
+          "Order should expose current state without exposing mutable state directly.",
+          "Invalid transition attempts should return false or a controlled result."
         ],
         "acceptance_signals": [
-          "ExportService delegates to exporter implementations",
-          "DesignFile remains a data/domain object",
-          "New formats can be registered without changing existing exporters"
+          "Uses state objects to validate allowed next states.",
+          "Allows cancellation before dispatch and rejects cancellation after dispatch.",
+          "Does not mutate order state when a transition is invalid."
         ],
         "red_flags": [
-          "DesignFile contains format-specific export branches",
-          "ExportService relies on a hard-coded format switch",
-          "Unsupported formats crash instead of returning a result"
+          "All transition rules are hard-coded in Order with if/else or switch.",
+          "State is represented as a public mutable string with no validation boundary.",
+          "Invalid transitions are silently accepted or throw uncontrolled errors."
         ]
       },
       "allowed_languages": [
@@ -2431,126 +2213,402 @@
         "cpp"
       ],
       "starter_code": {
-        "python": "# Design export classes and services.\n",
-        "javascript": "// Design export classes and services.\n",
-        "java": "// Design export classes and services.\n",
-        "cpp": "// Design export classes and services.\n"
+        "python": "# Design order state classes and transition flow.\n",
+        "javascript": "// Design order state classes and transition flow.\n",
+        "java": "// Design order state classes and transition flow.\n",
+        "cpp": "// Design order state classes and transition flow.\n"
       },
+      "open_test_cases": [],
       "hidden_test_cases": [
         {
           "id": "hidden_1",
-          "input": "PDF export succeeds with metadata",
-          "expected": "PASS",
-          "purpose": "PDF export uses metadata correctly",
+          "input": "PLACED to ACCEPTED transition",
+          "purpose": "Order can move from placed to accepted",
           "tags": [
-            "exporter-abstraction",
-            "strategy-pattern",
-            "domain-service-boundary",
-            "pdf-export"
-          ]
+            "state-pattern",
+            "validated-transition",
+            "class-design"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_2",
-          "input": "PNG export succeeds with resolution",
-          "expected": "PASS",
-          "purpose": "PNG export uses resolution settings",
+          "input": "ACCEPTED to PREPARING transition",
+          "purpose": "Order can move from accepted to preparing",
           "tags": [
-            "exporter-abstraction",
-            "strategy-pattern",
-            "polymorphism",
-            "png-export"
-          ]
+            "state-pattern",
+            "validated-transition",
+            "encapsulation"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_3",
-          "input": "JPG export succeeds with quality",
-          "expected": "PASS",
-          "purpose": "JPG export uses quality settings",
+          "input": "PREPARING to OUT_FOR_DELIVERY to DELIVERED transitions",
+          "purpose": "Order can complete the valid delivery workflow",
           "tags": [
-            "exporter-abstraction",
-            "strategy-pattern",
-            "polymorphism",
-            "jpg-export"
-          ]
+            "state-pattern",
+            "workflow-rules",
+            "validated-transition"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_4",
-          "input": "unsupported format returns error",
-          "expected": "PASS",
-          "purpose": "Unsupported formats are handled gracefully",
+          "input": "PLACED directly to DELIVERED transition",
+          "purpose": "Invalid direct transition is rejected",
           "tags": [
-            "unsupported-format-handling",
+            "invalid-transition-handling",
             "controlled-failure",
-            "result-object"
-          ]
+            "validated-transition"
+          ],
+          "expected": "PASS"
         },
         {
           "id": "hidden_5",
-          "input": "register new exporter without changing DesignFile",
-          "expected": "PASS",
-          "purpose": "New exporters can be added via registry",
+          "input": "cancel before OUT_FOR_DELIVERY",
+          "purpose": "Cancellation is allowed before dispatch",
           "tags": [
-            "registry-pattern",
-            "open-closed",
-            "separation-of-concerns"
-          ]
+            "cancellation-rule",
+            "state-pattern",
+            "workflow-rules"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_6",
+          "input": "cancel after OUT_FOR_DELIVERY",
+          "purpose": "Cancellation is rejected once the order is out for delivery",
+          "tags": [
+            "cancellation-rule",
+            "invalid-transition-handling",
+            "controlled-failure"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_7",
+          "input": "transition rules live in state classes instead of Order",
+          "purpose": "Order delegates transition validation to state objects",
+          "tags": [
+            "separation-of-concerns",
+            "service-delegation",
+            "state-pattern"
+          ],
+          "expected": "PASS"
         }
       ],
       "test_cases": [
         {
           "number": 1,
-          "input": "PDF export succeeds with metadata",
+          "input": "PLACED to ACCEPTED transition",
           "expected_output": "PASS",
-          "purpose": "PDF export uses metadata correctly",
+          "purpose": "Order can move from placed to accepted",
           "tags": [
-            "exporter-abstraction",
-            "strategy-pattern",
-            "domain-service-boundary",
-            "pdf-export"
+            "state-pattern",
+            "validated-transition",
+            "class-design"
           ]
         },
         {
           "number": 2,
-          "input": "PNG export succeeds with resolution",
+          "input": "ACCEPTED to PREPARING transition",
           "expected_output": "PASS",
-          "purpose": "PNG export uses resolution settings",
+          "purpose": "Order can move from accepted to preparing",
           "tags": [
-            "exporter-abstraction",
-            "strategy-pattern",
-            "polymorphism",
-            "png-export"
+            "state-pattern",
+            "validated-transition",
+            "encapsulation"
           ]
         },
         {
           "number": 3,
-          "input": "JPG export succeeds with quality",
+          "input": "PREPARING to OUT_FOR_DELIVERY to DELIVERED transitions",
           "expected_output": "PASS",
-          "purpose": "JPG export uses quality settings",
+          "purpose": "Order can complete the valid delivery workflow",
           "tags": [
-            "exporter-abstraction",
-            "strategy-pattern",
-            "polymorphism",
-            "jpg-export"
+            "state-pattern",
+            "workflow-rules",
+            "validated-transition"
           ]
         },
         {
           "number": 4,
-          "input": "unsupported format returns error",
+          "input": "PLACED directly to DELIVERED transition",
           "expected_output": "PASS",
-          "purpose": "Unsupported formats are handled gracefully",
+          "purpose": "Invalid direct transition is rejected",
           "tags": [
-            "unsupported-format-handling",
+            "invalid-transition-handling",
             "controlled-failure",
-            "result-object"
+            "validated-transition"
           ]
         },
         {
           "number": 5,
-          "input": "register new exporter without changing DesignFile",
+          "input": "cancel before OUT_FOR_DELIVERY",
           "expected_output": "PASS",
-          "purpose": "New exporters can be added via registry",
+          "purpose": "Cancellation is allowed before dispatch",
           "tags": [
-            "registry-pattern",
+            "cancellation-rule",
+            "state-pattern",
+            "workflow-rules"
+          ]
+        },
+        {
+          "number": 6,
+          "input": "cancel after OUT_FOR_DELIVERY",
+          "expected_output": "PASS",
+          "purpose": "Cancellation is rejected once the order is out for delivery",
+          "tags": [
+            "cancellation-rule",
+            "invalid-transition-handling",
+            "controlled-failure"
+          ]
+        },
+        {
+          "number": 7,
+          "input": "transition rules live in state classes instead of Order",
+          "expected_output": "PASS",
+          "purpose": "Order delegates transition validation to state objects",
+          "tags": [
+            "separation-of-concerns",
+            "service-delegation",
+            "state-pattern"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oops_saas_notification_system",
+      "section": "OOPs",
+      "engine": "code",
+      "type": "oops",
+      "title": "SaaS Notification System",
+      "difficulty": "easy_medium",
+      "marks": 100,
+      "prompt": "Scenario\nA SaaS platform sends alerts through Email, SMS, Slack, and WhatsApp. Some customers may enable multiple channels. The platform should broadcast the same alert to all enabled channels.\n\nTask\nDesign an OOP system that:\n1. Supports multiple notification channels.\n2. Allows enabling/disabling channels dynamically.\n3. Sends alert to all active channels.\n4. Allows adding new channels without changing notification manager logic.\n\nConcepts tested\nInterface, polymorphism, composition, and extensibility.\n\nProvide concise pseudocode or class code. Do not include database, UI, networking, or real third-party API integration code.",
+      "function_signature": "NotificationChannel / NotificationManager design",
+      "expected_approach": [
+        "Interface",
+        "Polymorphism",
+        "Composition",
+        "Open/Closed Principle"
+      ],
+      "expected_oops_tags": [
+        "class-design",
+        "notification-abstraction",
+        "interface",
+        "polymorphism",
+        "composition",
+        "open-closed"
+      ],
+      "required_classes": [
+        "notification-channel-interface",
+        "email-channel",
+        "sms-channel",
+        "slack-channel",
+        "whatsapp-channel",
+        "notification-manager"
+      ],
+      "required_abstractions": [
+        "notification-channel-interface"
+      ],
+      "required_patterns": [
+        "observer-like-broadcast",
+        "composition"
+      ],
+      "required_solid_principles": [
+        "single-responsibility",
+        "open-closed",
+        "dependency-inversion"
+      ],
+      "required_error_cases": [
+        "no-active-channel-handling",
+        "disabled-channel-skipped"
+      ],
+      "required_design_rules": [
+        "manager-depends-on-channel-abstraction",
+        "broadcast-to-active-channels",
+        "dynamic-channel-management"
+      ],
+      "red_flag_tags": [
+        "procedural-channel-switch",
+        "manager-knows-concrete-channels",
+        "missing-enable-disable-flow",
+        "hard-coded-channel-list"
+      ],
+      "evaluator_context": {
+        "domain_rules": [
+          "Email, SMS, Slack and WhatsApp channels should share a common notification abstraction.",
+          "A customer can have multiple enabled channels at the same time.",
+          "The same alert should be sent to every active channel and skipped for disabled channels."
+        ],
+        "required_components": [
+          "NotificationChannel interface with send behavior.",
+          "Concrete channel classes such as EmailChannel, SmsChannel, SlackChannel and WhatsAppChannel.",
+          "NotificationManager composed with a collection of channel abstractions.",
+          "Methods to add, enable, disable or remove channels dynamically."
+        ],
+        "design_constraints": [
+          "NotificationManager should iterate channel abstractions and not branch on concrete channel types.",
+          "Adding a new channel should only require a new channel class or registration.",
+          "Disabled channels should not receive alerts."
+        ],
+        "acceptance_signals": [
+          "Uses a common interface for all channels.",
+          "Uses composition to manage multiple channels.",
+          "Broadcasts alerts to all active channels without changing manager logic for new channel types."
+        ],
+        "red_flags": [
+          "NotificationManager has hard-coded if/else logic for Email, SMS, Slack and WhatsApp.",
+          "No way to disable or remove channels after creation.",
+          "Channels are represented only as strings with send logic centralized in the manager."
+        ]
+      },
+      "allowed_languages": [
+        "python",
+        "javascript",
+        "java",
+        "cpp"
+      ],
+      "starter_code": {
+        "python": "# Design notification channel abstractions and manager flow.\n",
+        "javascript": "// Design notification channel abstractions and manager flow.\n",
+        "java": "// Design notification channel abstractions and manager flow.\n",
+        "cpp": "// Design notification channel abstractions and manager flow.\n"
+      },
+      "open_test_cases": [],
+      "hidden_test_cases": [
+        {
+          "id": "hidden_1",
+          "input": "manager sends alert through email channel",
+          "purpose": "Email channel receives alert through common interface",
+          "tags": [
+            "notification-abstraction",
+            "polymorphism",
+            "interface"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_2",
+          "input": "manager sends alert through sms and slack channels",
+          "purpose": "Multiple active channels receive the same alert",
+          "tags": [
+            "composition",
+            "broadcast",
+            "polymorphism"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_3",
+          "input": "enable whatsapp channel dynamically",
+          "purpose": "New channel can be added without notification manager changes",
+          "tags": [
+            "open-closed",
+            "extensibility",
+            "notification-abstraction"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_4",
+          "input": "disable one active notification channel",
+          "purpose": "Disabled channel does not receive future alerts",
+          "tags": [
+            "dynamic-channel-management",
+            "encapsulation",
+            "controlled-state"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_5",
+          "input": "notify with no active channels",
+          "purpose": "Manager handles empty active channel list gracefully",
+          "tags": [
+            "controlled-failure",
+            "edge-case-handling",
+            "class-design"
+          ],
+          "expected": "PASS"
+        },
+        {
+          "id": "hidden_6",
+          "input": "notification manager stores channels by abstraction only",
+          "purpose": "Manager does not branch on concrete channel types",
+          "tags": [
+            "dependency-inversion",
+            "open-closed",
+            "separation-of-concerns"
+          ],
+          "expected": "PASS"
+        }
+      ],
+      "test_cases": [
+        {
+          "number": 1,
+          "input": "manager sends alert through email channel",
+          "expected_output": "PASS",
+          "purpose": "Email channel receives alert through common interface",
+          "tags": [
+            "notification-abstraction",
+            "polymorphism",
+            "interface"
+          ]
+        },
+        {
+          "number": 2,
+          "input": "manager sends alert through sms and slack channels",
+          "expected_output": "PASS",
+          "purpose": "Multiple active channels receive the same alert",
+          "tags": [
+            "composition",
+            "broadcast",
+            "polymorphism"
+          ]
+        },
+        {
+          "number": 3,
+          "input": "enable whatsapp channel dynamically",
+          "expected_output": "PASS",
+          "purpose": "New channel can be added without notification manager changes",
+          "tags": [
+            "open-closed",
+            "extensibility",
+            "notification-abstraction"
+          ]
+        },
+        {
+          "number": 4,
+          "input": "disable one active notification channel",
+          "expected_output": "PASS",
+          "purpose": "Disabled channel does not receive future alerts",
+          "tags": [
+            "dynamic-channel-management",
+            "encapsulation",
+            "controlled-state"
+          ]
+        },
+        {
+          "number": 5,
+          "input": "notify with no active channels",
+          "expected_output": "PASS",
+          "purpose": "Manager handles empty active channel list gracefully",
+          "tags": [
+            "controlled-failure",
+            "edge-case-handling",
+            "class-design"
+          ]
+        },
+        {
+          "number": 6,
+          "input": "notification manager stores channels by abstraction only",
+          "expected_output": "PASS",
+          "purpose": "Manager does not branch on concrete channel types",
+          "tags": [
+            "dependency-inversion",
             "open-closed",
             "separation-of-concerns"
           ]
