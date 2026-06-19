@@ -63,6 +63,19 @@ describe('TestHarnessService', () => {
     expect(source).not.toContain('Solution solution;');
   });
 
+  it('does not expose OOPs test cases on run', async () => {
+    const source = await service.buildSource({
+      language: 'cpp',
+      sourceCode: 'class IssueFactory { public: void createBug() {} };',
+      questionId: 'oops_atlassian_jira_workflow_simplified',
+      runType: 'run',
+    });
+
+    expect(source).not.toContain('===TEST_RESULTS_START===');
+    expect(source).not.toContain('create bug, transition through all valid states');
+    expect(source).toContain('int main() { return 0; }');
+  });
+
   it('generates a static OOPs harness for Java submissions', async () => {
     const source = await service.buildSource({
       language: 'java',

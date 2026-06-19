@@ -73,6 +73,7 @@ export class TestHarnessService {
       if (!question) return [];
 
       if (runType === 'run') {
+        if (this.isOopsQuestion(questionId)) return [];
         return (
           question.open_test_cases || question.test_cases?.slice(0, 5) || []
         );
