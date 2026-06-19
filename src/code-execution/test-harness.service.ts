@@ -138,8 +138,11 @@ export class TestHarnessService {
   private isOopsQuestion(questionId: string) {
     return new Set([
       'oops_atlassian_jira_workflow',
+      'oops_atlassian_jira_workflow_simplified',
       'oops_razorpay_payments',
+      'oops_razorpay_payments_simplified',
       'oops_canva_export',
+      'oops_canva_export_simplified',
     ]).has(questionId);
   }
 

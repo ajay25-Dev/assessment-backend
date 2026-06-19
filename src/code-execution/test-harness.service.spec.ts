@@ -41,8 +41,8 @@ describe('TestHarnessService', () => {
     const source = await service.buildSource({
       language: 'cpp',
       sourceCode: 'class WorkflowEngine { public: void next() {} };',
-      questionId: 'oops_atlassian_jira_workflow',
-      runType: 'run',
+      questionId: 'oops_atlassian_jira_workflow_simplified',
+      runType: 'submit',
     });
 
     expect(source).toContain('===TEST_RESULTS_START===');
@@ -50,12 +50,25 @@ describe('TestHarnessService', () => {
     expect(source).not.toContain('int main() { return 0; }');
   });
 
+  it('generates a static OOPs harness for simplified C++ submissions', async () => {
+    const source = await service.buildSource({
+      language: 'cpp',
+      sourceCode: 'class IssueFactory { public: void createBug() {} };',
+      questionId: 'oops_atlassian_jira_workflow_simplified',
+      runType: 'submit',
+    });
+
+    expect(source).toContain('===TEST_RESULTS_START===');
+    expect(source).toContain('std::cout');
+    expect(source).not.toContain('Solution solution;');
+  });
+
   it('generates a static OOPs harness for Java submissions', async () => {
     const source = await service.buildSource({
       language: 'java',
       sourceCode: 'public interface PaymentMethod { boolean pay(); }',
-      questionId: 'oops_razorpay_payments',
-      runType: 'run',
+      questionId: 'oops_razorpay_payments_simplified',
+      runType: 'submit',
     });
 
     expect(source).toContain('===TEST_RESULTS_START===');
