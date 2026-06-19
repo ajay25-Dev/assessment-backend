@@ -113,9 +113,9 @@ describe('QuestionBankService', () => {
         .filter((question) => question.section === 'OOPs')
         .every(
           (question) =>
-            question.test_cases?.length === 8 &&
-            question.open_test_cases?.length === 0 &&
-            question.hidden_test_cases?.length === 8,
+            (question.open_test_cases?.length || 0) === 0 &&
+            Boolean(question.test_cases?.length) &&
+            question.test_cases?.length === question.hidden_test_cases?.length,
         ),
     ).toBe(true);
   });
@@ -333,9 +333,11 @@ describe('QuestionBankService', () => {
             expect(tag).toMatch(slugPattern),
           );
         });
-        expect(question.test_cases?.length).toBe(8);
-        expect(question.open_test_cases?.length).toBe(0);
-        expect(question.hidden_test_cases?.length).toBe(8);
+        expect(question.open_test_cases?.length || 0).toBe(0);
+        expect(question.test_cases?.length).toBeGreaterThan(0);
+        expect(question.test_cases?.length).toBe(
+          question.hidden_test_cases?.length,
+        );
         [
           ...(question.test_cases || []),
           ...(question.open_test_cases || []),

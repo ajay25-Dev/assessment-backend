@@ -358,13 +358,17 @@ export class QuestionBankService {
       }
 
       if (question.section === 'OOPs') {
+        const testCaseCount = question.test_cases?.length || 0;
+        const openCaseCount = question.open_test_cases?.length || 0;
+        const hiddenCaseCount = question.hidden_test_cases?.length || 0;
         if (
-          question.test_cases?.length !== 8 ||
-          question.open_test_cases?.length !== 0 ||
-          question.hidden_test_cases?.length !== 8
+          openCaseCount !== 0 ||
+          testCaseCount === 0 ||
+          hiddenCaseCount === 0 ||
+          testCaseCount !== hiddenCaseCount
         ) {
           throw new InternalServerErrorException(
-            `${question.id} must include 8 test cases, 0 open cases and 8 hidden cases`,
+            `${question.id} must include matching hidden-only OOPs test cases and 0 open cases`,
           );
         }
         this.assertOopsContext(question);
