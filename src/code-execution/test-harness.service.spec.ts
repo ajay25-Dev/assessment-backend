@@ -40,8 +40,8 @@ describe('TestHarnessService', () => {
   it('generates a static OOPs harness for C++ submissions', async () => {
     const source = await service.buildSource({
       language: 'cpp',
-      sourceCode: 'class WorkflowEngine { public: void next() {} };',
-      questionId: 'oops_atlassian_jira_workflow_simplified',
+      sourceCode: 'class OrderState { public: virtual bool canMoveTo() = 0; };',
+      questionId: 'oops_food_delivery_order_state_machine',
       runType: 'submit',
     });
 
@@ -53,8 +53,8 @@ describe('TestHarnessService', () => {
   it('generates a static OOPs harness for simplified C++ submissions', async () => {
     const source = await service.buildSource({
       language: 'cpp',
-      sourceCode: 'class IssueFactory { public: void createBug() {} };',
-      questionId: 'oops_atlassian_jira_workflow_simplified',
+      sourceCode: 'class NotificationChannel { public: virtual void send() = 0; };',
+      questionId: 'oops_saas_notification_system',
       runType: 'submit',
     });
 
@@ -66,13 +66,13 @@ describe('TestHarnessService', () => {
   it('does not expose OOPs test cases on run', async () => {
     const source = await service.buildSource({
       language: 'cpp',
-      sourceCode: 'class IssueFactory { public: void createBug() {} };',
-      questionId: 'oops_atlassian_jira_workflow_simplified',
+      sourceCode: 'class NotificationChannel { public: virtual void send() = 0; };',
+      questionId: 'oops_saas_notification_system',
       runType: 'run',
     });
 
     expect(source).not.toContain('===TEST_RESULTS_START===');
-    expect(source).not.toContain('create bug, transition through all valid states');
+    expect(source).not.toContain('manager sends alert through email channel');
     expect(source).toContain('int main() { return 0; }');
   });
 
@@ -80,7 +80,7 @@ describe('TestHarnessService', () => {
     const source = await service.buildSource({
       language: 'java',
       sourceCode: 'public interface PaymentMethod { boolean pay(); }',
-      questionId: 'oops_razorpay_payments_simplified',
+      questionId: 'oops_fintech_payment_gateway_routing',
       runType: 'submit',
     });
 

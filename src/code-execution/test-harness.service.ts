@@ -144,6 +144,9 @@ export class TestHarnessService {
       'oops_razorpay_payments_simplified',
       'oops_canva_export',
       'oops_canva_export_simplified',
+      'oops_fintech_payment_gateway_routing',
+      'oops_food_delivery_order_state_machine',
+      'oops_saas_notification_system',
     ]).has(questionId);
   }
 
