@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
@@ -103,10 +107,7 @@ const vagueExpectedPattern =
 export class QuestionBankService {
   async getBank() {
     try {
-      const raw = await fs.readFile(
-        join(__dirname, 'data', 'joraiq-question-bank.json'),
-        'utf8',
-      );
+      const raw = await fs.readFile(this.getQuestionBankPath(), 'utf8');
       const bank = JSON.parse(raw) as Record<string, unknown>;
       this.assertValidBank(bank);
       return bank;
@@ -157,6 +158,41 @@ export class QuestionBankService {
         defaultAssessmentSecurityPolicy.restart_timer_on_login,
       ),
     };
+  }
+
+  async updateAssessmentSecurityPolicy(input: unknown) {
+    const nextSecurity = this.parseSecurityPolicy(input);
+
+    try {
+      const questionBankPath = this.getQuestionBankPath();
+      const raw = await fs.readFile(questionBankPath, 'utf8');
+      const bank = JSON.parse(raw) as AssessmentBankShape;
+      const assessment = this.recordValue(bank.assessment) || {};
+
+      bank.assessment = {
+        ...assessment,
+        security: nextSecurity,
+      };
+
+      this.assertValidBank(bank as Record<string, unknown>);
+      await fs.writeFile(
+        questionBankPath,
+        `${JSON.stringify(bank, null, 2)}\n`,
+        'utf8',
+      );
+
+      return nextSecurity;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Question bank security settings could not be saved',
+      );
+    }
   }
 
   async getImportPreview() {
@@ -335,6 +371,75 @@ export class QuestionBankService {
         this.assertOopsCases(question);
       }
     });
+  }
+
+  private getQuestionBankPath() {
+    return (
+      process.env.QUESTION_BANK_FILE_PATH ||
+      join(__dirname, 'data', 'joraiq-question-bank.json')
+    );
+  }
+
+  private parseSecurityPolicy(input: unknown): AssessmentSecurityPolicy {
+    const value = this.recordValue(input);
+
+    if (!value) {
+      throw new BadRequestException('Security settings payload is required');
+    }
+
+    return {
+      tab_switch_protection_enabled: this.requiredBoolean(
+        value.tab_switch_protection_enabled,
+        'tab_switch_protection_enabled',
+      ),
+      max_tab_switch_events: this.requiredPositiveInteger(
+        value.max_tab_switch_events,
+        'max_tab_switch_events',
+      ),
+      auto_submit_on_max_events: this.requiredBoolean(
+        value.auto_submit_on_max_events,
+        'auto_submit_on_max_events',
+      ),
+      camera_proctoring_enabled: this.requiredBoolean(
+        value.camera_proctoring_enabled,
+        'camera_proctoring_enabled',
+      ),
+      max_camera_events: this.requiredPositiveInteger(
+        value.max_camera_events,
+        'max_camera_events',
+      ),
+      auto_submit_on_camera_events: this.requiredBoolean(
+        value.auto_submit_on_camera_events,
+        'auto_submit_on_camera_events',
+      ),
+      copy_paste_block_enabled: this.requiredBoolean(
+        value.copy_paste_block_enabled,
+        'copy_paste_block_enabled',
+      ),
+      inspect_mode_block_enabled: this.requiredBoolean(
+        value.inspect_mode_block_enabled,
+        'inspect_mode_block_enabled',
+      ),
+      restart_timer_on_login: this.requiredBoolean(
+        value.restart_timer_on_login,
+        'restart_timer_on_login',
+      ),
+    };
+  }
+
+  private requiredBoolean(value: unknown, label: string) {
+    if (typeof value !== 'boolean') {
+      throw new BadRequestException(`${label} must be a boolean`);
+    }
+    return value;
+  }
+
+  private requiredPositiveInteger(value: unknown, label: string) {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException(`${label} must be a positive integer`);
+    }
+    return parsed;
   }
 
   private assertAuthenticDsaCases(question: BankQuestion) {
