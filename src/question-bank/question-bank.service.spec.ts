@@ -1,3 +1,4 @@
+import { promises as fs } from 'fs';
 import { QuestionBankService } from './question-bank.service';
 
 describe('QuestionBankService', () => {
@@ -117,6 +118,54 @@ describe('QuestionBankService', () => {
             question.hidden_test_cases?.length === 8,
         ),
     ).toBe(true);
+  });
+
+  it('persists explicit false security settings without restoring defaults', async () => {
+    const service = new QuestionBankService();
+    const bank = (await service.getBank()) as Record<string, unknown>;
+    const rawBank = JSON.stringify(bank);
+    const readFile = jest.spyOn(fs, 'readFile').mockResolvedValue(rawBank);
+    const writeFile = jest
+      .spyOn(fs, 'writeFile')
+      .mockResolvedValue(undefined);
+
+    try {
+      const saved = await service.updateAssessmentSecurityPolicy({
+        tab_switch_protection_enabled: false,
+        max_tab_switch_events: 2,
+        auto_submit_on_max_events: false,
+        camera_proctoring_enabled: false,
+        max_camera_events: 2,
+        auto_submit_on_camera_events: false,
+        copy_paste_block_enabled: false,
+        inspect_mode_block_enabled: false,
+        restart_timer_on_login: false,
+      });
+      const writtenBank = JSON.parse(String(writeFile.mock.calls[0][1])) as {
+        assessment?: {
+          security?: {
+            tab_switch_protection_enabled?: boolean;
+            camera_proctoring_enabled?: boolean;
+            copy_paste_block_enabled?: boolean;
+            restart_timer_on_login?: boolean;
+          };
+        };
+      };
+
+      expect(saved).toMatchObject({
+        tab_switch_protection_enabled: false,
+        auto_submit_on_max_events: false,
+        camera_proctoring_enabled: false,
+        auto_submit_on_camera_events: false,
+        copy_paste_block_enabled: false,
+        inspect_mode_block_enabled: false,
+        restart_timer_on_login: false,
+      });
+      expect(writtenBank.assessment?.security).toMatchObject(saved);
+    } finally {
+      readFile.mockRestore();
+      writeFile.mockRestore();
+    }
   });
 
   it('keeps DSA test cases executable and deterministic', async () => {

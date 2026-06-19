@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { QuestionBankService } from './question-bank.service';
 
 @Controller('question-bank')
@@ -13,5 +13,10 @@ export class QuestionBankController {
   @Get('import-preview')
   getImportPreview() {
     return this.questionBank.getImportPreview();
+  }
+
+  @Patch('security')
+  updateSecurity(@Body() body: unknown) {
+    return this.questionBank.updateAssessmentSecurityPolicy(body);
   }
 }
