@@ -3,6 +3,8 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
@@ -27,15 +29,15 @@ type AssessmentBankShape = {
 };
 
 const defaultAssessmentSecurityPolicy: AssessmentSecurityPolicy = {
-  tab_switch_protection_enabled: true,
+  tab_switch_protection_enabled: false,
   max_tab_switch_events: 2,
-  auto_submit_on_max_events: true,
-  camera_proctoring_enabled: true,
+  auto_submit_on_max_events: false,
+  camera_proctoring_enabled: false,
   max_camera_events: 2,
-  auto_submit_on_camera_events: true,
-  copy_paste_block_enabled: true,
-  inspect_mode_block_enabled: true,
-  restart_timer_on_login: true,
+  auto_submit_on_camera_events: false,
+  copy_paste_block_enabled: false,
+  inspect_mode_block_enabled: false,
+  restart_timer_on_login: false,
 };
 
 type BankQuestion = {
@@ -105,6 +107,10 @@ const vagueExpectedPattern =
 
 @Injectable()
 export class QuestionBankService {
+  private supabase: SupabaseClient | null = null;
+
+  constructor(private readonly config?: ConfigService) {}
+
   async getBank() {
     try {
       const raw = await fs.readFile(this.getQuestionBankPath(), 'utf8');
@@ -160,27 +166,37 @@ export class QuestionBankService {
     };
   }
 
+  async getAssessmentSecurityPolicyFromStore(
+    bank?: AssessmentBankShape | null,
+  ) {
+    const fallback = this.getAssessmentSecurityPolicy(bank);
+    const assessment = this.recordValue(bank?.assessment) || {};
+    const assessmentId = this.textValue(assessment.id);
+    if (!assessmentId) return fallback;
+
+    const stored = await this.readAssessmentSecurityPolicy(assessmentId);
+    return stored || fallback;
+  }
+
+  async getCurrentAssessmentSecurityPolicy() {
+    const bank = (await this.getBank()) as AssessmentBankShape;
+    return this.getAssessmentSecurityPolicyFromStore(bank);
+  }
+
   async updateAssessmentSecurityPolicy(input: unknown) {
     const nextSecurity = this.parseSecurityPolicy(input);
 
     try {
-      const questionBankPath = this.getQuestionBankPath();
-      const raw = await fs.readFile(questionBankPath, 'utf8');
-      const bank = JSON.parse(raw) as AssessmentBankShape;
+      const bank = (await this.getBank()) as AssessmentBankShape;
       const assessment = this.recordValue(bank.assessment) || {};
+      const assessmentId = this.textValue(assessment.id);
+      if (!assessmentId) {
+        throw new InternalServerErrorException(
+          'Assessment id is required to save security settings',
+        );
+      }
 
-      bank.assessment = {
-        ...assessment,
-        security: nextSecurity,
-      };
-
-      this.assertValidBank(bank as Record<string, unknown>);
-      await fs.writeFile(
-        questionBankPath,
-        `${JSON.stringify(bank, null, 2)}\n`,
-        'utf8',
-      );
-
+      await this.saveAssessmentSecurityPolicy(assessmentId, nextSecurity);
       return nextSecurity;
     } catch (error) {
       if (
@@ -231,7 +247,7 @@ export class QuestionBankService {
       ...bank,
       assessment: {
         ...assessment,
-        security: this.getAssessmentSecurityPolicy(bank),
+        security: await this.getAssessmentSecurityPolicyFromStore(bank),
       },
       questions: await Promise.all(
         (bank.questions || []).map(async (question) => {
@@ -290,6 +306,59 @@ export class QuestionBankService {
         }),
       ),
     };
+  }
+
+  private async readAssessmentSecurityPolicy(assessmentId: string) {
+    const supabase = this.getSupabaseOrNull();
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('assessment_security_settings')
+      .select(
+        [
+          'tab_switch_protection_enabled',
+          'max_tab_switch_events',
+          'auto_submit_on_max_events',
+          'camera_proctoring_enabled',
+          'max_camera_events',
+          'auto_submit_on_camera_events',
+          'copy_paste_block_enabled',
+          'inspect_mode_block_enabled',
+          'restart_timer_on_login',
+        ].join(','),
+      )
+      .eq('assessment_id', assessmentId)
+      .maybeSingle();
+
+    if (error) return null;
+    if (!data) return null;
+
+    return this.getAssessmentSecurityPolicy({
+      assessment: { security: data },
+    });
+  }
+
+  private async saveAssessmentSecurityPolicy(
+    assessmentId: string,
+    security: AssessmentSecurityPolicy,
+  ) {
+    const supabase = this.getSupabaseOrThrow();
+    const { error } = await supabase
+      .from('assessment_security_settings')
+      .upsert(
+        {
+          assessment_id: assessmentId,
+          ...security,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'assessment_id' },
+      );
+
+    if (error) {
+      throw new InternalServerErrorException(
+        `Assessment security settings could not be saved: ${error.message}`,
+      );
+    }
   }
 
   private assertValidBank(bank: Record<string, unknown>) {
@@ -616,10 +685,42 @@ export class QuestionBankService {
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  private textValue(value: unknown) {
+    return String(value || '').trim();
+  }
+
   private recordValue(value: unknown) {
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : null;
+  }
+
+  private getSupabaseOrNull() {
+    try {
+      return this.getSupabaseOrThrow();
+    } catch {
+      return null;
+    }
+  }
+
+  private getSupabaseOrThrow() {
+    if (this.supabase) return this.supabase;
+    const supabaseUrl = this.config?.get<string>('SUPABASE_URL');
+    const serviceKey =
+      this.config?.get<string>('SUPABASE_SERVICE_ROLE') ||
+      this.config?.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
+      this.config?.get<string>('SUPABASE_KEY');
+
+    if (!supabaseUrl || !serviceKey) {
+      throw new InternalServerErrorException(
+        'Supabase service credentials are not configured',
+      );
+    }
+
+    this.supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    return this.supabase;
   }
 
   private parseSampleDataTables(

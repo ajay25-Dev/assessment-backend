@@ -1,3 +1,18 @@
+CREATE TABLE IF NOT EXISTS assessment_security_settings (
+  assessment_id TEXT PRIMARY KEY,
+  tab_switch_protection_enabled BOOLEAN NOT NULL DEFAULT false,
+  max_tab_switch_events INT NOT NULL DEFAULT 2 CHECK (max_tab_switch_events > 0),
+  auto_submit_on_max_events BOOLEAN NOT NULL DEFAULT false,
+  camera_proctoring_enabled BOOLEAN NOT NULL DEFAULT false,
+  max_camera_events INT NOT NULL DEFAULT 2 CHECK (max_camera_events > 0),
+  auto_submit_on_camera_events BOOLEAN NOT NULL DEFAULT false,
+  copy_paste_block_enabled BOOLEAN NOT NULL DEFAULT false,
+  inspect_mode_block_enabled BOOLEAN NOT NULL DEFAULT false,
+  restart_timer_on_login BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS student_assessment_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_id UUID NOT NULL,

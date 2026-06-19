@@ -10,17 +10,6 @@
       "OOPs": 20,
       "MCQ": 20
     },
-    "security": {
-      "tab_switch_protection_enabled": true,
-      "max_tab_switch_events": 2,
-      "auto_submit_on_max_events": true,
-      "camera_proctoring_enabled": true,
-      "max_camera_events": 2,
-      "auto_submit_on_camera_events": true,
-      "copy_paste_block_enabled": true,
-      "inspect_mode_block_enabled": true,
-      "restart_timer_on_login": true
-    },
     "sections": [
       {
         "id": "dsa",
@@ -1995,35 +1984,57 @@
           "input": "create bug, transition through all valid states",
           "expected": "PASS",
           "purpose": "Bug can move Open->InProgress->Fixed->Closed",
-          "tags": ["state-pattern", "class-design", "polymorphism", "validated-transition"]
+          "tags": [
+            "state-pattern",
+            "class-design",
+            "polymorphism",
+            "validated-transition"
+          ]
         },
         {
           "id": "hidden_2",
           "input": "create task, transition through all valid states",
           "expected": "PASS",
           "purpose": "Task can move Todo->InProgress->Done",
-          "tags": ["state-pattern", "class-design", "polymorphism", "validated-transition"]
+          "tags": [
+            "state-pattern",
+            "class-design",
+            "polymorphism",
+            "validated-transition"
+          ]
         },
         {
           "id": "hidden_3",
           "input": "invalid transition returns false",
           "expected": "PASS",
           "purpose": "Invalid transitions are rejected",
-          "tags": ["invalid-transition-handling", "controlled-failure", "encapsulation"]
+          "tags": [
+            "invalid-transition-handling",
+            "controlled-failure",
+            "encapsulation"
+          ]
         },
         {
           "id": "hidden_4",
           "input": "factory creates correct initial states",
           "expected": "PASS",
           "purpose": "Bug starts at Open, Task starts at Todo",
-          "tags": ["factory-pattern", "open-closed", "class-design"]
+          "tags": [
+            "factory-pattern",
+            "open-closed",
+            "class-design"
+          ]
         },
         {
           "id": "hidden_5",
           "input": "get current state returns correct state",
           "expected": "PASS",
           "purpose": "Current state can be queried",
-          "tags": ["encapsulated-state", "controlled-state", "code-readability"]
+          "tags": [
+            "encapsulated-state",
+            "controlled-state",
+            "code-readability"
+          ]
         }
       ],
       "test_cases": [
@@ -2032,35 +2043,57 @@
           "input": "create bug, transition through all valid states",
           "expected_output": "PASS",
           "purpose": "Bug can move Open->InProgress->Fixed->Closed",
-          "tags": ["state-pattern", "class-design", "polymorphism", "validated-transition"]
+          "tags": [
+            "state-pattern",
+            "class-design",
+            "polymorphism",
+            "validated-transition"
+          ]
         },
         {
           "number": 2,
           "input": "create task, transition through all valid states",
           "expected_output": "PASS",
           "purpose": "Task can move Todo->InProgress->Done",
-          "tags": ["state-pattern", "class-design", "polymorphism", "validated-transition"]
+          "tags": [
+            "state-pattern",
+            "class-design",
+            "polymorphism",
+            "validated-transition"
+          ]
         },
         {
           "number": 3,
           "input": "invalid transition returns false",
           "expected_output": "PASS",
           "purpose": "Invalid transitions are rejected",
-          "tags": ["invalid-transition-handling", "controlled-failure", "encapsulation"]
+          "tags": [
+            "invalid-transition-handling",
+            "controlled-failure",
+            "encapsulation"
+          ]
         },
         {
           "number": 4,
           "input": "factory creates correct initial states",
           "expected_output": "PASS",
           "purpose": "Bug starts at Open, Task starts at Todo",
-          "tags": ["factory-pattern", "open-closed", "class-design"]
+          "tags": [
+            "factory-pattern",
+            "open-closed",
+            "class-design"
+          ]
         },
         {
           "number": 5,
           "input": "get current state returns correct state",
           "expected_output": "PASS",
           "purpose": "Current state can be queried",
-          "tags": ["encapsulated-state", "controlled-state", "code-readability"]
+          "tags": [
+            "encapsulated-state",
+            "controlled-state",
+            "code-readability"
+          ]
         }
       ]
     },
@@ -2168,42 +2201,68 @@
           "input": "valid card payment processes successfully",
           "expected": "PASS",
           "purpose": "Valid card payment succeeds",
-          "tags": ["strategy-pattern", "payment-abstraction", "polymorphism", "validation-with-strategy"]
+          "tags": [
+            "strategy-pattern",
+            "payment-abstraction",
+            "polymorphism",
+            "validation-with-strategy"
+          ]
         },
         {
           "id": "hidden_2",
           "input": "invalid card number fails validation",
           "expected": "PASS",
           "purpose": "Card validation catches invalid card",
-          "tags": ["validation-with-strategy", "controlled-failure", "card-validation-failure"]
+          "tags": [
+            "validation-with-strategy",
+            "controlled-failure",
+            "card-validation-failure"
+          ]
         },
         {
           "id": "hidden_3",
           "input": "valid UPI payment processes successfully",
           "expected": "PASS",
           "purpose": "Valid UPI payment succeeds",
-          "tags": ["strategy-pattern", "payment-abstraction", "polymorphism", "interface"]
+          "tags": [
+            "strategy-pattern",
+            "payment-abstraction",
+            "polymorphism",
+            "interface"
+          ]
         },
         {
           "id": "hidden_4",
           "input": "invalid UPI ID fails validation",
           "expected": "PASS",
           "purpose": "UPI validation catches invalid ID",
-          "tags": ["validation-with-strategy", "controlled-failure", "upi-validation-failure"]
+          "tags": [
+            "validation-with-strategy",
+            "controlled-failure",
+            "upi-validation-failure"
+          ]
         },
         {
           "id": "hidden_5",
           "input": "wallet with sufficient balance succeeds",
           "expected": "PASS",
           "purpose": "Wallet payment with sufficient balance",
-          "tags": ["encapsulation", "private-state", "payment-processing-failure"]
+          "tags": [
+            "encapsulation",
+            "private-state",
+            "payment-processing-failure"
+          ]
         },
         {
           "id": "hidden_6",
           "input": "wallet with insufficient balance fails",
           "expected": "PASS",
           "purpose": "Insufficient wallet balance is rejected",
-          "tags": ["wallet-insufficient-balance", "controlled-failure", "result-object"]
+          "tags": [
+            "wallet-insufficient-balance",
+            "controlled-failure",
+            "result-object"
+          ]
         }
       ],
       "test_cases": [
@@ -2212,42 +2271,68 @@
           "input": "valid card payment processes successfully",
           "expected_output": "PASS",
           "purpose": "Valid card payment succeeds",
-          "tags": ["strategy-pattern", "payment-abstraction", "polymorphism", "validation-with-strategy"]
+          "tags": [
+            "strategy-pattern",
+            "payment-abstraction",
+            "polymorphism",
+            "validation-with-strategy"
+          ]
         },
         {
           "number": 2,
           "input": "invalid card number fails validation",
           "expected_output": "PASS",
           "purpose": "Card validation catches invalid card",
-          "tags": ["validation-with-strategy", "controlled-failure", "card-validation-failure"]
+          "tags": [
+            "validation-with-strategy",
+            "controlled-failure",
+            "card-validation-failure"
+          ]
         },
         {
           "number": 3,
           "input": "valid UPI payment processes successfully",
           "expected_output": "PASS",
           "purpose": "Valid UPI payment succeeds",
-          "tags": ["strategy-pattern", "payment-abstraction", "polymorphism", "interface"]
+          "tags": [
+            "strategy-pattern",
+            "payment-abstraction",
+            "polymorphism",
+            "interface"
+          ]
         },
         {
           "number": 4,
           "input": "invalid UPI ID fails validation",
           "expected_output": "PASS",
           "purpose": "UPI validation catches invalid ID",
-          "tags": ["validation-with-strategy", "controlled-failure", "upi-validation-failure"]
+          "tags": [
+            "validation-with-strategy",
+            "controlled-failure",
+            "upi-validation-failure"
+          ]
         },
         {
           "number": 5,
           "input": "wallet with sufficient balance succeeds",
           "expected_output": "PASS",
           "purpose": "Wallet payment with sufficient balance",
-          "tags": ["encapsulation", "private-state", "payment-processing-failure"]
+          "tags": [
+            "encapsulation",
+            "private-state",
+            "payment-processing-failure"
+          ]
         },
         {
           "number": 6,
           "input": "wallet with insufficient balance fails",
           "expected_output": "PASS",
           "purpose": "Insufficient wallet balance is rejected",
-          "tags": ["wallet-insufficient-balance", "controlled-failure", "result-object"]
+          "tags": [
+            "wallet-insufficient-balance",
+            "controlled-failure",
+            "result-object"
+          ]
         }
       ]
     },
@@ -2357,35 +2442,58 @@
           "input": "PDF export succeeds with metadata",
           "expected": "PASS",
           "purpose": "PDF export uses metadata correctly",
-          "tags": ["exporter-abstraction", "strategy-pattern", "domain-service-boundary", "pdf-export"]
+          "tags": [
+            "exporter-abstraction",
+            "strategy-pattern",
+            "domain-service-boundary",
+            "pdf-export"
+          ]
         },
         {
           "id": "hidden_2",
           "input": "PNG export succeeds with resolution",
           "expected": "PASS",
           "purpose": "PNG export uses resolution settings",
-          "tags": ["exporter-abstraction", "strategy-pattern", "polymorphism", "png-export"]
+          "tags": [
+            "exporter-abstraction",
+            "strategy-pattern",
+            "polymorphism",
+            "png-export"
+          ]
         },
         {
           "id": "hidden_3",
           "input": "JPG export succeeds with quality",
           "expected": "PASS",
           "purpose": "JPG export uses quality settings",
-          "tags": ["exporter-abstraction", "strategy-pattern", "polymorphism", "jpg-export"]
+          "tags": [
+            "exporter-abstraction",
+            "strategy-pattern",
+            "polymorphism",
+            "jpg-export"
+          ]
         },
         {
           "id": "hidden_4",
           "input": "unsupported format returns error",
           "expected": "PASS",
           "purpose": "Unsupported formats are handled gracefully",
-          "tags": ["unsupported-format-handling", "controlled-failure", "result-object"]
+          "tags": [
+            "unsupported-format-handling",
+            "controlled-failure",
+            "result-object"
+          ]
         },
         {
           "id": "hidden_5",
           "input": "register new exporter without changing DesignFile",
           "expected": "PASS",
           "purpose": "New exporters can be added via registry",
-          "tags": ["registry-pattern", "open-closed", "separation-of-concerns"]
+          "tags": [
+            "registry-pattern",
+            "open-closed",
+            "separation-of-concerns"
+          ]
         }
       ],
       "test_cases": [
@@ -2394,35 +2502,58 @@
           "input": "PDF export succeeds with metadata",
           "expected_output": "PASS",
           "purpose": "PDF export uses metadata correctly",
-          "tags": ["exporter-abstraction", "strategy-pattern", "domain-service-boundary", "pdf-export"]
+          "tags": [
+            "exporter-abstraction",
+            "strategy-pattern",
+            "domain-service-boundary",
+            "pdf-export"
+          ]
         },
         {
           "number": 2,
           "input": "PNG export succeeds with resolution",
           "expected_output": "PASS",
           "purpose": "PNG export uses resolution settings",
-          "tags": ["exporter-abstraction", "strategy-pattern", "polymorphism", "png-export"]
+          "tags": [
+            "exporter-abstraction",
+            "strategy-pattern",
+            "polymorphism",
+            "png-export"
+          ]
         },
         {
           "number": 3,
           "input": "JPG export succeeds with quality",
           "expected_output": "PASS",
           "purpose": "JPG export uses quality settings",
-          "tags": ["exporter-abstraction", "strategy-pattern", "polymorphism", "jpg-export"]
+          "tags": [
+            "exporter-abstraction",
+            "strategy-pattern",
+            "polymorphism",
+            "jpg-export"
+          ]
         },
         {
           "number": 4,
           "input": "unsupported format returns error",
           "expected_output": "PASS",
           "purpose": "Unsupported formats are handled gracefully",
-          "tags": ["unsupported-format-handling", "controlled-failure", "result-object"]
+          "tags": [
+            "unsupported-format-handling",
+            "controlled-failure",
+            "result-object"
+          ]
         },
         {
           "number": 5,
           "input": "register new exporter without changing DesignFile",
           "expected_output": "PASS",
           "purpose": "New exporters can be added via registry",
-          "tags": ["registry-pattern", "open-closed", "separation-of-concerns"]
+          "tags": [
+            "registry-pattern",
+            "open-closed",
+            "separation-of-concerns"
+          ]
         }
       ]
     },

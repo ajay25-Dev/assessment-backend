@@ -263,7 +263,8 @@ export class AssessmentPipelineService {
     }
 
     const durationMinutes = bank.assessment?.duration_minutes || 180;
-    const security = this.questionBank.getAssessmentSecurityPolicy(bank);
+    const security =
+      await this.questionBank.getAssessmentSecurityPolicyFromStore(bank);
     const now = new Date().toISOString();
     const latestAttempt = await this.findLatestAssessmentAttempt(
       input.student_id,
@@ -335,15 +336,14 @@ export class AssessmentPipelineService {
       'in_progress',
     );
 
-    const canResume = sessionResetCount < 2;
     return this.buildSessionState(
       attemptId,
       assessmentId,
       durationMinutes,
       security,
       sessionStartedAt,
-      canResume ? 'in_progress' : 'disqualified',
-      canResume,
+      'in_progress',
+      true,
       sessionResetCount,
       hasInProgressAttempt
         ? 'resume_on_login'
@@ -1213,7 +1213,8 @@ export class AssessmentPipelineService {
     if (!sourceAssessmentId) {
       throw new BadRequestException('assessment_id is required');
     }
-    const securityPolicy = this.questionBank.getAssessmentSecurityPolicy(bank);
+    const securityPolicy =
+      await this.questionBank.getAssessmentSecurityPolicyFromStore(bank);
 
     const { data: existingAttempt, error: existingAttemptError } =
       await supabase

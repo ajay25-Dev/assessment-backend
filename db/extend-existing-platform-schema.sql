@@ -43,6 +43,26 @@ ALTER TABLE public.assessments
   ADD COLUMN IF NOT EXISTS source_key TEXT,
   ADD COLUMN IF NOT EXISTS scoring_weights JSONB NOT NULL DEFAULT '{}'::jsonb;
 
+CREATE TABLE IF NOT EXISTS public.assessment_security_settings (
+  assessment_id TEXT PRIMARY KEY,
+  tab_switch_protection_enabled BOOLEAN NOT NULL DEFAULT false,
+  max_tab_switch_events INT NOT NULL DEFAULT 2 CHECK (max_tab_switch_events > 0),
+  auto_submit_on_max_events BOOLEAN NOT NULL DEFAULT false,
+  camera_proctoring_enabled BOOLEAN NOT NULL DEFAULT false,
+  max_camera_events INT NOT NULL DEFAULT 2 CHECK (max_camera_events > 0),
+  auto_submit_on_camera_events BOOLEAN NOT NULL DEFAULT false,
+  copy_paste_block_enabled BOOLEAN NOT NULL DEFAULT false,
+  inspect_mode_block_enabled BOOLEAN NOT NULL DEFAULT false,
+  restart_timer_on_login BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+DROP TRIGGER IF EXISTS assessment_security_settings_set_updated_at ON public.assessment_security_settings;
+CREATE TRIGGER assessment_security_settings_set_updated_at
+BEFORE UPDATE ON public.assessment_security_settings
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
 ALTER TABLE public.assessment_questions
   ADD COLUMN IF NOT EXISTS subject_id UUID REFERENCES public.subjects(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS source_question_id TEXT,

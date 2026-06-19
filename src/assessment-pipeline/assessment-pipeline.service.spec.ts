@@ -20,6 +20,9 @@ describe('AssessmentPipelineService', () => {
     const questionBank = {
       getBank: jest.fn(),
       getAssessmentSecurityPolicy: jest.fn().mockReturnValue(securityPolicy),
+      getAssessmentSecurityPolicyFromStore: jest
+        .fn()
+        .mockResolvedValue(securityPolicy),
     };
     const dsaEvaluation = {
       evaluate: jest.fn(),
@@ -175,9 +178,9 @@ describe('AssessmentPipelineService', () => {
           assessment_id: 'assessment-a',
           duration_minutes: 180,
           started_at: '2026-06-18T01:00:00.000Z',
-          status: 'disqualified',
+          status: 'in_progress',
           timer_policy: 'resume_on_login',
-          can_resume: false,
+          can_resume: true,
           session_reset_count: 2,
           security: expect.objectContaining({
             tab_switch_protection_enabled: true,

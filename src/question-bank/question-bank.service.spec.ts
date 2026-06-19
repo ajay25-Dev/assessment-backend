@@ -54,19 +54,7 @@ describe('QuestionBankService', () => {
           red_flags?: unknown[];
         };
       }>;
-      assessment?: {
-        security?: {
-          tab_switch_protection_enabled?: boolean;
-          max_tab_switch_events?: number;
-          auto_submit_on_max_events?: boolean;
-          camera_proctoring_enabled?: boolean;
-          max_camera_events?: number;
-          auto_submit_on_camera_events?: boolean;
-          copy_paste_block_enabled?: boolean;
-          inspect_mode_block_enabled?: boolean;
-          restart_timer_on_login?: boolean;
-        };
-      };
+      assessment?: { security?: unknown };
     };
     const counts = bank.questions.reduce<Record<string, number>>(
       (summary, question) => {
@@ -87,17 +75,7 @@ describe('QuestionBankService', () => {
       OOPs: 20,
       MCQ: 20,
     });
-    expect(bank.assessment?.security).toMatchObject({
-      tab_switch_protection_enabled: true,
-      max_tab_switch_events: 2,
-      auto_submit_on_max_events: true,
-      camera_proctoring_enabled: true,
-      max_camera_events: 2,
-      auto_submit_on_camera_events: true,
-      copy_paste_block_enabled: true,
-      inspect_mode_block_enabled: true,
-      restart_timer_on_login: true,
-    });
+    expect(bank.assessment?.security).toBeUndefined();
     expect(
       bank.questions
         .filter((question) => question.section === 'DSA')
@@ -120,13 +98,44 @@ describe('QuestionBankService', () => {
     ).toBe(true);
   });
 
+  it('adds table-backed security settings to the public bank response', async () => {
+    const service = new QuestionBankService();
+    const readPolicy = jest
+      .spyOn(service as any, 'readAssessmentSecurityPolicy')
+      .mockResolvedValue({
+        tab_switch_protection_enabled: true,
+        max_tab_switch_events: 3,
+        auto_submit_on_max_events: true,
+        camera_proctoring_enabled: false,
+        max_camera_events: 2,
+        auto_submit_on_camera_events: false,
+        copy_paste_block_enabled: true,
+        inspect_mode_block_enabled: false,
+        restart_timer_on_login: false,
+      });
+
+    try {
+      const publicBank = (await service.getPublicBank()) as {
+        assessment?: { security?: Record<string, unknown> };
+      };
+
+      expect(publicBank.assessment?.security).toMatchObject({
+        tab_switch_protection_enabled: true,
+        max_tab_switch_events: 3,
+        copy_paste_block_enabled: true,
+      });
+    } finally {
+      readPolicy.mockRestore();
+    }
+  });
+
   it('persists explicit false security settings without restoring defaults', async () => {
     const service = new QuestionBankService();
     const bank = (await service.getBank()) as Record<string, unknown>;
     const rawBank = JSON.stringify(bank);
     const readFile = jest.spyOn(fs, 'readFile').mockResolvedValue(rawBank);
-    const writeFile = jest
-      .spyOn(fs, 'writeFile')
+    const savePolicy = jest
+      .spyOn(service as any, 'saveAssessmentSecurityPolicy')
       .mockResolvedValue(undefined);
 
     try {
@@ -141,16 +150,6 @@ describe('QuestionBankService', () => {
         inspect_mode_block_enabled: false,
         restart_timer_on_login: false,
       });
-      const writtenBank = JSON.parse(String(writeFile.mock.calls[0][1])) as {
-        assessment?: {
-          security?: {
-            tab_switch_protection_enabled?: boolean;
-            camera_proctoring_enabled?: boolean;
-            copy_paste_block_enabled?: boolean;
-            restart_timer_on_login?: boolean;
-          };
-        };
-      };
 
       expect(saved).toMatchObject({
         tab_switch_protection_enabled: false,
@@ -161,10 +160,13 @@ describe('QuestionBankService', () => {
         inspect_mode_block_enabled: false,
         restart_timer_on_login: false,
       });
-      expect(writtenBank.assessment?.security).toMatchObject(saved);
+      expect(savePolicy).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining(saved),
+      );
     } finally {
       readFile.mockRestore();
-      writeFile.mockRestore();
+      savePolicy.mockRestore();
     }
   });
 
