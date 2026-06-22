@@ -84,6 +84,7 @@ ALTER TABLE public.student_assessment_reports
   ADD COLUMN IF NOT EXISTS sql_score NUMERIC NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS oops_score NUMERIC NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS mcq_score NUMERIC NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS problem_solving_score NUMERIC NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS readiness_bucket TEXT,
   ADD COLUMN IF NOT EXISTS readiness_reason JSONB,
   ADD COLUMN IF NOT EXISTS strongest_section TEXT,
@@ -407,3 +408,5 @@ WHERE NOT EXISTS (
   WHERE s.name = v.name
      OR s.code = v.code
 );
+
+

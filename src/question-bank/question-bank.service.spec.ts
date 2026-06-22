@@ -112,6 +112,7 @@ describe('QuestionBankService', () => {
         copy_paste_block_enabled: true,
         inspect_mode_block_enabled: false,
         restart_timer_on_login: false,
+        assessment_scoring_details_enabled: true,
       });
 
     try {
@@ -149,6 +150,7 @@ describe('QuestionBankService', () => {
         copy_paste_block_enabled: false,
         inspect_mode_block_enabled: false,
         restart_timer_on_login: false,
+        assessment_scoring_details_enabled: true,
       });
 
       expect(saved).toMatchObject({
@@ -159,6 +161,7 @@ describe('QuestionBankService', () => {
         copy_paste_block_enabled: false,
         inspect_mode_block_enabled: false,
         restart_timer_on_login: false,
+        assessment_scoring_details_enabled: true,
       });
       expect(savePolicy).toHaveBeenCalledWith(
         expect.any(String),
@@ -414,3 +417,4 @@ describe('QuestionBankService', () => {
       });
   });
 });
+

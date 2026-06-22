@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS student_assessment_reports (
   assessment_title TEXT,
   marks_score INT,
   capability_score INT,
+  problem_solving_score INT,
   dsa_score INT,
   sql_score INT,
   oops_score INT,
@@ -149,3 +150,5 @@ CREATE TABLE IF NOT EXISTS student_assessment_reports (
   report_json JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+

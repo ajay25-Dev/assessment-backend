@@ -47,14 +47,9 @@
   },
   "languages": [
     {
-      "id": "python",
-      "label": "Python",
-      "judge0_language_id": 71
-    },
-    {
-      "id": "javascript",
-      "label": "JavaScript",
-      "judge0_language_id": 63
+      "id": "cpp",
+      "label": "C++",
+      "judge0_language_id": 54
     },
     {
       "id": "java",
@@ -62,9 +57,9 @@
       "judge0_language_id": 62
     },
     {
-      "id": "cpp",
-      "label": "C++",
-      "judge0_language_id": 54
+      "id": "python",
+      "label": "Python",
+      "judge0_language_id": 71
     },
     {
       "id": "c",
@@ -111,10 +106,9 @@
         "array"
       ],
       "allowed_languages": [
-        "python",
-        "javascript",
-        "java",
         "cpp",
+        "java",
+        "python",
         "c"
       ],
       "starter_code": {
@@ -487,10 +481,9 @@
         "memo"
       ],
       "allowed_languages": [
-        "python",
-        "javascript",
-        "java",
         "cpp",
+        "java",
+        "python",
         "c"
       ],
       "starter_code": {
@@ -860,10 +853,9 @@
         "array"
       ],
       "allowed_languages": [
-        "python",
-        "javascript",
-        "java",
         "cpp",
+        "java",
+        "python",
         "c"
       ],
       "starter_code": {
@@ -1234,9 +1226,8 @@
       ],
       "allowed_languages": [
         "cpp",
-        "python",
-        "javascript",
         "java",
+        "python",
         "c"
       ],
       "starter_code": {
@@ -1968,10 +1959,8 @@
         ]
       },
       "allowed_languages": [
-        "python",
-        "javascript",
-        "java",
-        "cpp"
+        "cpp",
+        "java"
       ],
       "starter_code": {
         "python": "# Design payment abstractions and checkout flow.\n",
@@ -2219,10 +2208,8 @@
         ]
       },
       "allowed_languages": [
-        "python",
-        "javascript",
-        "java",
-        "cpp"
+        "cpp",
+        "java"
       ],
       "starter_code": {
         "python": "# Design order state classes and transition flow.\n",
@@ -2489,10 +2476,8 @@
         ]
       },
       "allowed_languages": [
-        "python",
-        "javascript",
-        "java",
-        "cpp"
+        "cpp",
+        "java"
       ],
       "starter_code": {
         "python": "# Design notification channel abstractions and manager flow.\n",

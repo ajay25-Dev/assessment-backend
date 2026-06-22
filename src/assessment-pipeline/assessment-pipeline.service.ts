@@ -173,6 +173,7 @@ type AssessmentSecurityPolicy = {
   copy_paste_block_enabled: boolean;
   inspect_mode_block_enabled: boolean;
   restart_timer_on_login: boolean;
+  assessment_scoring_details_enabled: boolean;
 };
 
 type AssessmentSessionInput = {
@@ -2661,3 +2662,4 @@ export class AssessmentPipelineService {
     return Object.entries(scores).sort((a, b) => a[1] - b[1])[0]?.[0] || 'MCQ';
   }
 }
+

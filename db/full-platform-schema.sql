@@ -437,6 +437,7 @@ CREATE TABLE IF NOT EXISTS public.student_assessment_reports (
   assessment_title TEXT,
   marks_score INT,
   capability_score INT,
+  problem_solving_score INT,
   dsa_score INT,
   sql_score INT,
   oops_score INT,
@@ -509,3 +510,5 @@ VALUES
   ('OOPs', 'OOPS', 'coding_without_data', 30, 'Scenario-based OOPs design questions'),
   ('Core CS MCQ', 'MCQ', 'text', 30, 'Core CS, cloud, security, architecture and Excel MCQs')
 ON CONFLICT (code) DO NOTHING;
+
+

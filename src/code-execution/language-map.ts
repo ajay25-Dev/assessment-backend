@@ -7,16 +7,10 @@ export type SupportedLanguage = {
 
 export const supportedLanguages: SupportedLanguage[] = [
   {
-    id: 'python',
-    label: 'Python 3.12',
-    judge0LanguageId: 71,
-    warmupSource: 'print("ok")',
-  },
-  {
-    id: 'javascript',
-    label: 'JavaScript Node 22',
-    judge0LanguageId: 63,
-    warmupSource: 'console.log("ok");',
+    id: 'cpp',
+    label: 'C++ 20 (GCC 14)',
+    judge0LanguageId: 54,
+    warmupSource: '#include <iostream>\nint main(){ std::cout << "ok"; return 0; }',
   },
   {
     id: 'java',
@@ -26,11 +20,10 @@ export const supportedLanguages: SupportedLanguage[] = [
       'public class Main { public static void main(String[] args) { System.out.println("ok"); } }',
   },
   {
-    id: 'cpp',
-    label: 'C++ 20 (GCC 14)',
-    judge0LanguageId: 54,
-    warmupSource:
-      '#include <iostream>\nint main(){ std::cout << "ok"; return 0; }',
+    id: 'python',
+    label: 'Python 3.12',
+    judge0LanguageId: 71,
+    warmupSource: 'print("ok")',
   },
   {
     id: 'c',

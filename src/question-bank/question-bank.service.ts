@@ -18,6 +18,7 @@ type AssessmentSecurityPolicy = {
   copy_paste_block_enabled: boolean;
   inspect_mode_block_enabled: boolean;
   restart_timer_on_login: boolean;
+  assessment_scoring_details_enabled: boolean;
 };
 
 type AssessmentBankShape = {
@@ -38,6 +39,7 @@ const defaultAssessmentSecurityPolicy: AssessmentSecurityPolicy = {
   copy_paste_block_enabled: false,
   inspect_mode_block_enabled: false,
   restart_timer_on_login: false,
+  assessment_scoring_details_enabled: true,
 };
 
 type BankQuestion = {
@@ -162,6 +164,10 @@ export class QuestionBankService {
       restart_timer_on_login: this.booleanValue(
         security.restart_timer_on_login,
         defaultAssessmentSecurityPolicy.restart_timer_on_login,
+      ),
+      assessment_scoring_details_enabled: this.booleanValue(
+        security.assessment_scoring_details_enabled,
+        defaultAssessmentSecurityPolicy.assessment_scoring_details_enabled,
       ),
     };
   }
@@ -325,6 +331,7 @@ export class QuestionBankService {
           'copy_paste_block_enabled',
           'inspect_mode_block_enabled',
           'restart_timer_on_login',
+          'assessment_scoring_details_enabled',
         ].join(','),
       )
       .eq('assessment_id', assessmentId)
@@ -496,6 +503,10 @@ export class QuestionBankService {
       restart_timer_on_login: this.requiredBoolean(
         value.restart_timer_on_login,
         'restart_timer_on_login',
+      ),
+      assessment_scoring_details_enabled: this.requiredBoolean(
+        value.assessment_scoring_details_enabled,
+        'assessment_scoring_details_enabled',
       ),
     };
   }
@@ -1034,3 +1045,4 @@ export class QuestionBankService {
     }
   }
 }
+
