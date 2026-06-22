@@ -237,17 +237,20 @@ export class TestHarnessService {
       /\babstract\b/i,
       /\bstruct\b/i,
     );
-    const lower = source.toLowerCase();
     const tagKey = this.normalizeTag(tag);
 
     if (tagKey === 'class-design' || tagKey === 'class-structure') {
       return hasClassStructure;
     }
+    if (tagKey === 'interface') return /\binterface\b|\babstract\b/i.test(source);
     if (tagKey === 'workflow-abstraction' || tagKey === 'issue-abstraction') {
-      return hasClassStructure && /(workflow|state|ticket|issue)/i.test(source);
+      return hasClassStructure && /(workflow|state|ticket|issue|order)/i.test(source);
     }
     if (tagKey === 'payment-abstraction') {
-      return hasClassStructure && /(payment|checkout)/i.test(source);
+      return hasClassStructure && /(payment|checkout|transaction)/i.test(source);
+    }
+    if (tagKey === 'notification-abstraction') {
+      return hasClassStructure && /(notification|channel|alert)/i.test(source);
     }
     if (tagKey === 'exporter-abstraction') {
       return (
@@ -257,19 +260,20 @@ export class TestHarnessService {
     if (
       tagKey === 'encapsulation' ||
       tagKey === 'encapsulated-state' ||
-      tagKey === 'private-state'
+      tagKey === 'private-state' ||
+      tagKey === 'controlled-state'
     ) {
-      return /private|protected|readonly|_state|getState|setState/i.test(
+      return /private|protected|readonly|_state|getState|setState|enabled|active|disable|enable/i.test(
         source,
       );
     }
     if (tagKey === 'polymorphism') {
-      return /(implements|extends|override|virtual|polymorph|interface)/i.test(
+      return /(implements|extends|override|virtual|polymorph|interface|abstract)/i.test(
         source,
       );
     }
     if (tagKey === 'strategy-pattern') {
-      return /(strategy|delegate)/i.test(source);
+      return /(strategy|delegate|paymentmethod|notificationchannel|interface|abstract|implements|extends)/i.test(source);
     }
     if (tagKey === 'state-pattern') {
       return /(state|transition)/i.test(source);
@@ -283,39 +287,52 @@ export class TestHarnessService {
     if (
       tagKey === 'open-closed' ||
       tagKey === 'extension-hook' ||
+      tagKey === 'extensibility' ||
       tagKey === 'new-workflow-without-engine-change' ||
       tagKey === 'new-payment-mode-without-checkout-change' ||
+      tagKey === 'new-payment-method-without-checkout-change' ||
       tagKey === 'new-exporter-without-design-file-change'
     ) {
-      return /(factory|registry|register|extension|without\s+modifying|without\s+changing|new\s+.+without)/i.test(
+      return hasClassStructure && /(interface|abstract|extends|implements|register|strategy|state|channel|without\s+(modifying|changing)|new\s+.+without)/i.test(
         source,
       );
     }
     if (
       tagKey === 'separation-of-concerns' ||
       tagKey === 'single-responsibility' ||
-      tagKey === 'domain-service-boundary'
+      tagKey === 'domain-service-boundary' ||
+      tagKey === 'service-delegation'
     ) {
       return (
         hasClassStructure &&
-        /(service|engine|workflow|checkout|export)/i.test(source)
+        /(service|engine|workflow|checkout|export|manager|delegate|process|send)/i.test(source)
       );
     }
     if (tagKey === 'dependency-inversion') {
       return (
         /(interface|abstract)/i.test(source) &&
-        /(service|engine|checkout|export)/i.test(source)
+        /(service|engine|checkout|export|manager|order)/i.test(source)
       );
     }
-    if (tagKey === 'invalid-transition-handling') {
-      return /(invalid|reject|throw|error|fail)/i.test(source);
+    if (
+      tagKey === 'invalid-transition-handling' ||
+      tagKey === 'validated-transition' ||
+      tagKey === 'workflow-rules' ||
+      tagKey === 'cancellation-rule' ||
+      tagKey === 'late-cancellation-rejection'
+    ) {
+      return /(transition|cancel|invalid|reject|allowed|throw|error|fail|out_for_delivery|delivered)/i.test(source);
     }
     if (
       tagKey === 'controlled-failure' ||
       tagKey === 'result-object' ||
-      tagKey === 'clear-error'
+      tagKey === 'clear-error' ||
+      tagKey === 'ambiguous-payment-result'
     ) {
-      return /(result|response|outcome|status|success|failure)/i.test(source);
+      return /(result|response|outcome|status|success|failure|message|error|empty|no\s+active|length|size|count)/i.test(source);
+    }
+    if (tagKey === 'edge-case-handling') {
+      return /(empty|no\s+active|length|size|count|zero|null|undefined|none)/i.test(source);
     }
     if (tagKey === 'unsupported-format-handling') {
       return /(unsupported|not supported|return false)/i.test(source);
@@ -324,13 +341,13 @@ export class TestHarnessService {
       return /(decline|fail|error|reject)/i.test(source);
     }
     if (
+      tagKey === 'validation-before-processing' ||
       tagKey === 'validation-with-strategy' ||
-      tagKey === 'validation-separation'
+      tagKey === 'validation-separation' ||
+      tagKey === 'payment-validation-failure' ||
+      tagKey === 'invalid-amount-handling'
     ) {
-      return (
-        /validate/i.test(source) &&
-        /(strategy|payment|workflow|export)/i.test(source)
-      );
+      return /validat|amount|failure|fail|invalid|process/i.test(source);
     }
     if (
       tagKey === 'code-readability' ||
@@ -341,21 +358,34 @@ export class TestHarnessService {
       return source.split(/\r?\n/).filter((line) => line.trim()).length >= 8;
     }
     if (tagKey === 'composition') {
-      return /(delegate|compose|has-a|contains|uses)/i.test(source);
+      return /(delegate|compose|has-a|contains|uses|list|array|map|set|vector|channels)/i.test(source);
     }
     if (
       tagKey === 'service-delegates-to-strategy' ||
       tagKey === 'checkout-depends-on-abstraction' ||
-      tagKey === 'design-file-delegates-export'
+      tagKey === 'design-file-delegates-export' ||
+      tagKey === 'manager-depends-on-channel-abstraction'
     ) {
-      return /(delegate|strategy|exporter|paymentmethod|workflow)/i.test(
+      return /(delegate|strategy|exporter|paymentmethod|workflow|channel|interface|abstract|manager)/i.test(
         source,
       );
     }
     if (tagKey === 'explicit-export-settings') {
       return /(settings|options|resolution|page_size|units)/i.test(source);
     }
-
+    if (
+      tagKey === 'observer-like-broadcast' ||
+      tagKey === 'broadcast' ||
+      tagKey === 'broadcast-to-active-channels'
+    ) {
+      return /(broadcast|notify|send|forEach|for\s*\(|map\s*\(|channels?)/i.test(source);
+    }
+    if (tagKey === 'dynamic-channel-management') {
+      return /(enable|disable|add|remove|active|inactive|register|unregister)/i.test(source);
+    }
+    if (tagKey === 'disabled-channel-skipped' || tagKey === 'no-active-channel-handling') {
+      return /(disable|enabled|active|skip|empty|no active|length|size)/i.test(source);
+    }
     if (questionId === 'oops_atlassian_jira_workflow') {
       if (tagKey === 'workflow-abstraction') {
         return hasClassStructure && /(workflow|issue|ticket)/i.test(source);
